@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Alert, Text, View } from "react-native";
+import { Alert, Text, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { Field, PrimaryButton, Screen, Sub, Title } from "@/components/ui";
+import { PrimaryButton, Screen, Sub, Title } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { toZambianMsisdn } from "@/lib/lipila";
-import { colors } from "@/lib/theme";
+import { colors, fonts, radius } from "@/lib/theme";
 
 export default function PhoneAuth() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
@@ -30,10 +30,30 @@ export default function PhoneAuth() {
   return (
     <Screen>
       <Title>Enter your mobile number</Title>
-      <Sub>We’ll send you an OTP to verify your number.</Sub>
+      <Sub>We'll send you an OTP to verify your number. Account activated after that.</Sub>
       <View style={{ height: 28 }} />
-      <Text style={{ fontWeight: "700", marginBottom: 8, color: colors.ink }}>+260</Text>
-      <Field value={phone} onChangeText={setPhone} placeholder="97 123 4567" keyboardType="phone-pad" />
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          backgroundColor: "#fff",
+          borderRadius: radius.md,
+          borderWidth: 1,
+          borderColor: colors.line,
+          paddingHorizontal: 14,
+          height: 54,
+        }}
+      >
+        <Text style={{ fontFamily: fonts.title, color: colors.ink, marginRight: 10 }}>+260</Text>
+        <TextInput
+          value={phone}
+          onChangeText={setPhone}
+          placeholder="97 123 4567"
+          placeholderTextColor={colors.muted}
+          keyboardType="phone-pad"
+          style={{ flex: 1, fontSize: 16, fontFamily: fonts.body, color: colors.ink }}
+        />
+      </View>
       <View style={{ height: 20 }} />
       <PrimaryButton label="Send OTP" onPress={send} loading={loading} color={colors.gold} />
     </Screen>

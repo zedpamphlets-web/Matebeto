@@ -2,6 +2,8 @@
 
 Food marketplace for Lusaka. Customer chooses food. Matebeto chooses the vendor. OTP completes the order.
 
+**Let's Eat.** · One app, two modes · A product of 6images Advertising.
+
 ## Stack
 
 Expo SDK 52 + React Native 0.76.3 + Supabase + Lipila.
@@ -20,6 +22,34 @@ Linked in `app.json` to the Expo org **matebetos-team**:
 | extra.eas.projectId | 70c2c6ad-a0e0-4a4b-8f69-136bcb7e001a |
 
 That is what EAS uses to find the project when you run `eas build`. You do not need `eas init` again.
+
+## Spec match (developer brief + app-flow image)
+
+The screens now follow the official flow poster:
+
+1. Welcome (customer / rider)
+2. Phone + OTP
+3. Home (markets + featured meals)
+4. Choose Your Market
+5. Food category tiles
+6. Meal + free sides + quantity
+7. Basket
+8. Bicycle / motorbike
+9. Payment summary (food + platform + delivery)
+10. Order placed / tracking
+11. Rider job (accept / pickup / OTP)
+12. Delivered
+13. Order history
+
+Locked V1 rules are implemented in Supabase, not only in the UI.
+
+Still needed before a live launch (not UI):
+
+- Supabase Phone OTP SMS provider
+- Lipila keys on Edge Functions
+- WhatsApp Business API tokens
+- Replace seed vendor WhatsApp numbers with real partners
+- Real GPS map is not in V1 (status tracking is)
 
 ## What is real
 

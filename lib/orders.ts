@@ -57,41 +57,38 @@ export async function startRiderSearch(orderId: string) {
 
 export const TRACK_STEPS = [
   { key: "CREATED", label: "Order received" },
-  { key: "PAYMENT_CONFIRMED", label: "Payment confirmed" },
-  { key: "VENDOR_ACCEPTED", label: "Vendor preparing" },
-  { key: "RIDER_ASSIGNED", label: "Rider assigned" },
-  { key: "PICKED_UP", label: "Picked up" },
+  { key: "SEARCHING_VENDOR", label: "Finding your food partner" },
+  { key: "VENDOR_ACCEPTED", label: "Vendor confirmed" },
+  { key: "PREPARING", label: "Preparing your order" },
+  { key: "RIDER_ASSIGNED", label: "Rider on the way" },
   { key: "OUT_FOR_DELIVERY", label: "Out for delivery" },
   { key: "COMPLETED", label: "Delivered" },
 ];
 
 export function stepDone(status: string, key: string) {
-  const order = [
-    "CREATED",
-    "PAYMENT_CONFIRMED",
-    "SEARCHING_VENDOR",
-    "VENDOR_OFFERED",
-    "VENDOR_ACCEPTED",
-    "SEARCHING_RIDER",
-    "RIDER_ASSIGNED",
-    "PICKED_UP",
-    "OUT_FOR_DELIVERY",
-    "OTP_VERIFIED",
-    "COMPLETED",
-  ];
-  const map: Record<string, string> = {
-    PAYMENT_CONFIRMED: "PAYMENT_CONFIRMED",
-    SEARCHING_VENDOR: "PAYMENT_CONFIRMED",
-    VENDOR_OFFERED: "PAYMENT_CONFIRMED",
-    VENDOR_ACCEPTED: "VENDOR_ACCEPTED",
-    SEARCHING_RIDER: "VENDOR_ACCEPTED",
-    NO_RIDER_AVAILABLE: "VENDOR_ACCEPTED",
-    RIDER_ASSIGNED: "RIDER_ASSIGNED",
-    PICKED_UP: "PICKED_UP",
-    OUT_FOR_DELIVERY: "OUT_FOR_DELIVERY",
-    OTP_VERIFIED: "COMPLETED",
-    COMPLETED: "COMPLETED",
+  const rank: Record<string, number> = {
+    CREATED: 0,
+    PAYMENT_CONFIRMED: 1,
+    SEARCHING_VENDOR: 1,
+    VENDOR_OFFERED: 1,
+    VENDOR_ACCEPTED: 2,
+    SEARCHING_RIDER: 3,
+    NO_RIDER_AVAILABLE: 3,
+    PREPARING: 3,
+    RIDER_ASSIGNED: 4,
+    PICKED_UP: 5,
+    OUT_FOR_DELIVERY: 5,
+    OTP_VERIFIED: 6,
+    COMPLETED: 6,
   };
-  const current = map[status] || status;
-  return order.indexOf(current) >= order.indexOf(key);
+  const keyRank: Record<string, number> = {
+    CREATED: 0,
+    SEARCHING_VENDOR: 1,
+    VENDOR_ACCEPTED: 2,
+    PREPARING: 3,
+    RIDER_ASSIGNED: 4,
+    OUT_FOR_DELIVERY: 5,
+    COMPLETED: 6,
+  };
+  return (rank[status] ?? -1) >= (keyRank[key] ?? 99);
 }

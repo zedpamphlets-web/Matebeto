@@ -28,5 +28,12 @@ Deno.serve(async (req) => {
   if (!accept && !decline) return json({ ok: true, pending: true });
 
   await db.rpc("respond_vendor", { p_order: order.id, p_accept: accept });
+
+  if (accept) {
+    await db.rpc("offer_next_rider", { p_order: order.id });
+  } else {
+    await db.rpc("offer_next_vendor", { p_order: order.id });
+  }
+
   return json({ ok: true, accepted: accept });
 });

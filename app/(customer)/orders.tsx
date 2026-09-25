@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { supabase } from "@/lib/supabase";
-import { colors, radius } from "@/lib/theme";
+import { colors, fonts, radius } from "@/lib/theme";
 import { formatKw } from "@/lib/lipila";
 
 export default function Orders() {
@@ -34,22 +34,43 @@ export default function Orders() {
               backgroundColor: tab === t ? colors.ink : "transparent",
             }}
           >
-            <Text style={{ color: tab === t ? "#fff" : colors.ink, fontWeight: "800", textTransform: "capitalize" }}>{t}</Text>
+            <Text
+              style={{
+                color: tab === t ? "#fff" : colors.ink,
+                fontFamily: fonts.title,
+                textTransform: "capitalize",
+              }}
+            >
+              {t}
+            </Text>
           </Pressable>
         ))}
       </View>
-      {list.length === 0 && <Text style={{ color: colors.muted }}>No {tab} orders.</Text>}
+      {list.length === 0 && (
+        <Text style={{ color: colors.muted, fontFamily: fonts.body }}>No {tab} orders.</Text>
+      )}
       {list.map((o) => (
         <Pressable
           key={o.id}
           onPress={() => router.push(`/order/${o.id}`)}
           style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 16, marginBottom: 10 }}
         >
-          <Text style={{ fontWeight: "800" }}>#{o.order_number}</Text>
-          <Text style={{ color: colors.muted, marginTop: 4 }}>{o.status.replaceAll("_", " ")}</Text>
-          <Text style={{ marginTop: 6, fontWeight: "800" }}>{formatKw(o.total)}</Text>
+          <Text style={{ fontFamily: fonts.title }}>#{o.order_number}</Text>
+          <Text style={{ color: colors.muted, marginTop: 4, fontFamily: fonts.body, textTransform: "capitalize" }}>
+            {o.delivery_type} · {friendlyStatus(o.status)}
+          </Text>
+          <Text style={{ marginTop: 6, fontFamily: fonts.display }}>{formatKw(o.total)}</Text>
         </Pressable>
       ))}
     </ScrollView>
   );
+}
+
+function friendlyStatus(status: string) {
+  if (status === "COMPLETED") return "Completed";
+  if (status === "OUT_FOR_DELIVERY") return "On the way";
+  if (status === "VENDOR_ACCEPTED") return "Preparing";
+  if (status === "NO_VENDOR_FOUND") return "No vendor found";
+  if (status === "NO_RIDER_AVAILABLE") return "Waiting for a rider";
+  return status.replaceAll("_", " ").toLowerCase();
 }

@@ -3,7 +3,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { supabase } from "@/lib/supabase";
-import { colors, radius } from "@/lib/theme";
+import { colors, fonts, radius } from "@/lib/theme";
 import { formatKw } from "@/lib/lipila";
 
 export default function Market() {
@@ -23,8 +23,8 @@ export default function Market() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: "#F4F6F3" }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      <Text style={{ fontSize: 24, fontWeight: "800" }}>{market?.name}</Text>
-      <Text style={{ color: colors.muted, marginBottom: 14 }}>Categories</Text>
+      <Text style={{ fontSize: 13, fontFamily: fonts.bodySemi, color: colors.muted }}>FOOD CATEGORIES</Text>
+      <Text style={{ fontSize: 24, fontFamily: fonts.display, marginBottom: 14 }}>{market?.name}</Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
         {categories.map((c) => (
           <Pressable
@@ -34,13 +34,24 @@ export default function Market() {
               width: "47%",
               borderRadius: radius.md,
               overflow: "hidden",
-              backgroundColor: "#fff",
-              borderWidth: active === c.id ? 2 : 0,
+              backgroundColor: "#111",
+              borderWidth: active === c.id ? 3 : 0,
               borderColor: colors.gold,
             }}
           >
-            <Image source={{ uri: c.image_url }} style={{ height: 92, width: "100%" }} contentFit="cover" />
-            <Text style={{ fontWeight: "800", padding: 10 }}>{c.name}</Text>
+            <Image source={{ uri: c.image_url }} style={{ height: 110, width: "100%" }} contentFit="cover" />
+            <View
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: 0,
+                padding: 10,
+                backgroundColor: "rgba(0,0,0,0.45)",
+              }}
+            >
+              <Text style={{ fontFamily: fonts.title, color: "#fff" }}>{c.name}</Text>
+            </View>
           </Pressable>
         ))}
       </View>
@@ -59,9 +70,11 @@ export default function Market() {
             >
               <Image source={{ uri: meal.image_url }} style={{ width: 92, height: 92 }} contentFit="cover" />
               <View style={{ flex: 1, padding: 12 }}>
-                <Text style={{ fontWeight: "800" }}>{meal.name}</Text>
-                <Text numberOfLines={2} style={{ color: colors.muted, marginTop: 4 }}>{meal.description}</Text>
-                <Text style={{ marginTop: 6, fontWeight: "800" }}>{formatKw(meal.price)}</Text>
+                <Text style={{ fontFamily: fonts.title }}>{meal.name}</Text>
+                <Text numberOfLines={2} style={{ color: colors.muted, marginTop: 4, fontFamily: fonts.body }}>
+                  {meal.description}
+                </Text>
+                <Text style={{ marginTop: 6, fontFamily: fonts.title }}>{formatKw(meal.price)}</Text>
               </View>
             </Pressable>
           ))}
