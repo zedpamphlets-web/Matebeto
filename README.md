@@ -27,10 +27,12 @@ That is what EAS uses to find the project when you run `eas build`. You do not n
 
 The app does not ship stock photos, fake vendors, or sample meals.
 
-- Markets Thornpark, Longacres, Olympia exist as **names only** until admin adds real photos.
-- Categories exist as **names only**.
+- Markets Thornpark, Longacres, Olympia exist as **names only** until admin uploads real photos from the phone.
+- Categories exist as **names only** until admin uploads a food photo for each tile.
 - Meals, sides, vendors and WhatsApp numbers are added in **Admin**.
-- If a photo URL is empty, the screen shows a Matebeto colour tile — not a downloaded picture of someone else's food.
+- Photos are uploaded from the phone (or camera) into the Supabase `catalog` bucket. Do not paste random stock URLs.
+- If a photo is empty, the screen shows a Matebeto colour tile — not a downloaded picture of someone else's food.
+- Home banner photo is set in Admin → Fees.
 
 ## Spec match (developer brief + app-flow image)
 
@@ -74,7 +76,7 @@ Nothing here marks an order paid or delivered unless Lipila or the customer OTP 
 ## Setup
 
 1. Create a Supabase project.
-2. Run `supabase/schema.sql` then `supabase/seed.sql`.
+2. Run `supabase/schema.sql`, then `supabase/seed.sql`, then `supabase/storage.sql`.
 3. Enable Phone auth. Add SMS later.
 4. Copy `.env.example` to `.env` with your project URL and anon key.
 5. Deploy functions:

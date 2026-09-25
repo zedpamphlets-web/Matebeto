@@ -3,6 +3,7 @@ import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { colors, fonts, radius } from "@/lib/theme";
 import { Field, PrimaryButton } from "@/components/ui";
+import { PhotoPicker } from "@/components/photo-picker";
 import { formatKw } from "@/lib/lipila";
 
 export default function Catalog() {
@@ -12,9 +13,11 @@ export default function Catalog() {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [desc, setDesc] = useState("");
-  const [image, setImage] = useState("");
+  const [image, setImage] = useState<string | null>(null);
   const [sideList, setSideList] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [catName, setCatName] = useState("");
+  const [catImage, setCatImage] = useState<string | null>(null);
 
   async function load() {
     const [{ data: m }, { data: c }, { data: s }] = await Promise.all([
@@ -31,6 +34,25 @@ export default function Catalog() {
     load();
   }, []);
 
+  async function addCategory() {
+    if (!catName.trim()) return Alert.alert("Category", "Name is required.");
+    const { error } = await supabase.from("categories").insert({
+      name: catName.trim(),
+      image_url: catImage,
+      sort_order: categories.length + 1,
+    });
+    if (error) return Alert.alert("Category", error.message);
+    setCatName("");
+    setCatImage(null);
+    load();
+  }
+
+  async function saveCategoryPhoto(c: any, url: string | null) {
+    const { error } = await supabase.from("categories").update({ image_url: url }).eq("id", c.id);
+    if (error) Alert.alert("Category", error.message);
+    load();
+  }
+
   async function add() {
     if (!name.trim() || !price) return Alert.alert("Meal", "Name and price are required.");
     const { data, error } = await supabase
@@ -39,7 +61,7 @@ export default function Catalog() {
         name: name.trim(),
         description: desc.trim() || null,
         price: Number(price),
-        image_url: image.trim() || null,
+        image_url: image,
         category_id: categoryId || null,
         is_available: true,
         is_featured: false,
@@ -57,7 +79,14 @@ export default function Catalog() {
     setName("");
     setPrice("");
     setDesc("");
-    setImage("");
+    setImage(null);
+    setSideList("");
+    load();
+  }
+
+  async function saveMealPhoto(m: any, url: string | null) {
+    const { error } = await supabase.from("meals").update({ image_url: url }).eq("id", m.id);
+    if (error) Alert.alert("Meal", error.message);
     load();
   }
 
@@ -69,14 +98,36 @@ export default function Catalog() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      <Text style={{ fontFamily: fonts.title, fontSize: 18 }}>Add meal</Text>
+      <Text style={{ fontFamily: fonts.title, fontSize: 18 }}>Categories</Text>
       <Text style={{ color: colors.muted, fontFamily: fonts.body, marginBottom: 10 }}>
-        Use a real meal name, Kwacha price, and a photo URL you own. Sides are included in the price.
+        These tiles appear after a customer picks a market. Upload a food photo from the phone for each category.
+      </Text>
+      <Field value={catName} onChangeText={setCatName} placeholder="Category name" />
+      <View style={{ height: 8 }} />
+      <PhotoPicker folder="categories" uri={catImage} name={catName || "Category"} onChange={setCatImage} height={110} />
+      <PrimaryButton label="Save category" onPress={addCategory} />
+      <View style={{ height: 12 }} />
+      {categories.map((c) => (
+        <View key={c.id} style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 12, marginBottom: 8 }}>
+          <Text style={{ fontFamily: fonts.title, marginBottom: 8 }}>{c.name}</Text>
+          <PhotoPicker folder={`categories/${c.id}`} uri={c.image_url} name={c.name} onChange={(url) => saveCategoryPhoto(c, url)} height={110} />
+        </View>
+      ))}
+
+      <Text style={{ fontFamily: fonts.title, fontSize: 18, marginTop: 10 }}>Add meal</Text>
+      <Text style={{ color: colors.muted, fontFamily: fonts.body, marginBottom: 10 }}>
+        Real meal name, Kwacha price, and a photo from your phone. Sides are included in the price.
       </Text>
       <Text style={{ fontFamily: fonts.bodySemi, marginBottom: 6 }}>Category</Text>
       {categories.map((c) => (
         <Pressable key={c.id} onPress={() => setCategoryId(c.id)}>
-          <Text style={{ fontFamily: categoryId === c.id ? fonts.title : fonts.body, marginBottom: 4, color: categoryId === c.id ? colors.customerDeep : colors.ink }}>
+          <Text
+            style={{
+              fontFamily: categoryId === c.id ? fonts.title : fonts.body,
+              marginBottom: 4,
+              color: categoryId === c.id ? colors.customerDeep : colors.ink,
+            }}
+          >
             {c.name}
           </Text>
         </Pressable>
@@ -88,8 +139,7 @@ export default function Catalog() {
       <View style={{ height: 8 }} />
       <Field value={desc} onChangeText={setDesc} placeholder="Description" />
       <View style={{ height: 8 }} />
-      <Field value={image} onChangeText={setImage} placeholder="Photo URL (optional)" />
-      <View style={{ height: 8 }} />
+      <PhotoPicker folder="meals" uri={image} name={name || "Meal"} onChange={setImage} />
       <Field value={sideList} onChangeText={setSideList} placeholder="Included sides, comma separated" />
       <View style={{ height: 10 }} />
       <PrimaryButton label="Save meal" onPress={add} />
@@ -100,10 +150,11 @@ export default function Catalog() {
           <Text style={{ fontFamily: fonts.title }}>
             {m.name} · {formatKw(m.price)}
           </Text>
-          <Text style={{ color: colors.muted, fontFamily: fonts.body }}>
-            {(sides.filter((s) => s.meal_id === m.id).map((s) => s.name).join(", ") || "No sides")}
+          <Text style={{ color: colors.muted, fontFamily: fonts.body, marginBottom: 8 }}>
+            {sides.filter((s) => s.meal_id === m.id).map((s) => s.name).join(", ") || "No sides"}
           </Text>
-          <Pressable onPress={() => toggle(m, "is_featured")} style={{ marginTop: 8 }}>
+          <PhotoPicker folder={`meals/${m.id}`} uri={m.image_url} name={m.name} onChange={(url) => saveMealPhoto(m, url)} height={110} />
+          <Pressable onPress={() => toggle(m, "is_featured")} style={{ marginTop: 4 }}>
             <Text style={{ fontFamily: fonts.bodySemi, color: colors.goldDeep }}>
               {m.is_featured ? "Featured on home" : "Not featured"}
             </Text>

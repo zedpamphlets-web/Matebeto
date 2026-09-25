@@ -42,14 +42,12 @@ export default function Market() {
               borderColor: colors.gold,
             }}
           >
-            <Photo uri={c.image_url} name={c.name} height={110} />
+            <Photo uri={c.image_url} name={c.name} height={118} overlay />
           </Pressable>
         ))}
       </View>
       {active && shown.length === 0 && (
-        <Text style={{ marginTop: 18, color: colors.muted, fontFamily: fonts.body }}>
-          No meals in this category yet.
-        </Text>
+        <Text style={{ marginTop: 18, color: colors.muted, fontFamily: fonts.body }}>No meals in this category yet.</Text>
       )}
       {active && (
         <View style={{ marginTop: 18 }}>

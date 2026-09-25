@@ -95,7 +95,8 @@ create table if not exists public.settings (
   platform_fee numeric(12,2) not null default 10,
   bicycle_delivery_fee numeric(12,2) not null default 15,
   motorbike_delivery_fee numeric(12,2) not null default 25,
-  support_phone text
+  support_phone text,
+  home_banner_url text
 );
 
 insert into public.settings (id) values (1) on conflict (id) do nothing;
