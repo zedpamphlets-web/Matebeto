@@ -3,7 +3,7 @@ import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { currentProfile } from "@/lib/session";
-import { colors, radius } from "@/lib/theme";
+import { colors, fonts, radius } from "@/lib/theme";
 import { PrimaryButton } from "@/components/ui";
 
 export default function RiderHome() {
@@ -35,7 +35,7 @@ export default function RiderHome() {
   if (!rider) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.cream, padding: 24 }}>
-        <Text style={{ fontSize: 22, fontWeight: "800" }}>Rider mode</Text>
+        <Text style={{ fontSize: 22, fontFamily: fonts.display }}>Rider mode</Text>
         <Text style={{ color: colors.muted, marginTop: 8 }}>Apply first, then wait for approval.</Text>
         <View style={{ height: 16 }} />
         <PrimaryButton label="Apply" color={colors.rider} textColor="#fff" onPress={() => router.push("/auth/rider-apply")} />
@@ -46,7 +46,7 @@ export default function RiderHome() {
   if (rider.status !== "APPROVED") {
     return (
       <View style={{ flex: 1, backgroundColor: colors.cream, padding: 24 }}>
-        <Text style={{ fontSize: 22, fontWeight: "800" }}>Status: {rider.status}</Text>
+        <Text style={{ fontSize: 22, fontFamily: fonts.display }}>Status: {rider.status}</Text>
         <Text style={{ color: colors.muted, marginTop: 8 }}>Only approved riders receive jobs.</Text>
       </View>
     );
@@ -54,7 +54,7 @@ export default function RiderHome() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ padding: 20 }}>
-      <Text style={{ fontSize: 22, fontWeight: "800" }}>{rider.full_name}</Text>
+      <Text style={{ fontSize: 22, fontFamily: fonts.display }}>{rider.full_name}</Text>
       <Text style={{ color: colors.muted, textTransform: "capitalize" }}>{rider.vehicle_type}</Text>
       <View style={{ height: 14 }} />
       <PrimaryButton
@@ -66,7 +66,7 @@ export default function RiderHome() {
       {rider.current_order_id && (
         <PrimaryButton label="Open current job" color={colors.ink} textColor="#fff" onPress={() => router.push(`/(rider)/job/${rider.current_order_id}`)} />
       )}
-      <Text style={{ marginTop: 22, fontWeight: "800" }}>Delivery requests</Text>
+      <Text style={{ marginTop: 22, fontFamily: fonts.title }}>Delivery requests</Text>
       {offers.length === 0 && <Text style={{ color: colors.muted, marginTop: 8 }}>No jobs right now.</Text>}
       {offers.map((off) => (
         <Pressable
@@ -74,7 +74,7 @@ export default function RiderHome() {
           onPress={() => router.push(`/(rider)/job/${off.orders.id}`)}
           style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 16, marginTop: 10 }}
         >
-          <Text style={{ fontWeight: "800" }}>Order #{off.orders.order_number}</Text>
+          <Text style={{ fontFamily: fonts.title }}>Order #{off.orders.order_number}</Text>
           <Text style={{ color: colors.muted }}>{off.orders.delivery_type} · {off.orders.delivery_address?.text}</Text>
         </Pressable>
       ))}

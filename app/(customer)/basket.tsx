@@ -47,7 +47,9 @@ export default function Basket() {
               alignItems: "center",
             }}
           >
-            <Photo uri={it.image_url} name={it.name} height={64} width={64} />
+            <View style={{ borderRadius: 12, overflow: "hidden" }}>
+              <Photo uri={it.image_url} name={it.name} height={64} width={64} />
+            </View>
             <View style={{ flex: 1, marginLeft: 10 }}>
               <Text style={{ fontFamily: fonts.title }}>
                 {it.quantity} × {it.name}

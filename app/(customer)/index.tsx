@@ -40,7 +40,7 @@ export default function Home() {
   );
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.wash }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.wash }} contentContainerStyle={{ padding: 16, paddingTop: 54, paddingBottom: 40 }}>
       <View
         style={{
           backgroundColor: colors.customerDeep,

@@ -29,6 +29,7 @@ export default function CustomerTabs() {
       <Tabs.Screen
         name="index"
         options={{
+          headerShown: false,
           title: "Matebeto",
           tabBarLabel: "Home",
           tabBarIcon: ({ color }) => <Ionicons name="home" size={22} color={color} />,
