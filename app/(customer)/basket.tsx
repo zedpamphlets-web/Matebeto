@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
-import { Image } from "expo-image";
+import { Photo } from "@/components/photo";
 import { clearBasket, foodTotal, loadBasket, saveBasket, type BasketState } from "@/lib/basket";
 import { formatKw } from "@/lib/lipila";
 import { colors, fonts, radius } from "@/lib/theme";
@@ -47,7 +47,7 @@ export default function Basket() {
               alignItems: "center",
             }}
           >
-            <Image source={{ uri: it.image_url }} style={{ width: 64, height: 64, borderRadius: 10 }} />
+            <Photo uri={it.image_url} name={it.name} height={64} width={64} />
             <View style={{ flex: 1, marginLeft: 10 }}>
               <Text style={{ fontFamily: fonts.title }}>
                 {it.quantity} × {it.name}

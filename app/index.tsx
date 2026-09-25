@@ -1,4 +1,4 @@
-import { ImageBackground, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,22 +22,16 @@ export default function Welcome() {
 
   return (
     <View style={styles.wrap}>
-      <ImageBackground
-        source={{ uri: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1400" }}
-        style={styles.hero}
-        imageStyle={{ opacity: 0.58 }}
-      >
-        <View style={styles.heroDim}>
-          <View style={styles.pills}>
-            <Pill icon="restaurant" label="Good food" />
-            <Pill icon="flame" label="Real flavours" />
-            <Pill icon="heart" label="Traditional meals" />
-            <Pill icon="bicycle" label="Delivered" />
-          </View>
-          <BrandMark size={42} />
-          <Text style={styles.line}>One App.{"\n"}Two Ways to Serve You.</Text>
+      <View style={styles.hero}>
+        <View style={styles.pills}>
+          <Pill icon="restaurant" label="Good food" />
+          <Pill icon="flame" label="Real flavours" />
+          <Pill icon="heart" label="Traditional meals" />
+          <Pill icon="bicycle" label="Delivered" />
         </View>
-      </ImageBackground>
+        <BrandMark size={42} />
+        <Text style={styles.line}>One App.{"\n"}Two Ways to Serve You.</Text>
+      </View>
       <View style={styles.sheet}>
         <PrimaryButton
           label="I'm a Customer"
@@ -68,10 +62,9 @@ function Pill({ icon, label }: { icon: keyof typeof Ionicons.glyphMap; label: st
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.night },
-  hero: { flex: 1 },
-  heroDim: {
+  hero: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.48)",
+    backgroundColor: colors.customerDeep,
     padding: 28,
     justifyContent: "flex-end",
     paddingBottom: 36,
@@ -81,7 +74,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: "rgba(0,0,0,0.28)",
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,

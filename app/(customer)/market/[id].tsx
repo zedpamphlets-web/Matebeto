@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
+import { Photo } from "@/components/photo";
 import { supabase } from "@/lib/supabase";
 import { colors, fonts, radius } from "@/lib/theme";
 import { formatKw } from "@/lib/lipila";
@@ -22,9 +22,12 @@ export default function Market() {
   const shown = active ? meals.filter((m) => m.category_id === active) : [];
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: "#F4F6F3" }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.wash }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
       <Text style={{ fontSize: 13, fontFamily: fonts.bodySemi, color: colors.muted }}>FOOD CATEGORIES</Text>
       <Text style={{ fontSize: 24, fontFamily: fonts.display, marginBottom: 14 }}>{market?.name}</Text>
+      {categories.length === 0 && (
+        <Text style={{ color: colors.muted, fontFamily: fonts.body }}>No categories yet. Admin adds them.</Text>
+      )}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
         {categories.map((c) => (
           <Pressable
@@ -34,27 +37,20 @@ export default function Market() {
               width: "47%",
               borderRadius: radius.md,
               overflow: "hidden",
-              backgroundColor: "#111",
+              backgroundColor: colors.ink,
               borderWidth: active === c.id ? 3 : 0,
               borderColor: colors.gold,
             }}
           >
-            <Image source={{ uri: c.image_url }} style={{ height: 110, width: "100%" }} contentFit="cover" />
-            <View
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                bottom: 0,
-                padding: 10,
-                backgroundColor: "rgba(0,0,0,0.45)",
-              }}
-            >
-              <Text style={{ fontFamily: fonts.title, color: "#fff" }}>{c.name}</Text>
-            </View>
+            <Photo uri={c.image_url} name={c.name} height={110} />
           </Pressable>
         ))}
       </View>
+      {active && shown.length === 0 && (
+        <Text style={{ marginTop: 18, color: colors.muted, fontFamily: fonts.body }}>
+          No meals in this category yet.
+        </Text>
+      )}
       {active && (
         <View style={{ marginTop: 18 }}>
           {shown.map((meal) => (
@@ -68,7 +64,7 @@ export default function Market() {
               }
               style={{ flexDirection: "row", backgroundColor: "#fff", borderRadius: radius.md, overflow: "hidden", marginBottom: 12 }}
             >
-              <Image source={{ uri: meal.image_url }} style={{ width: 92, height: 92 }} contentFit="cover" />
+              <Photo uri={meal.image_url} name={meal.name} height={92} width={92} />
               <View style={{ flex: 1, padding: 12 }}>
                 <Text style={{ fontFamily: fonts.title }}>{meal.name}</Text>
                 <Text numberOfLines={2} style={{ color: colors.muted, marginTop: 4, fontFamily: fonts.body }}>

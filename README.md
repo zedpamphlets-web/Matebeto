@@ -23,7 +23,17 @@ Linked in `app.json` to the Expo org **matebetos-team**:
 
 That is what EAS uses to find the project when you run `eas build`. You do not need `eas init` again.
 
+## No fake catalog
+
+The app does not ship stock photos, fake vendors, or sample meals.
+
+- Markets Thornpark, Longacres, Olympia exist as **names only** until admin adds real photos.
+- Categories exist as **names only**.
+- Meals, sides, vendors and WhatsApp numbers are added in **Admin**.
+- If a photo URL is empty, the screen shows a Matebeto colour tile — not a downloaded picture of someone else's food.
+
 ## Spec match (developer brief + app-flow image)
+
 
 The screens now follow the official flow poster:
 

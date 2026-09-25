@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { Alert, ScrollView, Text, View } from "react-native";
-import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { loadBasket, saveBasket } from "@/lib/basket";
 import { colors, fonts } from "@/lib/theme";
 import { formatKw } from "@/lib/lipila";
 import { CheckRow, PrimaryButton, QtyStepper } from "@/components/ui";
+import { Photo } from "@/components/photo";
 
 export default function MealDetail() {
   const { id, marketId, marketName } = useLocalSearchParams<{ id: string; marketId?: string; marketName?: string }>();
@@ -57,7 +57,7 @@ export default function MealDetail() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ paddingBottom: 32 }}>
-      <Image source={{ uri: meal.image_url }} style={{ height: 240, width: "100%" }} contentFit="cover" />
+      <Photo uri={meal.image_url} name={meal.name} height={240} />
       <View style={{ padding: 20 }}>
         <Text style={{ fontSize: 26, fontFamily: fonts.display }}>{meal.name}</Text>
         <Text style={{ fontSize: 22, fontFamily: fonts.display, color: colors.goldDeep, marginTop: 4 }}>
