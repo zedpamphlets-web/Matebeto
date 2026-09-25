@@ -1,7 +1,8 @@
 {
   "expo": {
     "name": "Matebeto",
-    "slug": "matebeto",
+    "slug": "matebeto-team",
+    "owner": "matebetos-team",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -57,7 +58,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "REPLACE_AFTER_EAS_INIT"
+        "projectId": "70c2c6ad-a0e0-4a4b-8f69-136bcb7e001a"
       }
     }
   }

@@ -8,6 +8,19 @@ Expo SDK 52 + React Native 0.76.3 + Supabase + Lipila.
 
 Same EAS versions as the previous working Marketplace repo so Android preview builds do not fail on Kotlin / SDK mismatch.
 
+## Expo project
+
+Linked in `app.json` to the Expo org **matebetos-team**:
+
+| Field | Value |
+| --- | --- |
+| name | Matebeto |
+| slug | matebeto-team |
+| owner | matebetos-team |
+| extra.eas.projectId | 70c2c6ad-a0e0-4a4b-8f69-136bcb7e001a |
+
+That is what EAS uses to find the project when you run `eas build`. You do not need `eas init` again.
+
 ## What is real
 
 - Phone OTP through Supabase Auth (needs your SMS provider)
@@ -43,8 +56,7 @@ insert into public.platform_admins (user_id) values ('YOUR-USER-UUID');
 
 7. Replace vendor WhatsApp numbers in Admin with real partners.
 8. `npm install` then `npx expo start`
-9. `npx eas-cli init` and put the new projectId in `app.json`
-10. `eas build --platform android --profile preview`
+9. `eas build --platform android --profile preview`
 
 ## Later (you said you will send these)
 
