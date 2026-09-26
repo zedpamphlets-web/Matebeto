@@ -1,7 +1,7 @@
 name: Preview APK for testing
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 jobs:
   android_preview_apk:
