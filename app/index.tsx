@@ -1,12 +1,13 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { PrimaryButton } from "@/components/ui";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandMark } from "@/components/brand";
 import { colors, fonts } from "@/lib/theme";
 import { currentProfile } from "@/lib/session";
-import { isSupabaseConfigured } from "@/lib/supabase";
 
 export default function Welcome() {
   const [ready, setReady] = useState(false);
@@ -15,13 +16,14 @@ export default function Welcome() {
     let cancelled = false;
     const timer = setTimeout(() => {
       if (!cancelled) setReady(true);
-    }, 2500);
+    }, 1800);
 
     currentProfile()
-      .then(({ user, admin }) => {
+      .then(({ user, admin, rider, preview }) => {
         if (cancelled) return;
         if (admin) router.replace("/admin");
-        else if (user) router.replace("/(customer)");
+        else if (preview && rider) router.replace("/(rider)");
+        else if (preview || user) router.replace("/(customer)");
         setReady(true);
       })
       .catch(() => {
@@ -34,87 +36,122 @@ export default function Welcome() {
     };
   }, []);
 
-  if (!ready) return <View style={{ flex: 1, backgroundColor: colors.night }} />;
+  if (!ready) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#000" }}>
+        <Image source={require("../assets/splash.png")} style={StyleSheet.absoluteFillObject} contentFit="contain" />
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.wrap}>
-      <View style={styles.hero}>
-        <View style={styles.pills}>
-          <Pill icon="restaurant" label="Good food" />
-          <Pill icon="flame" label="Real flavours" />
-          <Pill icon="heart" label="Traditional meals" />
-          <Pill icon="bicycle" label="Delivered" />
+    <View style={styles.root}>
+      <Image source={require("../assets/welcome-food.jpg")} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+      <LinearGradient
+        colors={["rgba(0,0,0,0.78)", "rgba(0,0,0,0.42)", "rgba(0,0,0,0.12)", "rgba(0,0,0,0.55)"]}
+        locations={[0, 0.28, 0.58, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.copy}>
+          <View style={styles.glass}>
+            <BrandMark size={58} />
+            <Text style={styles.one}>One App.</Text>
+            <Text style={styles.two}>Two Ways to Serve You.</Text>
+          </View>
         </View>
-        <BrandMark size={42} />
-        <Text style={styles.line}>One App.{"\n"}Two Ways to Serve You.</Text>
-        {!isSupabaseConfigured ? (
-          <Text style={styles.warn}>
-            This APK was built without Supabase keys. Add EXPO_PUBLIC_SUPABASE_URL and
-            EXPO_PUBLIC_SUPABASE_ANON_KEY to EAS Preview (plaintext or sensitive), then rebuild.
-          </Text>
-        ) : null}
-      </View>
-      <View style={styles.sheet}>
-        <PrimaryButton
-          label="I'm a Customer"
-          color={colors.customer}
-          textColor="#fff"
-          onPress={() => router.push({ pathname: "/auth/phone", params: { mode: "customer" } })}
-        />
-        <View style={{ height: 12 }} />
-        <PrimaryButton
-          label="I'm a Rider"
-          color={colors.rider}
-          textColor="#fff"
-          onPress={() => router.push({ pathname: "/auth/phone", params: { mode: "rider" } })}
-        />
-      </View>
+        <View style={styles.actions}>
+          <RoleButton
+            color={colors.customer}
+            icon="person"
+            label="I'm a Customer"
+            onPress={() => router.push({ pathname: "/auth/phone", params: { mode: "customer" } })}
+          />
+          <RoleButton
+            color={colors.rider}
+            icon="bicycle"
+            label="I'm a Rider"
+            onPress={() => router.push({ pathname: "/auth/phone", params: { mode: "rider" } })}
+          />
+        </View>
+      </SafeAreaView>
     </View>
   );
 }
 
-function Pill({ icon, label }: { icon: keyof typeof Ionicons.glyphMap; label: string }) {
+function RoleButton({
+  color,
+  icon,
+  label,
+  onPress,
+}: {
+  color: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+}) {
   return (
-    <View style={styles.pill}>
-      <Ionicons name={icon} size={12} color={colors.gold} />
-      <Text style={styles.pillText}>{label}</Text>
-    </View>
+    <Pressable onPress={onPress} style={[styles.role, { backgroundColor: color }]}>
+      <View style={styles.roleIcon}>
+        <Ionicons name={icon} size={26} color="#fff" />
+      </View>
+      <Text style={styles.roleLabel}>{label}</Text>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: colors.night },
-  hero: {
-    flex: 1,
-    backgroundColor: colors.customerDeep,
-    padding: 28,
-    justifyContent: "flex-end",
-    paddingBottom: 36,
+  root: { flex: 1, backgroundColor: "#000" },
+  safe: { flex: 1, justifyContent: "space-between", paddingHorizontal: 22, paddingBottom: 28 },
+  copy: { paddingTop: 36, alignItems: "center" },
+  glass: {
+    width: "100%",
+    alignItems: "center",
+    paddingVertical: 22,
+    paddingHorizontal: 16,
+    borderRadius: 28,
+    backgroundColor: "rgba(0,0,0,0.28)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
   },
-  pills: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 18 },
-  pill: {
+  one: {
+    marginTop: 22,
+    color: colors.gold,
+    fontFamily: fonts.display,
+    fontSize: 34,
+    letterSpacing: -0.6,
+    textAlign: "center",
+  },
+  two: {
+    marginTop: 6,
+    color: "#F4F4F4",
+    fontFamily: fonts.bodySemi,
+    fontSize: 18,
+    textAlign: "center",
+  },
+  actions: { gap: 14, paddingBottom: 8 },
+  role: {
+    height: 64,
+    borderRadius: 36,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(0,0,0,0.28)",
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingLeft: 8,
+    paddingRight: 18,
   },
-  pillText: { color: "#F3E6C8", fontFamily: fonts.bodySemi, fontSize: 11 },
-  line: {
-    color: "#F3E6C8",
-    marginTop: 14,
-    fontSize: 18,
-    lineHeight: 26,
+  roleIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  roleLabel: {
+    flex: 1,
+    textAlign: "center",
+    color: "#fff",
     fontFamily: fonts.title,
+    fontSize: 18,
+    marginRight: 42,
   },
-  warn: {
-    color: colors.gold,
-    marginTop: 16,
-    fontSize: 13,
-    lineHeight: 18,
-    fontFamily: fonts.body,
-  },
-  sheet: { padding: 22, paddingBottom: 40, backgroundColor: colors.night },
 });

@@ -3,16 +3,20 @@
     "name": "Matebeto",
     "slug": "matebeto-team",
     "owner": "matebetos-team",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "scheme": "matebeto",
     "platforms": ["ios", "android"],
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#111111"
+      "backgroundColor": "#000000"
+    },
+    "androidStatusBar": {
+      "backgroundColor": "#000000",
+      "barStyle": "light-content"
     },
     "runtimeVersion": {
       "policy": "appVersion"
@@ -20,11 +24,11 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.siximages.matebeto",
-      "buildNumber": "2"
+      "buildNumber": "3"
     },
     "android": {
       "package": "com.siximages.matebeto",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F4A300"

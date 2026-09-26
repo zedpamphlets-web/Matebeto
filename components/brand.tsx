@@ -1,33 +1,50 @@
 import { Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/lib/theme";
 
 export function BrandMark({
-  size = 34,
+  size = 52,
   color = colors.gold,
-  tagColor = "#fff",
+  tagColor = colors.gold,
   showTag = true,
+  align = "center",
 }: {
   size?: number;
   color?: string;
   tagColor?: string;
   showTag?: boolean;
+  align?: "center" | "left";
 }) {
   return (
-    <View>
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <Text style={{ fontFamily: fonts.display, fontSize: size, color, letterSpacing: -0.8 }}>
-          Matebeto
-        </Text>
-        <Ionicons name="restaurant" size={size * 0.62} color={color} style={{ marginLeft: 6 }} />
-      </View>
+    <View style={{ alignItems: align === "center" ? "center" : "flex-start" }}>
+      <Text
+        style={{
+          fontFamily: fonts.script,
+          fontSize: size,
+          color,
+          lineHeight: size * 1.25,
+          textAlign: align,
+        }}
+      >
+        Matebeto
+      </Text>
+      <View
+        style={{
+          width: size * 1.55,
+          height: 2,
+          backgroundColor: color,
+          borderRadius: 2,
+          marginTop: -4,
+          opacity: 0.9,
+        }}
+      />
       {showTag ? (
         <Text
           style={{
-            fontFamily: fonts.title,
+            fontFamily: fonts.italic,
             color: tagColor,
-            fontSize: Math.max(13, size * 0.38),
-            marginTop: 2,
+            fontSize: Math.max(14, size * 0.32),
+            marginTop: 8,
+            textAlign: align,
           }}
         >
           Let's Eat.

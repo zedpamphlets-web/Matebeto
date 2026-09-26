@@ -3,7 +3,7 @@ import { Alert, Text, View } from "react-native";
 import { router } from "expo-router";
 import { Field, PrimaryButton, Screen, Title } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
-import { currentProfile } from "@/lib/session";
+import { currentProfile, signOutApp } from "@/lib/session";
 import { colors } from "@/lib/theme";
 
 export default function Settings() {
@@ -53,7 +53,7 @@ export default function Settings() {
         label="Log out"
         color="#fff"
         onPress={async () => {
-          await supabase.auth.signOut();
+          await signOutApp();
           router.replace("/");
         }}
       />
