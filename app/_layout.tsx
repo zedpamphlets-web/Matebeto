@@ -9,7 +9,7 @@ import { colors } from "@/lib/theme";
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function Root() {
-  const [loaded] = useFonts({
+  const [loaded, error] = useFonts({
     Sora_700Bold,
     Sora_800ExtraBold,
     Inter_400Regular,
@@ -17,10 +17,10 @@ export default function Root() {
   });
 
   useEffect(() => {
-    if (loaded) SplashScreen.hideAsync().catch(() => {});
-  }, [loaded]);
+    if (loaded || error) SplashScreen.hideAsync().catch(() => {});
+  }, [loaded, error]);
 
-  if (!loaded) return null;
+  if (!loaded && !error) return null;
 
   return (
     <>

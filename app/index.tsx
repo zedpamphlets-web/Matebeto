@@ -6,16 +6,32 @@ import { PrimaryButton } from "@/components/ui";
 import { BrandMark } from "@/components/brand";
 import { colors, fonts } from "@/lib/theme";
 import { currentProfile } from "@/lib/session";
+import { isSupabaseConfigured } from "@/lib/supabase";
 
 export default function Welcome() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    currentProfile().then(({ user, admin }) => {
-      if (admin) router.replace("/admin");
-      else if (user) router.replace("/(customer)");
-      setReady(true);
-    });
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      if (!cancelled) setReady(true);
+    }, 2500);
+
+    currentProfile()
+      .then(({ user, admin }) => {
+        if (cancelled) return;
+        if (admin) router.replace("/admin");
+        else if (user) router.replace("/(customer)");
+        setReady(true);
+      })
+      .catch(() => {
+        if (!cancelled) setReady(true);
+      });
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, []);
 
   if (!ready) return <View style={{ flex: 1, backgroundColor: colors.night }} />;
@@ -31,6 +47,12 @@ export default function Welcome() {
         </View>
         <BrandMark size={42} />
         <Text style={styles.line}>One App.{"\n"}Two Ways to Serve You.</Text>
+        {!isSupabaseConfigured ? (
+          <Text style={styles.warn}>
+            This APK was built without Supabase keys. Add EXPO_PUBLIC_SUPABASE_URL and
+            EXPO_PUBLIC_SUPABASE_ANON_KEY to EAS Preview (plaintext or sensitive), then rebuild.
+          </Text>
+        ) : null}
       </View>
       <View style={styles.sheet}>
         <PrimaryButton
@@ -86,6 +108,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 26,
     fontFamily: fonts.title,
+  },
+  warn: {
+    color: colors.gold,
+    marginTop: 16,
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: fonts.body,
   },
   sheet: { padding: 22, paddingBottom: 40, backgroundColor: colors.night },
 });
