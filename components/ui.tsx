@@ -127,15 +127,18 @@ export function MoneyRow({
   label,
   value,
   bold,
+  light,
 }: {
   label: string;
   value: string;
   bold?: boolean;
+  light?: boolean;
 }) {
+  const color = light ? "#fff" : colors.ink;
   return (
     <View style={styles.moneyRow}>
-      <Text style={[styles.moneyLabel, bold && styles.moneyBold]}>{label}</Text>
-      <Text style={[styles.moneyValue, bold && styles.moneyBold]}>{value}</Text>
+      <Text style={[styles.moneyLabel, { color }, bold && styles.moneyBold]}>{label}</Text>
+      <Text style={[styles.moneyValue, { color }, bold && styles.moneyBold]}>{value}</Text>
     </View>
   );
 }

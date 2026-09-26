@@ -77,6 +77,8 @@ create table if not exists public.riders (
   address_text text,
   vehicle_type text not null check (vehicle_type in ('bicycle', 'motorbike')),
   licence_info text,
+  licence_front_url text,
+  licence_back_url text,
   ownership_note text,
   smartphone_confirmed boolean not null default true,
   status text not null default 'PENDING' check (status in ('PENDING','APPROVED','REJECTED','SUSPENDED')),
@@ -502,7 +504,9 @@ create or replace function public.apply_rider(
   p_address text,
   p_vehicle text,
   p_licence text,
-  p_ownership text
+  p_ownership text,
+  p_licence_front text default null,
+  p_licence_back text default null
 ) returns public.riders
 language plpgsql security definer set search_path = public as $$
 declare
@@ -510,8 +514,14 @@ declare
 begin
   if auth.uid() is null then raise exception 'Not signed in'; end if;
   if p_vehicle not in ('bicycle','motorbike') then raise exception 'Vehicle must be bicycle or motorbike'; end if;
-  insert into public.riders (user_id, full_name, phone, address_text, vehicle_type, licence_info, ownership_note, status)
-  values (auth.uid(), p_full_name, p_phone, p_address, p_vehicle, p_licence, p_ownership, 'PENDING')
+  insert into public.riders (
+    user_id, full_name, phone, address_text, vehicle_type, licence_info, ownership_note,
+    licence_front_url, licence_back_url, status
+  )
+  values (
+    auth.uid(), p_full_name, p_phone, p_address, p_vehicle, p_licence, p_ownership,
+    p_licence_front, p_licence_back, 'PENDING'
+  )
   on conflict (user_id) do update
     set full_name = excluded.full_name,
         phone = excluded.phone,
@@ -519,6 +529,8 @@ begin
         vehicle_type = excluded.vehicle_type,
         licence_info = excluded.licence_info,
         ownership_note = excluded.ownership_note,
+        licence_front_url = excluded.licence_front_url,
+        licence_back_url = excluded.licence_back_url,
         status = case when public.riders.status = 'APPROVED' then public.riders.status else 'PENDING' end
   returning * into v_row;
   return v_row;

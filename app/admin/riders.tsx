@@ -2,6 +2,16 @@ import { useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { colors, fonts, radius } from "@/lib/theme";
+import { Photo } from "@/components/photo";
+
+function licenceUrl(row: any, side: "FRONT" | "BACK") {
+  if (side === "FRONT" && row.licence_front_url) return row.licence_front_url;
+  if (side === "BACK" && row.licence_back_url) return row.licence_back_url;
+  const line = String(row.licence_info || "")
+    .split("\n")
+    .find((part: string) => part.startsWith(`${side}:`));
+  return line ? line.slice(side.length + 1) : null;
+}
 
 export default function AdminRiders() {
   const [rows, setRows] = useState<any[]>([]);
@@ -35,6 +45,20 @@ export default function AdminRiders() {
             {r.is_online ? " · online" : ""}
           </Text>
           {r.address_text ? <Text style={{ fontFamily: fonts.body, marginTop: 4 }}>{r.address_text}</Text> : null}
+          {(licenceUrl(r, "FRONT") || licenceUrl(r, "BACK")) && (
+            <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
+              {licenceUrl(r, "FRONT") ? (
+                <View style={{ flex: 1, borderRadius: 10, overflow: "hidden" }}>
+                  <Photo uri={licenceUrl(r, "FRONT")} name="Front" height={88} />
+                </View>
+              ) : null}
+              {licenceUrl(r, "BACK") ? (
+                <View style={{ flex: 1, borderRadius: 10, overflow: "hidden" }}>
+                  <Photo uri={licenceUrl(r, "BACK")} name="Back" height={88} />
+                </View>
+              ) : null}
+            </View>
+          )}
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
             <Pressable onPress={() => setStatus(r.id, "APPROVED")} style={chip(colors.customer)}>
               <Text style={{ color: "#fff", fontFamily: fonts.bodySemi }}>Approve</Text>

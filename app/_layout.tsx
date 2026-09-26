@@ -49,7 +49,7 @@ export default function Root() {
         <Stack.Screen name="index" />
         <Stack.Screen name="auth/phone" />
         <Stack.Screen name="auth/otp" />
-        <Stack.Screen name="auth/rider-apply" options={{ headerShown: true, title: "Rider application", headerTintColor: "#111", contentStyle: { backgroundColor: "#F7F4EE" } }} />
+        <Stack.Screen name="auth/rider-apply" options={{ headerShown: false, contentStyle: { backgroundColor: "#000" } }} />
         <Stack.Screen name="(customer)" />
         <Stack.Screen name="(rider)" />
         <Stack.Screen name="admin" />

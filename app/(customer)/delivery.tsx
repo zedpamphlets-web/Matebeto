@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { colors, fonts, radius } from "@/lib/theme";
 import { formatKw } from "@/lib/lipila";
-import { Field, PrimaryButton } from "@/components/ui";
+import { AppHeader, DarkField, DarkScreen, GoldButton } from "@/components/app-shell";
 import { currentProfile } from "@/lib/session";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -41,60 +41,62 @@ export default function DeliveryType() {
   ];
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: "#F4F6F3" }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-      {options.map((t) => (
-        <Pressable
-          key={t.id}
-          onPress={() => setDelivery(t.id)}
-          style={{
-            backgroundColor: "#fff",
-            borderRadius: radius.md,
-            padding: 18,
-            marginBottom: 12,
-            borderWidth: 2,
-            borderColor: delivery === t.id ? colors.gold : colors.line,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 14,
-          }}
-        >
-          <View
+    <DarkScreen>
+      <AppHeader title="Choose Delivery Type" back />
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+        {options.map((t) => (
+          <Pressable
+            key={t.id}
+            onPress={() => setDelivery(t.id)}
             style={{
-              width: 48,
-              height: 48,
-              borderRadius: 24,
-              backgroundColor: delivery === t.id ? colors.goldSoft : colors.cream,
+              backgroundColor: "#141414",
+              borderRadius: radius.md,
+              padding: 18,
+              marginBottom: 12,
+              borderWidth: 2,
+              borderColor: delivery === t.id ? colors.gold : "rgba(255,255,255,0.1)",
+              flexDirection: "row",
               alignItems: "center",
-              justifyContent: "center",
+              gap: 14,
             }}
           >
-            <Ionicons name={t.icon} size={24} color={colors.ink} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: fonts.title, fontSize: 18 }}>{t.title}</Text>
-            <Text style={{ color: colors.muted, marginTop: 4, fontFamily: fonts.body }}>{t.hint}</Text>
-          </View>
-          <Text style={{ fontFamily: fonts.display, fontSize: 18 }}>{formatKw(t.fee)}</Text>
-        </Pressable>
-      ))}
+            <View
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: delivery === t.id ? colors.gold : "#222",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons name={t.icon} size={24} color={colors.ink} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: fonts.title, fontSize: 18, color: "#fff" }}>{t.title}</Text>
+              <Text style={{ color: "#8A8A8A", marginTop: 4, fontFamily: fonts.body }}>{t.hint}</Text>
+            </View>
+            <Text style={{ fontFamily: fonts.display, fontSize: 18, color: colors.gold }}>{formatKw(t.fee)}</Text>
+          </Pressable>
+        ))}
 
-      <Text style={{ marginTop: 8, marginBottom: 8, fontFamily: fonts.title }}>Delivery details</Text>
-      <Field value={address} onChangeText={setAddress} placeholder="Delivery address" />
-      <View style={{ height: 10 }} />
-      <Field value={notes} onChangeText={setNotes} placeholder="Notes for the rider (optional)" />
-      <View style={{ height: 20 }} />
-      <PrimaryButton
-        label="Continue"
-        onPress={async () => {
-          if (!address.trim()) {
-            Alert.alert("Delivery details", "Add a delivery address.");
-            return;
-          }
-          await AsyncStorage.setItem("matebeto.delivery", delivery);
-          await AsyncStorage.setItem("matebeto.address", JSON.stringify({ text: address, notes }));
-          router.push("/(customer)/checkout");
-        }}
-      />
-    </ScrollView>
+        <Text style={{ marginTop: 8, marginBottom: 8, fontFamily: fonts.title, color: "#fff" }}>Delivery details</Text>
+        <DarkField value={address} onChangeText={setAddress} placeholder="Delivery address" />
+        <DarkField value={notes} onChangeText={setNotes} placeholder="Notes for the rider (optional)" />
+        <View style={{ height: 10 }} />
+        <GoldButton
+          label="Continue"
+          onPress={async () => {
+            if (!address.trim()) {
+              Alert.alert("Delivery details", "Add a delivery address.");
+              return;
+            }
+            await AsyncStorage.setItem("matebeto.delivery", delivery);
+            await AsyncStorage.setItem("matebeto.address", JSON.stringify({ text: address, notes }));
+            router.push("/(customer)/checkout");
+          }}
+        />
+      </ScrollView>
+    </DarkScreen>
   );
 }

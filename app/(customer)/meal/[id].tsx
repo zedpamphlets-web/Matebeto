@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { Alert, ScrollView, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { loadBasket, saveBasket } from "@/lib/basket";
 import { colors, fonts } from "@/lib/theme";
 import { formatKw } from "@/lib/lipila";
-import { CheckRow, PrimaryButton, QtyStepper } from "@/components/ui";
+import { QtyStepper } from "@/components/ui";
 import { Photo } from "@/components/photo";
+import { AppHeader, DarkScreen, GoldButton } from "@/components/app-shell";
 
 export default function MealDetail() {
   const { id, marketId, marketName } = useLocalSearchParams<{ id: string; marketId?: string; marketName?: string }>();
@@ -53,33 +55,55 @@ export default function MealDetail() {
     router.push("/(customer)/basket");
   }
 
-  if (!meal) return <View style={{ flex: 1, backgroundColor: colors.cream }} />;
+  if (!meal) return <DarkScreen />;
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ paddingBottom: 32 }}>
-      <Photo uri={meal.image_url} name={meal.name} height={240} />
-      <View style={{ padding: 20 }}>
-        <Text style={{ fontSize: 26, fontFamily: fonts.display }}>{meal.name}</Text>
-        <Text style={{ fontSize: 22, fontFamily: fonts.display, color: colors.goldDeep, marginTop: 4 }}>
-          {formatKw(meal.price)}
-        </Text>
-        <Text style={{ color: colors.muted, marginTop: 10, lineHeight: 22, fontFamily: fonts.body }}>{meal.description}</Text>
-        <Text style={{ marginTop: 20, fontFamily: fonts.title, fontSize: 18 }}>Choose Your Sides (Free)</Text>
-        <Text style={{ color: colors.muted, marginBottom: 8, fontFamily: fonts.body }}>
-          Included with the meal. No extra charge.
-        </Text>
-        {sides.map((s) => (
-          <CheckRow
-            key={s}
-            label={s}
-            on={selected.includes(s)}
-            onPress={() => setSelected((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]))}
-          />
-        ))}
-        <Text style={{ marginTop: 16, fontFamily: fonts.title }}>Quantity</Text>
-        <QtyStepper value={qty} onChange={setQty} />
-        <PrimaryButton label={`Add to Basket · ${formatKw(Number(meal.price) * qty)}`} onPress={add} />
-      </View>
-    </ScrollView>
+    <DarkScreen>
+      <AppHeader title="Meal" back />
+      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+        <Photo uri={meal.image_url} name={meal.name} height={240} />
+        <View style={{ padding: 20 }}>
+          <Text style={{ fontSize: 26, fontFamily: fonts.display, color: "#fff" }}>{meal.name}</Text>
+          <Text style={{ fontSize: 22, fontFamily: fonts.display, color: colors.gold, marginTop: 4 }}>
+            {formatKw(meal.price)}
+          </Text>
+          <Text style={{ color: "#B3B3B3", marginTop: 10, lineHeight: 22, fontFamily: fonts.body }}>{meal.description}</Text>
+          <Text style={{ marginTop: 20, fontFamily: fonts.title, fontSize: 18, color: "#fff" }}>Included Sides (Free)</Text>
+          <Text style={{ color: "#8A8A8A", marginBottom: 8, fontFamily: fonts.body }}>
+            Included with the meal. No extra charge.
+          </Text>
+          {sides.map((s) => {
+            const on = selected.includes(s);
+            return (
+              <Pressable
+                key={s}
+                onPress={() => setSelected((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]))}
+                style={{ flexDirection: "row", alignItems: "center", paddingVertical: 10 }}
+              >
+                <View
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 6,
+                    marginRight: 12,
+                    backgroundColor: on ? colors.customer : "transparent",
+                    borderWidth: 1.5,
+                    borderColor: on ? colors.customer : "rgba(255,255,255,0.25)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {on ? <Ionicons name="checkmark" size={16} color="#fff" /> : null}
+                </View>
+                <Text style={{ fontFamily: fonts.bodySemi, fontSize: 16, color: "#fff" }}>{s}</Text>
+              </Pressable>
+            );
+          })}
+          <Text style={{ marginTop: 16, fontFamily: fonts.title, color: "#fff" }}>Quantity</Text>
+          <QtyStepper value={qty} onChange={setQty} />
+          <GoldButton label={`Add to Basket · ${formatKw(Number(meal.price) * qty)}`} onPress={add} />
+        </View>
+      </ScrollView>
+    </DarkScreen>
   );
 }

@@ -22,7 +22,7 @@ export default function Welcome() {
       .then(({ user, admin, rider, preview }) => {
         if (cancelled) return;
         if (admin) router.replace("/admin");
-        else if (preview && rider) router.replace("/(rider)");
+        else if (rider?.status === "APPROVED") router.replace("/(rider)");
         else if (preview || user) router.replace("/(customer)");
         setReady(true);
       })

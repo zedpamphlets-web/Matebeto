@@ -16,37 +16,30 @@ export default function CustomerTabs() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: colors.customerDeep },
-        headerTintColor: "#fff",
-        headerShadowVisible: false,
-        headerTitleStyle: { fontFamily: fonts.title },
-        tabBarActiveTintColor: colors.customerDeep,
-        tabBarInactiveTintColor: colors.muted,
+        headerShown: false,
+        tabBarActiveTintColor: colors.gold,
+        tabBarInactiveTintColor: "#8A8A8A",
         tabBarLabelStyle: { fontFamily: fonts.bodySemi, fontSize: 11 },
-        tabBarStyle: { backgroundColor: "#fff", borderTopColor: colors.line, height: 64, paddingTop: 6 },
+        tabBarStyle: {
+          backgroundColor: "#0B0B0B",
+          borderTopColor: "rgba(255,255,255,0.08)",
+          height: 64,
+          paddingTop: 6,
+        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          headerShown: false,
-          title: "Matebeto",
+          title: "Home",
           tabBarLabel: "Home",
           tabBarIcon: ({ color }) => <Ionicons name="home" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="markets"
-        options={{
-          title: "Choose Your Market",
-          tabBarLabel: "Markets",
-          tabBarIcon: ({ color }) => <Ionicons name="grid" size={22} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="basket"
         options={{
-          title: "Your Basket",
+          title: "Basket",
           tabBarLabel: "Basket",
           tabBarBadge: count || undefined,
           tabBarBadgeStyle: { backgroundColor: colors.gold, color: colors.ink, fontFamily: fonts.bodySemi },
@@ -54,23 +47,20 @@ export default function CustomerTabs() {
         }}
       />
       <Tabs.Screen
-        name="orders"
+        name="menu"
         options={{
-          title: "My Orders",
-          tabBarIcon: ({ color }) => <Ionicons name="receipt-outline" size={22} color={color} />,
+          title: "Menu",
+          tabBarLabel: "Menu",
+          tabBarIcon: ({ color }) => <Ionicons name="menu" size={22} color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: "Settings",
-          tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={22} color={color} />,
-        }}
-      />
-      <Tabs.Screen name="market/[id]" options={{ href: null, title: "Categories" }} />
-      <Tabs.Screen name="meal/[id]" options={{ href: null, title: "Meal" }} />
-      <Tabs.Screen name="delivery" options={{ href: null, title: "Choose Delivery Type" }} />
-      <Tabs.Screen name="checkout" options={{ href: null, title: "Payment Summary" }} />
+      <Tabs.Screen name="markets" options={{ href: null }} />
+      <Tabs.Screen name="orders" options={{ href: null }} />
+      <Tabs.Screen name="settings" options={{ href: null }} />
+      <Tabs.Screen name="market/[id]" options={{ href: null }} />
+      <Tabs.Screen name="meal/[id]" options={{ href: null }} />
+      <Tabs.Screen name="delivery" options={{ href: null }} />
+      <Tabs.Screen name="checkout" options={{ href: null }} />
     </Tabs>
   );
 }

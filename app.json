@@ -55,8 +55,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Matebeto to pick food photos from your phone.",
-          "cameraPermission": "Allow Matebeto to take food photos for markets, meals and categories."
+          "photosPermission": "Allow Matebeto to pick food and licence photos from your phone.",
+          "cameraPermission": "Allow Matebeto to take food and licence photos."
         }
       ]
     ],

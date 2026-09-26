@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
+import { AppHeader, DarkScreen } from "@/components/app-shell";
 import { supabase } from "@/lib/supabase";
 import { colors, fonts, radius } from "@/lib/theme";
 import { formatKw } from "@/lib/lipila";
@@ -20,49 +21,59 @@ export default function Orders() {
   const list = tab === "current" ? current : past;
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: "#F4F6F3" }} contentContainerStyle={{ padding: 16 }}>
-      <View style={{ flexDirection: "row", backgroundColor: "#fff", borderRadius: 14, marginBottom: 14 }}>
-        {(["current", "past"] as const).map((t) => (
-          <Pressable
-            key={t}
-            onPress={() => setTab(t)}
-            style={{
-              flex: 1,
-              padding: 12,
-              alignItems: "center",
-              borderRadius: 14,
-              backgroundColor: tab === t ? colors.ink : "transparent",
-            }}
-          >
-            <Text
+    <DarkScreen>
+      <AppHeader title="My Orders" onMenu={() => router.push("/(customer)/menu")} />
+      <ScrollView contentContainerStyle={{ padding: 16 }}>
+        <View style={{ flexDirection: "row", backgroundColor: "#141414", borderRadius: 14, marginBottom: 14 }}>
+          {(["current", "past"] as const).map((t) => (
+            <Pressable
+              key={t}
+              onPress={() => setTab(t)}
               style={{
-                color: tab === t ? "#fff" : colors.ink,
-                fontFamily: fonts.title,
-                textTransform: "capitalize",
+                flex: 1,
+                padding: 12,
+                alignItems: "center",
+                borderRadius: 14,
+                backgroundColor: tab === t ? colors.gold : "transparent",
               }}
             >
-              {t}
+              <Text
+                style={{
+                  color: tab === t ? colors.ink : "#fff",
+                  fontFamily: fonts.title,
+                  textTransform: "capitalize",
+                }}
+              >
+                {t}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        {list.length === 0 && (
+          <Text style={{ color: "#8A8A8A", fontFamily: fonts.body }}>No {tab} orders.</Text>
+        )}
+        {list.map((o) => (
+          <Pressable
+            key={o.id}
+            onPress={() => router.push(`/order/${o.id}`)}
+            style={{
+              backgroundColor: "#141414",
+              borderRadius: radius.md,
+              padding: 16,
+              marginBottom: 10,
+              borderWidth: 1,
+              borderColor: "rgba(255,255,255,0.08)",
+            }}
+          >
+            <Text style={{ fontFamily: fonts.title, color: "#fff" }}>#{o.order_number}</Text>
+            <Text style={{ color: "#8A8A8A", marginTop: 4, fontFamily: fonts.body, textTransform: "capitalize" }}>
+              {o.delivery_type} · {friendlyStatus(o.status)}
             </Text>
+            <Text style={{ marginTop: 6, fontFamily: fonts.display, color: colors.gold }}>{formatKw(o.total)}</Text>
           </Pressable>
         ))}
-      </View>
-      {list.length === 0 && (
-        <Text style={{ color: colors.muted, fontFamily: fonts.body }}>No {tab} orders.</Text>
-      )}
-      {list.map((o) => (
-        <Pressable
-          key={o.id}
-          onPress={() => router.push(`/order/${o.id}`)}
-          style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 16, marginBottom: 10 }}
-        >
-          <Text style={{ fontFamily: fonts.title }}>#{o.order_number}</Text>
-          <Text style={{ color: colors.muted, marginTop: 4, fontFamily: fonts.body, textTransform: "capitalize" }}>
-            {o.delivery_type} · {friendlyStatus(o.status)}
-          </Text>
-          <Text style={{ marginTop: 6, fontFamily: fonts.display }}>{formatKw(o.total)}</Text>
-        </Pressable>
-      ))}
-    </ScrollView>
+      </ScrollView>
+    </DarkScreen>
   );
 }
 

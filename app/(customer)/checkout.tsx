@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Field, MoneyRow, PrimaryButton } from "@/components/ui";
+import { MoneyRow } from "@/components/ui";
+import { AppHeader, DarkField, DarkScreen, GoldButton } from "@/components/app-shell";
 import { colors, fonts, radius } from "@/lib/theme";
 import { loadBasket, foodTotal, clearBasket } from "@/lib/basket";
 import { supabase } from "@/lib/supabase";
@@ -69,49 +70,55 @@ export default function Checkout() {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-      <View style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 16, marginBottom: 16 }}>
-        <MoneyRow label="Food Total" value={formatKw(food)} />
-        <MoneyRow label="Platform Fee" value={formatKw(platform)} />
-        <MoneyRow label="Delivery Fee" value={formatKw(deliveryFee)} />
-        <View style={{ height: 1, backgroundColor: colors.line, marginVertical: 10 }} />
-        <MoneyRow label="Total" value={formatKw(total)} bold />
-      </View>
+    <DarkScreen>
+      <AppHeader title="Payment Summary" back />
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+        <View
+          style={{
+            backgroundColor: "#141414",
+            borderRadius: radius.md,
+            padding: 16,
+            marginBottom: 16,
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.08)",
+          }}
+        >
+          <MoneyRow label="Food Total" value={formatKw(food)} light />
+          <MoneyRow label="Platform Fee" value={formatKw(platform)} light />
+          <MoneyRow label="Delivery Fee" value={formatKw(deliveryFee)} light />
+          <View style={{ height: 1, backgroundColor: "rgba(255,255,255,0.1)", marginVertical: 10 }} />
+          <MoneyRow label="Total" value={formatKw(total)} bold light />
+        </View>
 
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 18 }}>
-        <Ionicons name="shield-checkmark" size={18} color={colors.customer} />
-        <Text style={{ color: colors.muted, fontFamily: fonts.body }}>Secure payment. Your payment is protected.</Text>
-      </View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 18 }}>
+          <Ionicons name="shield-checkmark" size={18} color={colors.customer} />
+          <Text style={{ color: "#8A8A8A", fontFamily: fonts.body }}>Secure payment. Your payment is protected.</Text>
+        </View>
 
-      <Text style={{ fontFamily: fonts.title }}>Pay with Lipila</Text>
-      <View style={{ flexDirection: "row", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-        {LIPILA_PROVIDERS.map((p) => (
-          <Pressable
-            key={p.id}
-            onPress={() => setProvider(p.id)}
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-              borderRadius: 12,
-              backgroundColor: "#fff",
-              borderWidth: 2,
-              borderColor: provider === p.id ? colors.gold : colors.line,
-            }}
-          >
-            <Text style={{ fontFamily: fonts.bodySemi }}>{p.label}</Text>
-          </Pressable>
-        ))}
-      </View>
-      <View style={{ height: 10 }} />
-      <Field value={phone} onChangeText={setPhone} placeholder="Mobile money number" keyboardType="phone-pad" />
-      <View style={{ height: 16 }} />
-      <PrimaryButton
-        label={`Pay Now · ${formatKw(total)}`}
-        color={colors.customer}
-        textColor="#fff"
-        onPress={pay}
-        loading={loading}
-      />
-    </ScrollView>
+        <Text style={{ fontFamily: fonts.title, color: "#fff" }}>Pay with Lipila</Text>
+        <View style={{ flexDirection: "row", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+          {LIPILA_PROVIDERS.map((p) => (
+            <Pressable
+              key={p.id}
+              onPress={() => setProvider(p.id)}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                borderRadius: 12,
+                backgroundColor: "#141414",
+                borderWidth: 2,
+                borderColor: provider === p.id ? colors.gold : "rgba(255,255,255,0.12)",
+              }}
+            >
+              <Text style={{ fontFamily: fonts.bodySemi, color: "#fff" }}>{p.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <View style={{ height: 10 }} />
+        <DarkField value={phone} onChangeText={setPhone} placeholder="Mobile money number" keyboardType="phone-pad" />
+        <View style={{ height: 8 }} />
+        <GoldButton label={loading ? "Please wait…" : `Pay Now · ${formatKw(total)}`} onPress={pay} disabled={loading} />
+      </ScrollView>
+    </DarkScreen>
   );
 }

@@ -1,23 +1,29 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
-import { clearPreviewSession, getPreviewSession } from "@/lib/preview";
+import {
+  clearPreviewRiderApplication,
+  clearPreviewSession,
+  getPreviewRiderApplication,
+  getPreviewSession,
+} from "@/lib/preview";
 
 export async function currentProfile() {
   const preview = await getPreviewSession();
   if (preview) {
+    const application = await getPreviewRiderApplication();
     return {
       user: { id: "preview-user", phone: preview.phone },
-      profile: { user_id: "preview-user", phone: preview.phone, full_name: "Guest" },
-      rider:
-        preview.mode === "rider"
-          ? {
-              id: "preview-rider",
-              user_id: "preview-user",
-              status: "APPROVED",
-              vehicle_type: "motorbike",
-              full_name: "Guest rider",
-              is_online: true,
-            }
-          : null,
+      profile: {
+        user_id: "preview-user",
+        phone: preview.phone,
+        full_name: "",
+        address_text: application?.address_text || "",
+      },
+      rider: application
+        ? {
+            ...application,
+            current_order_id: null,
+          }
+        : null,
       admin: false,
       preview: true,
     };
@@ -42,6 +48,7 @@ export async function currentProfile() {
 
 export async function signOutApp() {
   await clearPreviewSession();
+  await clearPreviewRiderApplication();
   if (isSupabaseConfigured) {
     try {
       await supabase.auth.signOut();
