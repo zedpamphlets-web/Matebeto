@@ -1,14 +1,11 @@
-name: Build Android APK
+name: Preview APK for testing
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 jobs:
-  build_android:
-    name: Build Android APK
+  android_preview_apk:
+    name: Build test APK
     type: build
     params:
       platform: android
