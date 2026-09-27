@@ -33,7 +33,9 @@ export default function CustomerTabs() {
         options={{
           title: "Home",
           tabBarLabel: "Home",
-          tabBarIcon: ({ color }) => <Ionicons name="home" size={22} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "home" : "home-outline"} size={22} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -42,8 +44,24 @@ export default function CustomerTabs() {
           title: "Basket",
           tabBarLabel: "Basket",
           tabBarBadge: count || undefined,
-          tabBarBadgeStyle: { backgroundColor: colors.gold, color: colors.ink, fontFamily: fonts.bodySemi },
-          tabBarIcon: ({ color }) => <Ionicons name="basket" size={22} color={color} />,
+          tabBarBadgeStyle: {
+            backgroundColor: colors.gold,
+            color: colors.ink,
+            fontFamily: fonts.bodySemi,
+          },
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "basket" : "basket-outline"} size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="orders"
+        options={{
+          title: "Orders",
+          tabBarLabel: "Orders",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "wallet" : "wallet-outline"} size={22} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -51,11 +69,12 @@ export default function CustomerTabs() {
         options={{
           title: "Menu",
           tabBarLabel: "Menu",
-          tabBarIcon: ({ color }) => <Ionicons name="menu" size={22} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "menu" : "menu-outline"} size={22} color={color} />
+          ),
         }}
       />
       <Tabs.Screen name="markets" options={{ href: null }} />
-      <Tabs.Screen name="orders" options={{ href: null }} />
       <Tabs.Screen name="settings" options={{ href: null }} />
       <Tabs.Screen name="market/[id]" options={{ href: null }} />
       <Tabs.Screen name="meal/[id]" options={{ href: null }} />

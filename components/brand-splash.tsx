@@ -1,21 +1,17 @@
-import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { BrandMark } from "@/components/brand";
 import { colors, fonts } from "@/lib/theme";
 
 export function BrandSplash({
   message = "Loading",
-  useImage = false,
 }: {
   message?: string;
-  useImage?: boolean;
 }) {
   return (
     <View style={styles.root}>
-      {useImage ? (
-        <Image source={require("../assets/splash.png")} style={styles.image} resizeMode="contain" />
-      ) : (
-        <BrandMark size={78} />
-      )}
+      <View style={styles.center}>
+        <BrandMark size={96} />
+      </View>
       <View style={styles.spin}>
         <ActivityIndicator size="large" color={colors.gold} />
         <Text style={styles.msg}>{message}</Text>
@@ -31,7 +27,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  image: { width: "92%", height: "62%" },
-  spin: { position: "absolute", bottom: 72, alignItems: "center", gap: 10 },
-  msg: { color: "rgba(255,255,255,0.7)", fontFamily: fonts.bodySemi, fontSize: 13, letterSpacing: 0.4 },
+  center: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 40,
+  },
+  spin: {
+    position: "absolute",
+    bottom: 80,
+    alignItems: "center",
+    gap: 12,
+  },
+  msg: {
+    color: "rgba(255,255,255,0.75)",
+    fontFamily: fonts.bodySemi,
+    fontSize: 14,
+    letterSpacing: 0.5,
+  },
 });

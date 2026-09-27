@@ -105,7 +105,7 @@ export default function Otp() {
       {loading ? (
         <View style={styles.overlay}>
           <ActivityIndicator size="large" color={colors.gold} />
-          <Text style={styles.overlayText}>Opening home</Text>
+          <Text style={styles.overlayText}>Opening Matebeto…</Text>
         </View>
       ) : null}
     </View>

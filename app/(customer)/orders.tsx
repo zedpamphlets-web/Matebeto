@@ -62,7 +62,7 @@ export default function Orders() {
             </View>
             {list.length === 0 ? (
               <EmptyState
-                icon="cash"
+                icon="wallet"
                 color={colors.customer}
                 title="No orders"
                 hint={tab === "current" ? "When you pay for a meal, it will sit here." : "Completed orders will appear here."}

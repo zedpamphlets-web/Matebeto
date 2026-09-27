@@ -49,14 +49,15 @@ export default function Home() {
     <View style={styles.root}>
       <SafeAreaView edges={["top"]}>
         <View style={styles.top}>
-          <BrandMark size={34} align="left" />
+          <BrandMark size={36} align="left" />
           <Pressable onPress={() => router.push("/(customer)/menu")} style={styles.avatar}>
             <Ionicons name="person" size={18} color="#fff" />
           </Pressable>
         </View>
       </SafeAreaView>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+        {/* Large banner sitting on black */}
         <View style={styles.banner}>
           <Image
             source={banner ? { uri: banner } : require("../../assets/welcome-food.jpg")}
@@ -64,18 +65,20 @@ export default function Home() {
             contentFit="cover"
           />
           <LinearGradient
-            colors={["rgba(0,0,0,0.72)", "rgba(0,0,0,0.18)", "transparent"]}
-            start={{ x: 0, y: 0.5 }}
+            colors={["rgba(0,0,0,0.75)", "rgba(0,0,0,0.25)", "transparent"]}
+            start={{ x: 0, y: 0.4 }}
             end={{ x: 1, y: 0.5 }}
             style={StyleSheet.absoluteFill}
           />
           <View style={styles.bannerCopy}>
+            <Text style={styles.bannerKicker}>Let's Eat.</Text>
             <Text style={styles.bannerText}>
               Real Meals.{"\n"}Real Flavours.{"\n"}Delivered.
             </Text>
           </View>
         </View>
 
+        {/* Glass white sheet on black */}
         <View style={styles.sheet}>
           <View style={styles.sectionHead}>
             <Text style={styles.section}>Markets</Text>
@@ -99,7 +102,7 @@ export default function Home() {
                   onPress={() => router.push(`/(customer)/market/${m.id}`)}
                   style={styles.marketCard}
                 >
-                  <Photo uri={m.image_url} name={m.name} height={108} dark />
+                  <Photo uri={m.image_url} name={m.name} height={112} dark />
                   <LinearGradient
                     colors={["transparent", MARKET_WASH[i % MARKET_WASH.length]]}
                     style={styles.marketWash}
@@ -112,8 +115,13 @@ export default function Home() {
             </View>
           )}
 
-          <View style={[styles.sectionHead, { marginTop: 22 }]}>
-            <Text style={styles.section}>Featured Meals</Text>
+          <View style={[styles.sectionHead, { marginTop: 24 }]}>
+            <View style={styles.sectionTitleRow}>
+              <View style={styles.chefBadge}>
+                <Ionicons name="restaurant" size={16} color="#fff" />
+              </View>
+              <Text style={styles.section}>Featured Meals</Text>
+            </View>
           </View>
 
           {featured.length === 0 ? (
@@ -124,19 +132,19 @@ export default function Home() {
               hint="When Admin marks a meal as featured, it shows here with its photo."
             />
           ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
               {featured.map((meal) => (
                 <Pressable
                   key={meal.id}
                   onPress={() => router.push({ pathname: "/(customer)/meal/[id]", params: { id: meal.id } })}
                   style={styles.mealCard}
                 >
-                  <Photo uri={meal.image_url} name={meal.name} height={100} />
-                  <View style={{ padding: 10 }}>
-                    <Text style={{ fontFamily: fonts.title }} numberOfLines={1}>
+                  <Photo uri={meal.image_url} name={meal.name} height={108} />
+                  <View style={{ padding: 12 }}>
+                    <Text style={{ fontFamily: fonts.title, color: colors.ink }} numberOfLines={1}>
                       {meal.name}
                     </Text>
-                    <Text style={{ color: colors.goldDeep, fontFamily: fonts.title, marginTop: 2 }}>
+                    <Text style={{ color: colors.goldDeep, fontFamily: fonts.title, marginTop: 4 }}>
                       {formatKw(meal.price)}
                     </Text>
                   </View>
@@ -163,7 +171,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#000" },
   top: {
     paddingHorizontal: 18,
-    paddingBottom: 10,
+    paddingBottom: 8,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -172,64 +180,106 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: "rgba(255,255,255,0.14)",
     alignItems: "center",
     justifyContent: "center",
   },
   banner: {
-    height: 210,
-    marginHorizontal: 16,
-    borderRadius: 22,
+    height: 240,
+    marginHorizontal: 14,
+    borderRadius: 24,
     overflow: "hidden",
     backgroundColor: "#111",
+    marginBottom: 4,
   },
-  bannerCopy: { flex: 1, justifyContent: "flex-end", padding: 18, maxWidth: "72%" },
+  bannerCopy: {
+    flex: 1,
+    justifyContent: "flex-end",
+    padding: 20,
+    maxWidth: "78%",
+  },
+  bannerKicker: {
+    color: colors.gold,
+    fontFamily: fonts.italic,
+    fontSize: 16,
+    marginBottom: 6,
+  },
   bannerText: {
     color: "#fff",
     fontFamily: fonts.display,
-    fontSize: 26,
-    lineHeight: 32,
+    fontSize: 28,
+    lineHeight: 34,
   },
   sheet: {
-    marginTop: 16,
-    backgroundColor: "rgba(255,255,255,0.97)",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    marginTop: 12,
+    marginHorizontal: 0,
+    backgroundColor: "rgba(255,255,255,0.96)",
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     paddingHorizontal: 16,
-    paddingTop: 18,
-    paddingBottom: 36,
-    minHeight: 460,
+    paddingTop: 22,
+    paddingBottom: 40,
+    minHeight: 480,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.5)",
+    borderColor: "rgba(255,255,255,0.55)",
+    // subtle glass feel
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 8,
   },
-  sectionHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  section: { fontFamily: fonts.title, fontSize: 16, color: colors.ink },
-  see: { color: colors.customerDeep, fontFamily: fonts.bodySemi },
+  sectionHead: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  chefBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    backgroundColor: colors.gold,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  section: { fontFamily: fonts.title, fontSize: 17, color: colors.ink },
+  see: { color: colors.customerDeep, fontFamily: fonts.bodySemi, fontSize: 14 },
   marketRow: { flexDirection: "row", gap: 10 },
-  marketCard: { flex: 1, borderRadius: 16, overflow: "hidden", backgroundColor: "#111" },
-  marketWash: { ...StyleSheet.absoluteFillObject, top: 40 },
+  marketCard: {
+    flex: 1,
+    borderRadius: 18,
+    overflow: "hidden",
+    backgroundColor: "#111",
+  },
+  marketWash: { ...StyleSheet.absoluteFillObject, top: 44 },
   marketName: {
     position: "absolute",
     left: 6,
     right: 6,
-    bottom: 10,
+    bottom: 12,
     color: "#fff",
     fontFamily: fonts.display,
     fontSize: 13,
     textAlign: "center",
   },
   mealCard: {
-    width: 148,
+    width: 152,
     backgroundColor: "#fff",
-    borderRadius: 18,
+    borderRadius: 20,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: colors.line,
   },
   basketBar: {
-    marginTop: 22,
+    marginTop: 24,
     backgroundColor: colors.ink,
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 16,
     flexDirection: "row",
     justifyContent: "space-between",
