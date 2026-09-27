@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandMark } from "@/components/brand";
+import { BrandSplash } from "@/components/brand-splash";
 import { colors, fonts } from "@/lib/theme";
 import { currentProfile } from "@/lib/session";
 
@@ -16,7 +17,7 @@ export default function Welcome() {
     let cancelled = false;
     const timer = setTimeout(() => {
       if (!cancelled) setReady(true);
-    }, 1800);
+    }, 1600);
 
     currentProfile()
       .then(({ user, admin, rider, preview }) => {
@@ -37,11 +38,7 @@ export default function Welcome() {
   }, []);
 
   if (!ready) {
-    return (
-      <View style={{ flex: 1, backgroundColor: "#000" }}>
-        <Image source={require("../assets/splash.png")} style={StyleSheet.absoluteFillObject} contentFit="contain" />
-      </View>
-    );
+    return <BrandSplash message="Entering Matebeto" />;
   }
 
   return (

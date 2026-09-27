@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Photo } from "@/components/photo";
 import { supabase } from "@/lib/supabase";
 import { colors, fonts, radius } from "@/lib/theme";
-import { Photo } from "@/components/photo";
 
 function licenceUrl(row: any, side: "FRONT" | "BACK") {
   if (side === "FRONT" && row.licence_front_url) return row.licence_front_url;
@@ -38,37 +38,42 @@ export default function AdminRiders() {
       </Text>
       {rows.length === 0 && <Text style={{ color: colors.muted, fontFamily: fonts.body }}>No rider applications yet.</Text>}
       {rows.map((r) => (
-        <View key={r.id} style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 14, marginBottom: 10 }}>
-          <Text style={{ fontFamily: fonts.title }}>{r.full_name}</Text>
-          <Text style={{ color: colors.muted, fontFamily: fonts.body }}>
-            {r.phone} · {r.vehicle_type} · {r.status}
-            {r.is_online ? " · online" : ""}
-          </Text>
-          {r.address_text ? <Text style={{ fontFamily: fonts.body, marginTop: 4 }}>{r.address_text}</Text> : null}
-          {(licenceUrl(r, "FRONT") || licenceUrl(r, "BACK")) && (
-            <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
-              {licenceUrl(r, "FRONT") ? (
-                <View style={{ flex: 1, borderRadius: 10, overflow: "hidden" }}>
-                  <Photo uri={licenceUrl(r, "FRONT")} name="Front" height={88} />
-                </View>
-              ) : null}
-              {licenceUrl(r, "BACK") ? (
-                <View style={{ flex: 1, borderRadius: 10, overflow: "hidden" }}>
-                  <Photo uri={licenceUrl(r, "BACK")} name="Back" height={88} />
-                </View>
-              ) : null}
+        <View key={r.id} style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 14, marginBottom: 10, flexDirection: "row", gap: 12 }}>
+          <View style={{ borderRadius: 16, overflow: "hidden" }}>
+            <Photo uri={r.photo_url} name={r.full_name} height={72} width={72} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: fonts.title }}>{r.full_name}</Text>
+            <Text style={{ color: colors.muted, fontFamily: fonts.body }}>
+              {r.phone} · {r.vehicle_type} · {r.status}
+              {r.is_online ? " · online" : ""}
+            </Text>
+            {r.address_text ? <Text style={{ fontFamily: fonts.body, marginTop: 4 }}>{r.address_text}</Text> : null}
+            {(licenceUrl(r, "FRONT") || licenceUrl(r, "BACK")) && (
+              <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
+                {licenceUrl(r, "FRONT") ? (
+                  <View style={{ flex: 1, borderRadius: 10, overflow: "hidden" }}>
+                    <Photo uri={licenceUrl(r, "FRONT")} name="Front" height={72} />
+                  </View>
+                ) : null}
+                {licenceUrl(r, "BACK") ? (
+                  <View style={{ flex: 1, borderRadius: 10, overflow: "hidden" }}>
+                    <Photo uri={licenceUrl(r, "BACK")} name="Back" height={72} />
+                  </View>
+                ) : null}
+              </View>
+            )}
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+              <Pressable onPress={() => setStatus(r.id, "APPROVED")} style={chip(colors.customer)}>
+                <Text style={{ color: "#fff", fontFamily: fonts.bodySemi }}>Approve</Text>
+              </Pressable>
+              <Pressable onPress={() => setStatus(r.id, "REJECTED")} style={chip(colors.danger)}>
+                <Text style={{ color: "#fff", fontFamily: fonts.bodySemi }}>Reject</Text>
+              </Pressable>
+              <Pressable onPress={() => setStatus(r.id, "SUSPENDED")} style={chip(colors.ink)}>
+                <Text style={{ color: "#fff", fontFamily: fonts.bodySemi }}>Suspend</Text>
+              </Pressable>
             </View>
-          )}
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
-            <Pressable onPress={() => setStatus(r.id, "APPROVED")} style={chip(colors.customer)}>
-              <Text style={{ color: "#fff", fontFamily: fonts.bodySemi }}>Approve</Text>
-            </Pressable>
-            <Pressable onPress={() => setStatus(r.id, "REJECTED")} style={chip(colors.danger)}>
-              <Text style={{ color: "#fff", fontFamily: fonts.bodySemi }}>Reject</Text>
-            </Pressable>
-            <Pressable onPress={() => setStatus(r.id, "SUSPENDED")} style={chip(colors.ink)}>
-              <Text style={{ color: "#fff", fontFamily: fonts.bodySemi }}>Suspend</Text>
-            </Pressable>
           </View>
         </View>
       ))}

@@ -8,6 +8,7 @@ export const PREVIEW_OTP = "123456";
 export type PreviewSession = {
   mode: "customer" | "rider";
   phone: string;
+  riderApplied?: boolean;
 };
 
 export type PreviewRiderApplication = {

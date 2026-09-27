@@ -31,21 +31,23 @@ export async function pickImage(source: PickSource) {
   return result.assets[0];
 }
 
+export async function uploadBase64(folder: string, base64: string, contentType = "image/jpeg"): Promise<string | null> {
+  const png = contentType.includes("png");
+  const ext = png ? "png" : "jpg";
+  const path = `${folder}/${Date.now()}-${Math.floor(Math.random() * 9999)}.${ext}`;
+  const { error } = await supabase.storage.from("catalog").upload(path, decode(base64), {
+    contentType,
+    upsert: false,
+  });
+  if (error) throw error;
+  const { data } = supabase.storage.from("catalog").getPublicUrl(path);
+  return data.publicUrl;
+}
+
 export async function uploadCatalogImage(folder: string, source: PickSource): Promise<string | null> {
   const asset = await pickImage(source);
   if (!asset) return null;
   if (!asset.base64) throw new Error("Could not read that photo. Try another image.");
-
   const png = (asset.mimeType || "").includes("png") || (asset.uri || "").toLowerCase().endsWith(".png");
-  const ext = png ? "png" : "jpg";
-  const path = `${folder}/${Date.now()}-${Math.floor(Math.random() * 9999)}.${ext}`;
-
-  const { error } = await supabase.storage.from("catalog").upload(path, decode(asset.base64), {
-    contentType: asset.mimeType || (png ? "image/png" : "image/jpeg"),
-    upsert: false,
-  });
-  if (error) throw error;
-
-  const { data } = supabase.storage.from("catalog").getPublicUrl(path);
-  return data.publicUrl;
+  return uploadBase64(folder, asset.base64, asset.mimeType || (png ? "image/png" : "image/jpeg"));
 }

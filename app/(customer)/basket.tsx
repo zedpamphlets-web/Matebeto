@@ -2,10 +2,13 @@ import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Photo } from "@/components/photo";
-import { AppHeader, DarkScreen, GoldButton } from "@/components/app-shell";
+import { EmptyState } from "@/components/empty-state";
+import { AppHeader } from "@/components/app-shell";
 import { clearBasket, foodTotal, loadBasket, saveBasket, type BasketState } from "@/lib/basket";
 import { formatKw } from "@/lib/lipila";
 import { colors, fonts, radius } from "@/lib/theme";
+import { MoneyRow, PrimaryButton } from "@/components/ui";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Basket() {
   const [basket, setBasket] = useState<BasketState>({ marketId: null, marketName: null, items: [] });
@@ -28,74 +31,84 @@ export default function Basket() {
   const total = foodTotal(basket.items);
 
   return (
-    <DarkScreen>
-      <AppHeader title="Your Basket" onMenu={() => router.push("/(customer)/menu")} />
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-        <Text style={{ color: "#8A8A8A", marginBottom: 16, fontFamily: fonts.body }}>
-          {basket.marketName || "Shop a market to add meals"}
-        </Text>
-        {basket.items.length === 0 ? (
-          <Text style={{ color: "#8A8A8A", fontFamily: fonts.body }}>Your basket is empty.</Text>
-        ) : (
-          basket.items.map((it, idx) => (
-            <View
-              key={idx}
-              style={{
-                flexDirection: "row",
-                backgroundColor: "#141414",
-                borderRadius: radius.md,
-                padding: 12,
-                marginBottom: 10,
-                alignItems: "center",
-                borderWidth: 1,
-                borderColor: "rgba(255,255,255,0.08)",
-              }}
-            >
-              <View style={{ borderRadius: 12, overflow: "hidden" }}>
-                <Photo uri={it.image_url} name={it.name} height={64} width={64} />
-              </View>
-              <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={{ fontFamily: fonts.title, color: "#fff" }}>
-                  {it.quantity} × {it.name}
+    <View style={{ flex: 1, backgroundColor: "#000" }}>
+      <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
+        <AppHeader title="Your Basket" onMenu={() => router.push("/(customer)/menu")} />
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(255,255,255,0.97)",
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
+          }}
+        >
+          <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+            {basket.items.length === 0 ? (
+              <EmptyState
+                icon="basket"
+                color={colors.gold}
+                title="No basket"
+                hint="Pick a market, add a meal, and your basket will show here."
+              />
+            ) : (
+              <>
+                <Text style={{ color: colors.muted, marginBottom: 16, fontFamily: fonts.body }}>
+                  {basket.marketName || "Your market"}
                 </Text>
-                <Text style={{ color: "#8A8A8A", fontFamily: fonts.body, fontSize: 12 }}>
-                  {it.sides.join(", ") || "No sides"}
-                </Text>
-                <Text style={{ fontFamily: fonts.title, marginTop: 4, color: colors.gold }}>
-                  {formatKw(it.price * it.quantity)}
-                </Text>
-              </View>
-              <View style={{ alignItems: "center" }}>
-                <Pressable onPress={() => changeQty(idx, it.quantity + 1)}>
-                  <Text style={{ fontSize: 22, fontFamily: fonts.title, color: "#fff" }}>+</Text>
+                {basket.items.map((it, idx) => (
+                  <View
+                    key={idx}
+                    style={{
+                      flexDirection: "row",
+                      backgroundColor: "#fff",
+                      borderRadius: radius.md,
+                      padding: 12,
+                      marginBottom: 10,
+                      alignItems: "center",
+                      borderWidth: 1,
+                      borderColor: colors.line,
+                    }}
+                  >
+                    <View style={{ borderRadius: 12, overflow: "hidden" }}>
+                      <Photo uri={it.image_url} name={it.name} height={64} width={64} />
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 10 }}>
+                      <Text style={{ fontFamily: fonts.title }}>
+                        {it.quantity} × {it.name}
+                      </Text>
+                      <Text style={{ color: colors.muted, fontFamily: fonts.body, fontSize: 12 }}>
+                        {it.sides.join(", ") || "No sides"}
+                      </Text>
+                      <Text style={{ fontFamily: fonts.title, marginTop: 4 }}>{formatKw(it.price * it.quantity)}</Text>
+                    </View>
+                    <View style={{ alignItems: "center" }}>
+                      <Pressable onPress={() => changeQty(idx, it.quantity + 1)}>
+                        <Text style={{ fontSize: 22, fontFamily: fonts.title }}>+</Text>
+                      </Pressable>
+                      <Text style={{ fontFamily: fonts.title }}>{it.quantity}</Text>
+                      <Pressable onPress={() => changeQty(idx, it.quantity - 1)}>
+                        <Text style={{ fontSize: 22, fontFamily: fonts.title }}>−</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ))}
+                <MoneyRow label="Food Total" value={formatKw(total)} bold />
+                <View style={{ height: 16 }} />
+                <PrimaryButton label="Continue" onPress={() => router.push("/(customer)/delivery")} />
+                <Pressable
+                  onPress={async () => {
+                    await clearBasket();
+                    setBasket({ marketId: null, marketName: null, items: [] });
+                  }}
+                  style={{ marginTop: 14 }}
+                >
+                  <Text style={{ textAlign: "center", color: colors.muted, fontFamily: fonts.bodySemi }}>Clear basket</Text>
                 </Pressable>
-                <Text style={{ fontFamily: fonts.title, color: "#fff" }}>{it.quantity}</Text>
-                <Pressable onPress={() => changeQty(idx, it.quantity - 1)}>
-                  <Text style={{ fontSize: 22, fontFamily: fonts.title, color: "#fff" }}>−</Text>
-                </Pressable>
-              </View>
-            </View>
-          ))
-        )}
-        {basket.items.length > 0 && (
-          <>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8, marginBottom: 16 }}>
-              <Text style={{ color: "#fff", fontFamily: fonts.display, fontSize: 18 }}>Food Total</Text>
-              <Text style={{ color: colors.gold, fontFamily: fonts.display, fontSize: 18 }}>{formatKw(total)}</Text>
-            </View>
-            <GoldButton label="Continue" onPress={() => router.push("/(customer)/delivery")} />
-            <Pressable
-              onPress={async () => {
-                await clearBasket();
-                setBasket({ marketId: null, marketName: null, items: [] });
-              }}
-              style={{ marginTop: 14 }}
-            >
-              <Text style={{ textAlign: "center", color: "#8A8A8A", fontFamily: fonts.bodySemi }}>Clear basket</Text>
-            </Pressable>
-          </>
-        )}
-      </ScrollView>
-    </DarkScreen>
+              </>
+            )}
+          </ScrollView>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }

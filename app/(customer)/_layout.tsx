@@ -18,11 +18,11 @@ export default function CustomerTabs() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.gold,
-        tabBarInactiveTintColor: "#8A8A8A",
+        tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: { fontFamily: fonts.bodySemi, fontSize: 11 },
         tabBarStyle: {
-          backgroundColor: "#0B0B0B",
-          borderTopColor: "rgba(255,255,255,0.08)",
+          backgroundColor: "#fff",
+          borderTopColor: colors.line,
           height: 64,
           paddingTop: 6,
         },
@@ -43,7 +43,7 @@ export default function CustomerTabs() {
           tabBarLabel: "Basket",
           tabBarBadge: count || undefined,
           tabBarBadgeStyle: { backgroundColor: colors.gold, color: colors.ink, fontFamily: fonts.bodySemi },
-          tabBarIcon: ({ color }) => <Ionicons name="bag" size={22} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="basket" size={22} color={color} />,
         }}
       />
       <Tabs.Screen

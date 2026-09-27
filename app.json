@@ -3,7 +3,7 @@
     "name": "Matebeto",
     "slug": "matebeto-team",
     "owner": "matebetos-team",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -24,11 +24,11 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.siximages.matebeto",
-      "buildNumber": "3"
+      "buildNumber": "4"
     },
     "android": {
       "package": "com.siximages.matebeto",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F4A300"
@@ -56,7 +56,14 @@
         "expo-image-picker",
         {
           "photosPermission": "Allow Matebeto to pick food and licence photos from your phone.",
-          "cameraPermission": "Allow Matebeto to take food and licence photos."
+          "cameraPermission": "Allow Matebeto to take food, licence and rider photos."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Matebeto to capture your rider photo inside the app.",
+          "recordAudioAndroid": false
         }
       ]
     ],

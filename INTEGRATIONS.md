@@ -6,44 +6,42 @@ Do this after the UI is running. Do **not** put these keys in the mobile app. Th
 
 The brief requires a real Business API, not a personal WhatsApp account.
 
-The app already calls Meta Cloud API from `supabase/functions/notify-vendor`:
+The app already calls Meta Cloud API from `supabase/functions/notify-vendor`.
+Vendors get **ACCEPT / DECLINE** buttons. Replies hit `whatsapp-webhook`.
 
-`POST https://graph.facebook.com/v20.0/{PHONE_NUMBER_ID}/messages`
+`POST https://graph.facebook.com/v21.0/{PHONE_NUMBER_ID}/messages`
 
-### Get the API
+### On the Meta screen you opened (Matebet app)
 
-1. Create / log in to a Meta account: https://developers.facebook.com/async/registration/
-2. Open the app dashboard: https://developers.facebook.com/apps
-3. **Create App** → name it `Matebeto` → use case **Connect with customers through WhatsApp**.
-4. Attach or create a **Meta Business Portfolio** for 6images Advertising.
-5. In the app: **WhatsApp → API Setup → Start using the API**.
-6. Create a WhatsApp Business Account and add a **new phone number**.
-   - The number must be able to receive SMS or a voice call.
-   - It **cannot** already be logged into normal WhatsApp or WhatsApp Business app. Delete it from those apps first.
-   - A dedicated Zambian business line (+260) is best.
-7. Send the test `hello_world` template to your own phone to confirm the API works.
-8. Create a **permanent System User token** (temporary tokens expire):
-   - https://business.facebook.com/latest/settings → **System users** → Add
-   - Assign the app + WhatsApp account with full control
-   - Generate token with `whatsapp_business_messaging` and `whatsapp_business_management`
-9. Copy:
+Stay on **Integrate with API**. Do **not** click Become a Tech Provider.
+
+1. Pick business portfolio **Apptech** (or 6images) → tick the terms → **Continue**.
+2. Open **Step 1. Try it out**.
+3. Meta gives you a **test WhatsApp number** and a temporary token.
+4. Add up to 5 real phones you can message (your own + one vendor test number).
+5. Send the test `hello_world` template once so the API is live.
+6. Copy these three values from **API Setup / Quickstart**:
    - **Access token** → `WHATSAPP_TOKEN`
-   - **Phone number ID** (not the display number) → `WHATSAPP_PHONE_ID`
-10. Set a webhook verify string you invent → `WHATSAPP_VERIFY_TOKEN`
-11. Webhook URL:
+   - **Phone number ID** (digits, not +260…) → `WHATSAPP_PHONE_ID`
+   - Invent a verify string e.g. `matebeto-wa-2026` → `WHATSAPP_VERIFY_TOKEN`
+7. Later: **Step 2 Production setup** adds your dedicated Zambian business line. That number cannot already be logged into normal WhatsApp.
+8. **Step 3 Business verification** is Meta company docs. Needed before messaging numbers that are not in the test list.
+
+### Webhook (so ACCEPT / DECLINE come back into Matebeto)
+
+Callback URL:
 
 `https://YOUR-PROJECT.supabase.co/functions/v1/whatsapp-webhook`
 
+Verify token: the same string as `WHATSAPP_VERIFY_TOKEN`.  
 Subscribe to **messages**.
-
-12. Create a message template named something like `matebeto_order` for the first outbound vendor message. After the vendor replies, free-form text is allowed for 24 hours.
 
 ### Put the keys on Supabase
 
 ```bash
 supabase secrets set WHATSAPP_TOKEN=...
 supabase secrets set WHATSAPP_PHONE_ID=...
-supabase secrets set WHATSAPP_VERIFY_TOKEN=...
+supabase secrets set WHATSAPP_VERIFY_TOKEN=matebeto-wa-2026
 supabase functions deploy notify-vendor
 supabase functions deploy whatsapp-webhook
 ```
@@ -59,8 +57,10 @@ ITEMS
 SIDES
 Nshima
 TOTAL: K310
-ACCEPT / DECLINE
+Tap ACCEPT or DECLINE
 ```
+
+Plus two buttons: **ACCEPT** and **DECLINE**.
 
 ---
 

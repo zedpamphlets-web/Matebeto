@@ -26,4 +26,9 @@ create policy "catalog_admin_delete"
   on storage.objects for delete to authenticated
   using (bucket_id = 'catalog' and public.is_admin());
 
+drop policy if exists "catalog_rider_insert" on storage.objects;
+create policy "catalog_rider_insert"
+  on storage.objects for insert to authenticated
+  with check (bucket_id = 'catalog' and name like 'riders/%');
+
 alter table public.settings add column if not exists home_banner_url text;

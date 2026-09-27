@@ -84,6 +84,7 @@ create table if not exists public.riders (
   status text not null default 'PENDING' check (status in ('PENDING','APPROVED','REJECTED','SUSPENDED')),
   is_online boolean not null default false,
   current_order_id uuid,
+  photo_url text,
   created_at timestamptz not null default now()
 );
 
@@ -506,7 +507,8 @@ create or replace function public.apply_rider(
   p_licence text,
   p_ownership text,
   p_licence_front text default null,
-  p_licence_back text default null
+  p_licence_back text default null,
+  p_photo text default null
 ) returns public.riders
 language plpgsql security definer set search_path = public as $$
 declare
@@ -516,11 +518,11 @@ begin
   if p_vehicle not in ('bicycle','motorbike') then raise exception 'Vehicle must be bicycle or motorbike'; end if;
   insert into public.riders (
     user_id, full_name, phone, address_text, vehicle_type, licence_info, ownership_note,
-    licence_front_url, licence_back_url, status
+    licence_front_url, licence_back_url, photo_url, status
   )
   values (
     auth.uid(), p_full_name, p_phone, p_address, p_vehicle, p_licence, p_ownership,
-    p_licence_front, p_licence_back, 'PENDING'
+    p_licence_front, p_licence_back, p_photo, 'PENDING'
   )
   on conflict (user_id) do update
     set full_name = excluded.full_name,
@@ -531,6 +533,7 @@ begin
         ownership_note = excluded.ownership_note,
         licence_front_url = excluded.licence_front_url,
         licence_back_url = excluded.licence_back_url,
+        photo_url = coalesce(excluded.photo_url, public.riders.photo_url),
         status = case when public.riders.status = 'APPROVED' then public.riders.status else 'PENDING' end
   returning * into v_row;
   return v_row;

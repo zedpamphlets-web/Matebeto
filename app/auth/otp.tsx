@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -38,8 +38,8 @@ export default function Otp() {
 
     if (usePreview && token === PREVIEW_OTP) {
       await setPreviewSession({ mode: mode === "rider" ? "rider" : "customer", phone: String(phone) });
-      setLoading(false);
-      return goIn();
+      await goIn();
+      return;
     }
 
     if (isSupabaseConfigured && !usePreview) {
@@ -48,12 +48,13 @@ export default function Otp() {
         token,
         type: "sms",
       });
-      setLoading(false);
       if (otpError) {
+        setLoading(false);
         setError(otpError.message);
         return;
       }
-      return goIn();
+      await goIn();
+      return;
     }
 
     setLoading(false);
@@ -100,6 +101,13 @@ export default function Otp() {
           </Pressable>
         </View>
       </SafeAreaView>
+
+      {loading ? (
+        <View style={styles.overlay}>
+          <ActivityIndicator size="large" color={colors.gold} />
+          <Text style={styles.overlayText}>Opening home</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -158,4 +166,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   nextText: { color: colors.ink, fontFamily: fonts.display, fontSize: 16, letterSpacing: 1 },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.72)",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+  },
+  overlayText: { color: "#fff", fontFamily: fonts.bodySemi, letterSpacing: 0.3 },
 });

@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
 import { DarkField, DarkScreen, GoldButton, AppHeader } from "@/components/app-shell";
+import { FaceCamera } from "@/components/face-camera";
 import { PhotoPicker } from "@/components/photo-picker";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { currentProfile } from "@/lib/session";
 import { savePreviewRiderApplication } from "@/lib/preview";
+import { uploadBase64 } from "@/lib/upload";
 import { colors, fonts, radius } from "@/lib/theme";
 
 export default function RiderApply() {
@@ -17,6 +19,8 @@ export default function RiderApply() {
   const [ownership, setOwnership] = useState("");
   const [front, setFront] = useState<string | null>(null);
   const [back, setBack] = useState<string | null>(null);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [photoB64, setPhotoB64] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(false);
 
@@ -34,61 +38,74 @@ export default function RiderApply() {
       Alert.alert("Missing details", "Name and phone are required.");
       return;
     }
-    if (!front || !back) {
-      Alert.alert("Licence photos", "Upload the front and back of your licence or ID.");
+    if (!photoUri) {
+      Alert.alert("Photo needed", "Capture your face in the camera box.");
       return;
     }
     setLoading(true);
+    try {
+      let photoUrl = photoUri;
+      if (isSupabaseConfigured && !preview && photoB64) {
+        photoUrl = (await uploadBase64("riders", photoB64, "image/jpeg")) || photoUri;
+      }
 
-    const packed = [licence.trim(), front ? `FRONT:${front}` : "", back ? `BACK:${back}` : ""]
-      .filter(Boolean)
-      .join("\n");
+      const packed = [licence.trim(), front ? `FRONT:${front}` : "", back ? `BACK:${back}` : ""]
+        .filter(Boolean)
+        .join("\n");
 
-    if (preview || !isSupabaseConfigured) {
-      await savePreviewRiderApplication({
-        id: "preview-rider",
-        user_id: "preview-user",
-        full_name: fullName.trim(),
-        phone: phone.trim(),
-        address_text: address.trim(),
-        vehicle_type: vehicle,
-        licence_info: packed,
-        ownership_note: ownership.trim(),
-        licence_front_url: front,
-        licence_back_url: back,
-        status: "PENDING",
-        is_online: false,
-      });
-      setLoading(false);
+      if (preview || !isSupabaseConfigured) {
+        await savePreviewRiderApplication({
+          id: "preview-rider",
+          user_id: "preview-user",
+          full_name: fullName.trim(),
+          phone: phone.trim(),
+          address_text: address.trim(),
+          vehicle_type: vehicle,
+          licence_info: packed,
+          ownership_note: ownership.trim(),
+          licence_front_url: front,
+          licence_back_url: back,
+          status: "PENDING",
+          is_online: false,
+        });
+        Alert.alert("Submitted", "Your rider account is pending review. You can order food while you wait.");
+        router.replace("/(customer)");
+        return;
+      }
+
+      const payload: Record<string, string | null> = {
+        p_full_name: fullName.trim(),
+        p_phone: phone.trim(),
+        p_address: address.trim(),
+        p_vehicle: vehicle,
+        p_licence: packed,
+        p_ownership: ownership.trim(),
+        p_photo: photoUrl,
+        p_licence_front: front,
+        p_licence_back: back,
+      };
+
+      let { error } = await supabase.rpc("apply_rider", payload);
+      if (error) {
+        const retry = await supabase.rpc("apply_rider", {
+          p_full_name: payload.p_full_name,
+          p_phone: payload.p_phone,
+          p_address: payload.p_address,
+          p_vehicle: payload.p_vehicle,
+          p_licence: payload.p_licence,
+          p_ownership: payload.p_ownership,
+        });
+        error = retry.error;
+      }
+      if (error) {
+        Alert.alert("Could not submit", error.message);
+        return;
+      }
       Alert.alert("Submitted", "Your rider account is pending review. You can order food while you wait.");
       router.replace("/(customer)");
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    const payload: Record<string, string | null> = {
-      p_full_name: fullName.trim(),
-      p_phone: phone.trim(),
-      p_address: address.trim(),
-      p_vehicle: vehicle,
-      p_licence: packed,
-      p_ownership: ownership.trim(),
-    };
-
-    let { error } = await supabase.rpc("apply_rider", {
-      ...payload,
-      p_licence_front: front,
-      p_licence_back: back,
-    });
-
-    if (error) {
-      const retry = await supabase.rpc("apply_rider", payload);
-      error = retry.error;
-    }
-
-    setLoading(false);
-    if (error) return Alert.alert("Could not submit", error.message);
-    Alert.alert("Submitted", "Your rider account is pending review. You can order food while you wait.");
-    router.replace("/(customer)");
   }
 
   return (
@@ -99,9 +116,17 @@ export default function RiderApply() {
           Rider application
         </Text>
         <Text style={{ color: "#B3B3B3", fontFamily: fonts.body, lineHeight: 22, marginBottom: 18 }}>
-          Approved riders can go online and receive jobs. After OTP you fill this form first — you are not sent to
-          jobs until admin approves you.
+          Capture your face in the box. The app stays open. After OTP you fill this form first — jobs open after Admin
+          approves you.
         </Text>
+
+        <FaceCamera
+          uri={photoUri}
+          onCapture={(uri, b64) => {
+            setPhotoUri(uri);
+            setPhotoB64(b64);
+          }}
+        />
 
         <DarkField value={fullName} onChangeText={setFullName} placeholder="Full name" />
         <DarkField value={phone} onChangeText={setPhone} placeholder="Mobile number" keyboardType="phone-pad" />
