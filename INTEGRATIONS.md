@@ -38,15 +38,27 @@ Subscribe to **messages**.
 
 ### Put the keys on Supabase
 
+From your Meta **Step 1. Try it out** screen:
+
+- **Phone number ID** → e.g. `1255603277647233`
+- **Access token** → full token from “Copy access token” (temporary; renew or use System User later)
+- **Verify token** → e.g. `matebeto-wa-2026`
+
 ```bash
-supabase secrets set WHATSAPP_TOKEN=...
-supabase secrets set WHATSAPP_PHONE_ID=...
-supabase secrets set WHATSAPP_VERIFY_TOKEN=matebeto-wa-2026
+supabase secrets set WHATSAPP_TOKEN="PASTE_FULL_META_TOKEN"
+supabase secrets set WHATSAPP_PHONE_ID="1255603277647233"
+supabase secrets set WHATSAPP_VERIFY_TOKEN="matebeto-wa-2026"
 supabase functions deploy notify-vendor
 supabase functions deploy whatsapp-webhook
 ```
 
-Until those secrets exist, Admin can still accept / decline an order from the back office. The customer app does not fake a vendor reply.
+Webhook callback URL in Meta:
+
+`https://YOUR-PROJECT-REF.supabase.co/functions/v1/whatsapp-webhook`
+
+Until those secrets exist, Admin can still accept / decline from the back office. The customer app does not fake a vendor reply.
+
+Full checklist with your test numbers: **`docs/WHATSAPP_SETUP.md`**.
 
 ### What the vendor receives
 
