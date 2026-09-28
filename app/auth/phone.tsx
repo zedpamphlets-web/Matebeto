@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, fonts } from "@/lib/theme";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { toZambianMsisdn } from "@/lib/lipila";
+import { clearPreviewSession } from "@/lib/preview";
 
 export default function PhoneAuth() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
@@ -14,6 +15,7 @@ export default function PhoneAuth() {
   const [loading, setLoading] = useState(false);
   const [invalid, setInvalid] = useState(false);
   const [humanError, setHumanError] = useState(false);
+  const [sendError, setSendError] = useState("");
 
   const msisdn = toZambianMsisdn(phone);
   const valid = msisdn.length === 12 && msisdn.startsWith("260");
@@ -29,18 +31,28 @@ export default function PhoneAuth() {
       return;
     }
     setHumanError(false);
+    setSendError("");
     setLoading(true);
 
     const e164 = `+${msisdn}`;
+
     if (isSupabaseConfigured) {
+      await clearPreviewSession();
       const { error } = await supabase.auth.signInWithOtp({ phone: e164 });
       setLoading(false);
+      if (error) {
+        setSendError(
+          error.message || "Could not send SMS. Check Phone auth and Africa's Talking."
+        );
+        return;
+      }
       router.push({
         pathname: "/auth/otp",
-        params: { phone: e164, mode: mode || "customer", preview: error ? "1" : "0" },
+        params: { phone: e164, mode: mode || "customer", preview: "0" },
       });
       return;
     }
+
     setLoading(false);
     router.push({
       pathname: "/auth/otp",
@@ -64,6 +76,7 @@ export default function PhoneAuth() {
             onChangeText={(t) => {
               setPhone(t);
               if (invalid) setInvalid(false);
+              if (sendError) setSendError("");
             }}
             placeholder="Your mobile number"
             placeholderTextColor="#7A7A7A"
@@ -74,9 +87,26 @@ export default function PhoneAuth() {
 
           {invalid ? (
             <View style={styles.error}>
-              <Text style={styles.errorText}>Enter a valid mobile number, example: 0970000000</Text>
+              <Text style={styles.errorText}>
+                Enter a valid mobile number, example: 0970000000
+              </Text>
             </View>
           ) : null}
+
+          {sendError ? (
+            <View style={styles.error}>
+              <Text style={styles.errorText}>{sendError}</Text>
+            </View>
+          ) : null}
+
+          {!isSupabaseConfigured ? (
+            <Text style={styles.warn}>
+              Supabase is not in this build. Rebuild the APK with EXPO_PUBLIC_SUPABASE_URL and
+              ANON_KEY.
+            </Text>
+          ) : (
+            <Text style={styles.live}>Live login — SMS code via Africa&apos;s Talking</Text>
+          )}
 
           <Pressable
             onPress={() => {
@@ -150,6 +180,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   errorText: { color: "#fff", fontFamily: fonts.bodySemi, fontSize: 13 },
+  live: {
+    marginTop: 10,
+    color: colors.customer,
+    fontFamily: fonts.bodySemi,
+    fontSize: 12,
+  },
+  warn: {
+    marginTop: 10,
+    color: colors.gold,
+    fontFamily: fonts.bodySemi,
+    fontSize: 12,
+    lineHeight: 18,
+  },
   human: {
     marginTop: 16,
     backgroundColor: "#fff",
