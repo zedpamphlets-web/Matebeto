@@ -26,15 +26,9 @@ export default function RiderApply() {
   const [preview, setPreview] = useState(false);
 
   useEffect(() => {
-    currentProfile().then(({ user, profile, preview: isPreview }) => {
+    // Only detect preview mode — do NOT prefill name/phone/address (no hardcoded test values)
+    currentProfile().then(({ preview: isPreview }) => {
       setPreview(!!isPreview);
-      // Only prefill from real session — never hardcode demo values
-      const sessionPhone = String(user?.phone || profile?.phone || "");
-      if (sessionPhone && !sessionPhone.includes("preview")) {
-        setPhone(sessionPhone);
-      }
-      if (profile?.full_name) setFullName(profile.full_name);
-      if (profile?.address_text) setAddress(profile.address_text);
     });
   }, []);
 
@@ -142,13 +136,14 @@ export default function RiderApply() {
           Rider application
         </Text>
         <Text style={{ color: "#B3B3B3", fontFamily: fonts.body, lineHeight: 22, marginBottom: 18 }}>
-          Capture your face at the top. Licence front and back use the same in-app camera. Jobs open after
+          Capture your face in the box. The app stays open. After OTP you fill this form first — jobs open after
           Admin approves you.
         </Text>
 
+        {/* Face photo — same embed camera as before */}
         <FaceCamera
           uri={photoUri}
-          label="Your face"
+          label="Your photo"
           facing="front"
           buttonLabel="Capture face"
           onCapture={(uri, b64) => {
@@ -161,7 +156,7 @@ export default function RiderApply() {
         <DarkField
           value={phone}
           onChangeText={setPhone}
-          placeholder="Mobile number (+260…)"
+          placeholder="Mobile number"
           keyboardType="phone-pad"
         />
         <DarkField value={address} onChangeText={setAddress} placeholder="Residential address" />
@@ -204,6 +199,7 @@ export default function RiderApply() {
           placeholder="Proof of ownership or permission"
         />
 
+        {/* Licence front & back — same embed camera style (stays in app) */}
         <FaceCamera
           uri={front}
           label="Licence / ID front"
