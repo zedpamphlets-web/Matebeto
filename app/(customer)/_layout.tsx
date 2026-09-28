@@ -64,16 +64,8 @@ export default function CustomerTabs() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="menu"
-        options={{
-          title: "Menu",
-          tabBarLabel: "Menu",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "menu" : "menu-outline"} size={22} color={color} />
-          ),
-        }}
-      />
+      {/* Menu lives in top profile avatar — not in bottom bar */}
+      <Tabs.Screen name="menu" options={{ href: null }} />
       <Tabs.Screen name="markets" options={{ href: null }} />
       <Tabs.Screen name="settings" options={{ href: null }} />
       <Tabs.Screen name="market/[id]" options={{ href: null }} />

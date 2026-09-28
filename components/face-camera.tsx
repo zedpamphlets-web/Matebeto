@@ -5,13 +5,21 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/lib/theme";
 
-/** In-app camera inside a round box so Android does not leave the app. */
+/** In-app camera inside a box so Android does not leave the app. */
 export function FaceCamera({
   uri,
   onCapture,
+  label = "Your photo",
+  facing = "front",
+  buttonLabel = "Capture face",
+  height = 280,
 }: {
   uri?: string | null;
   onCapture: (localUri: string, base64?: string) => void;
+  label?: string;
+  facing?: "front" | "back";
+  buttonLabel?: string;
+  height?: number;
 }) {
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
@@ -38,12 +46,12 @@ export function FaceCamera({
 
   return (
     <View style={{ marginBottom: 16 }}>
-      <Text style={styles.label}>Your photo</Text>
-      <View style={styles.box}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={[styles.box, { height }]}>
         {uri && !live ? (
           <Image source={{ uri }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
         ) : permission?.granted ? (
-          <CameraView ref={cameraRef} facing="front" style={StyleSheet.absoluteFillObject} />
+          <CameraView ref={cameraRef} facing={facing} style={StyleSheet.absoluteFillObject} />
         ) : (
           <View style={styles.need}>
             <Ionicons name="camera" size={36} color={colors.gold} />
@@ -68,7 +76,7 @@ export function FaceCamera({
         ) : (
           <Pressable onPress={snap} disabled={!permission?.granted || busy} style={styles.snap}>
             <Ionicons name="camera" size={18} color="#fff" />
-            <Text style={styles.snapText}>Capture face</Text>
+            <Text style={styles.snapText}>{buttonLabel}</Text>
           </Pressable>
         )}
       </View>
@@ -79,7 +87,6 @@ export function FaceCamera({
 const styles = StyleSheet.create({
   label: { fontFamily: fonts.title, marginBottom: 8, color: "#fff" },
   box: {
-    height: 280,
     borderRadius: 28,
     overflow: "hidden",
     backgroundColor: "#111",

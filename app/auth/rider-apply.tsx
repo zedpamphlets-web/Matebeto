@@ -3,7 +3,6 @@ import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
 import { DarkField, DarkScreen, GoldButton, AppHeader } from "@/components/app-shell";
 import { FaceCamera } from "@/components/face-camera";
-import { PhotoPicker } from "@/components/photo-picker";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { currentProfile } from "@/lib/session";
 import { savePreviewRiderApplication } from "@/lib/preview";
@@ -18,16 +17,22 @@ export default function RiderApply() {
   const [licence, setLicence] = useState("");
   const [ownership, setOwnership] = useState("");
   const [front, setFront] = useState<string | null>(null);
+  const [frontB64, setFrontB64] = useState<string | undefined>();
   const [back, setBack] = useState<string | null>(null);
+  const [backB64, setBackB64] = useState<string | undefined>();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [photoB64, setPhotoB64] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(false);
 
   useEffect(() => {
-    currentProfile().then(({ user, profile, preview }) => {
-      setPreview(!!preview);
-      setPhone(String(user?.phone || profile?.phone || ""));
+    currentProfile().then(({ user, profile, preview: isPreview }) => {
+      setPreview(!!isPreview);
+      // Only prefill from real session — never hardcode demo values
+      const sessionPhone = String(user?.phone || profile?.phone || "");
+      if (sessionPhone && !sessionPhone.includes("preview")) {
+        setPhone(sessionPhone);
+      }
       if (profile?.full_name) setFullName(profile.full_name);
       if (profile?.address_text) setAddress(profile.address_text);
     });
@@ -45,11 +50,26 @@ export default function RiderApply() {
     setLoading(true);
     try {
       let photoUrl = photoUri;
-      if (isSupabaseConfigured && !preview && photoB64) {
-        photoUrl = (await uploadBase64("riders", photoB64, "image/jpeg")) || photoUri;
+      let frontUrl = front;
+      let backUrl = back;
+
+      if (isSupabaseConfigured && !preview) {
+        if (photoB64) {
+          photoUrl = (await uploadBase64("riders", photoB64, "image/jpeg")) || photoUri;
+        }
+        if (frontB64) {
+          frontUrl = (await uploadBase64("riders", frontB64, "image/jpeg")) || front;
+        }
+        if (backB64) {
+          backUrl = (await uploadBase64("riders", backB64, "image/jpeg")) || back;
+        }
       }
 
-      const packed = [licence.trim(), front ? `FRONT:${front}` : "", back ? `BACK:${back}` : ""]
+      const packed = [
+        licence.trim(),
+        frontUrl ? `FRONT:${frontUrl}` : "",
+        backUrl ? `BACK:${backUrl}` : "",
+      ]
         .filter(Boolean)
         .join("\n");
 
@@ -63,12 +83,15 @@ export default function RiderApply() {
           vehicle_type: vehicle,
           licence_info: packed,
           ownership_note: ownership.trim(),
-          licence_front_url: front,
-          licence_back_url: back,
+          licence_front_url: frontUrl,
+          licence_back_url: backUrl,
           status: "PENDING",
           is_online: false,
         });
-        Alert.alert("Submitted", "Your rider account is pending review. You can order food while you wait.");
+        Alert.alert(
+          "Submitted",
+          "Your rider account is pending review. You can order food while you wait."
+        );
         router.replace("/(customer)");
         return;
       }
@@ -81,8 +104,8 @@ export default function RiderApply() {
         p_licence: packed,
         p_ownership: ownership.trim(),
         p_photo: photoUrl,
-        p_licence_front: front,
-        p_licence_back: back,
+        p_licence_front: frontUrl,
+        p_licence_back: backUrl,
       };
 
       let { error } = await supabase.rpc("apply_rider", payload);
@@ -101,7 +124,10 @@ export default function RiderApply() {
         Alert.alert("Could not submit", error.message);
         return;
       }
-      Alert.alert("Submitted", "Your rider account is pending review. You can order food while you wait.");
+      Alert.alert(
+        "Submitted",
+        "Your rider account is pending review. You can order food while you wait."
+      );
       router.replace("/(customer)");
     } finally {
       setLoading(false);
@@ -116,12 +142,15 @@ export default function RiderApply() {
           Rider application
         </Text>
         <Text style={{ color: "#B3B3B3", fontFamily: fonts.body, lineHeight: 22, marginBottom: 18 }}>
-          Capture your face in the box. The app stays open. After OTP you fill this form first — jobs open after Admin
-          approves you.
+          Capture your face at the top. Licence front and back use the same in-app camera. Jobs open after
+          Admin approves you.
         </Text>
 
         <FaceCamera
           uri={photoUri}
+          label="Your face"
+          facing="front"
+          buttonLabel="Capture face"
           onCapture={(uri, b64) => {
             setPhotoUri(uri);
             setPhotoB64(b64);
@@ -129,10 +158,17 @@ export default function RiderApply() {
         />
 
         <DarkField value={fullName} onChangeText={setFullName} placeholder="Full name" />
-        <DarkField value={phone} onChangeText={setPhone} placeholder="Mobile number" keyboardType="phone-pad" />
+        <DarkField
+          value={phone}
+          onChangeText={setPhone}
+          placeholder="Mobile number (+260…)"
+          keyboardType="phone-pad"
+        />
         <DarkField value={address} onChangeText={setAddress} placeholder="Residential address" />
 
-        <Text style={{ color: "#fff", fontFamily: fonts.title, marginTop: 8, marginBottom: 8 }}>Vehicle type</Text>
+        <Text style={{ color: "#fff", fontFamily: fonts.title, marginTop: 8, marginBottom: 8 }}>
+          Vehicle type
+        </Text>
         <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
           {(["bicycle", "motorbike"] as const).map((v) => (
             <Pressable
@@ -147,7 +183,14 @@ export default function RiderApply() {
                 backgroundColor: vehicle === v ? "rgba(244,163,0,0.12)" : "#161616",
               }}
             >
-              <Text style={{ color: "#fff", fontFamily: fonts.title, textTransform: "capitalize", textAlign: "center" }}>
+              <Text
+                style={{
+                  color: "#fff",
+                  fontFamily: fonts.title,
+                  textTransform: "capitalize",
+                  textAlign: "center",
+                }}
+              >
                 {v}
               </Text>
             </Pressable>
@@ -155,20 +198,42 @@ export default function RiderApply() {
         </View>
 
         <DarkField value={licence} onChangeText={setLicence} placeholder="Licence / ID number" />
-        <DarkField value={ownership} onChangeText={setOwnership} placeholder="Proof of ownership or permission" />
+        <DarkField
+          value={ownership}
+          onChangeText={setOwnership}
+          placeholder="Proof of ownership or permission"
+        />
 
-        <Text style={{ color: "#fff", fontFamily: fonts.title, marginTop: 8, marginBottom: 8 }}>
-          Licence / ID front
-        </Text>
-        <PhotoPicker folder="riders/licence-front" uri={front} name="Front" onChange={setFront} height={150} />
+        <FaceCamera
+          uri={front}
+          label="Licence / ID front"
+          facing="back"
+          buttonLabel="Capture front"
+          height={200}
+          onCapture={(uri, b64) => {
+            setFront(uri);
+            setFrontB64(b64);
+          }}
+        />
 
-        <Text style={{ color: "#fff", fontFamily: fonts.title, marginTop: 8, marginBottom: 8 }}>
-          Licence / ID back
-        </Text>
-        <PhotoPicker folder="riders/licence-back" uri={back} name="Back" onChange={setBack} height={150} />
+        <FaceCamera
+          uri={back}
+          label="Licence / ID back"
+          facing="back"
+          buttonLabel="Capture back"
+          height={200}
+          onCapture={(uri, b64) => {
+            setBack(uri);
+            setBackB64(b64);
+          }}
+        />
 
         <View style={{ height: 12 }} />
-        <GoldButton label={loading ? "Submitting…" : "Submit for review"} onPress={submit} disabled={loading} />
+        <GoldButton
+          label={loading ? "Submitting…" : "Submit for review"}
+          onPress={submit}
+          disabled={loading}
+        />
       </ScrollView>
     </DarkScreen>
   );

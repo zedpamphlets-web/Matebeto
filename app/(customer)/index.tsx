@@ -1,5 +1,14 @@
-import { useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useRef, useState } from "react";
+import {
+  Dimensions,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -13,13 +22,16 @@ import { colors, fonts } from "@/lib/theme";
 import { formatKw } from "@/lib/lipila";
 import { loadBasket } from "@/lib/basket";
 
-const MARKET_WASH = ["#148C38", "#C62828", "#B71C1C", "#E65100"];
+const W = Dimensions.get("window").width;
+const BANNER_W = W - 28;
 
 export default function Home() {
   const [markets, setMarkets] = useState<any[]>([]);
   const [featured, setFeatured] = useState<any[]>([]);
   const [banner, setBanner] = useState<string | null>(null);
   const [count, setCount] = useState(0);
+  const [bannerIndex, setBannerIndex] = useState(0);
+  const bannerRef = useRef<ScrollView>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -45,6 +57,26 @@ export default function Home() {
     }, [])
   );
 
+  // Hero slides: admin banner + featured meal photos (video-style carousel)
+  const slides: { key: string; uri?: string | null; title?: string; fallback?: number }[] = [
+    {
+      key: "main",
+      uri: banner,
+      title: "Real Meals.\nReal Flavours.\nDelivered.",
+      fallback: require("../../assets/welcome-food.jpg"),
+    },
+    ...featured.slice(0, 4).map((m) => ({
+      key: m.id,
+      uri: m.image_url,
+      title: m.name,
+    })),
+  ];
+
+  function onBannerScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    const x = e.nativeEvent.contentOffset.x;
+    setBannerIndex(Math.round(x / BANNER_W));
+  }
+
   return (
     <View style={styles.root}>
       <SafeAreaView edges={["top"]}>
@@ -56,30 +88,58 @@ export default function Home() {
         </View>
       </SafeAreaView>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
-        {/* Large banner sitting on black */}
-        <View style={styles.banner}>
-          <Image
-            source={banner ? { uri: banner } : require("../../assets/welcome-food.jpg")}
-            style={StyleSheet.absoluteFillObject}
-            contentFit="cover"
-          />
-          <LinearGradient
-            colors={["rgba(0,0,0,0.75)", "rgba(0,0,0,0.25)", "transparent"]}
-            start={{ x: 0, y: 0.4 }}
-            end={{ x: 1, y: 0.5 }}
-            style={StyleSheet.absoluteFill}
-          />
-          <View style={styles.bannerCopy}>
-            <Text style={styles.bannerKicker}>Let's Eat.</Text>
-            <Text style={styles.bannerText}>
-              Real Meals.{"\n"}Real Flavours.{"\n"}Delivered.
-            </Text>
-          </View>
+      <ScrollView contentContainerStyle={{ paddingBottom: 28 }} showsVerticalScrollIndicator={false}>
+        {/* Video-style multi banner */}
+        <View style={styles.bannerWrap}>
+          <ScrollView
+            ref={bannerRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={onBannerScroll}
+            scrollEventThrottle={16}
+            decelerationRate="fast"
+            snapToInterval={BANNER_W}
+            contentContainerStyle={{ paddingHorizontal: 14 }}
+          >
+            {slides.map((s) => (
+              <View key={s.key} style={[styles.banner, { width: BANNER_W - 4, marginRight: 4 }]}>
+                <Image
+                  source={s.uri ? { uri: s.uri } : s.fallback || require("../../assets/welcome-food.jpg")}
+                  style={StyleSheet.absoluteFillObject}
+                  contentFit="cover"
+                />
+                <LinearGradient
+                  colors={["transparent", "rgba(0,0,0,0.55)"]}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View style={styles.bannerCopy}>
+                  {s.key === "main" ? (
+                    <>
+                      <Text style={styles.bannerKicker}>Let&apos;s Eat.</Text>
+                      <Text style={styles.bannerText}>{s.title}</Text>
+                    </>
+                  ) : (
+                    <Text style={styles.bannerMeal} numberOfLines={2}>
+                      {s.title}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+          {slides.length > 1 ? (
+            <View style={styles.dots}>
+              {slides.map((s, i) => (
+                <View key={s.key} style={[styles.dot, i === bannerIndex && styles.dotOn]} />
+              ))}
+            </View>
+          ) : null}
         </View>
 
-        {/* Glass white sheet on black */}
+        {/* White sheet over dark — sits on banners */}
         <View style={styles.sheet}>
+          {/* Market logo chips — horizontal like Hungry Lion / KFC row */}
           <View style={styles.sectionHead}>
             <Text style={styles.section}>Markets</Text>
             <Pressable onPress={() => router.push("/(customer)/markets")}>
@@ -95,27 +155,43 @@ export default function Home() {
               hint="Admin adds Thornpark, Longacres and Olympia from the back office."
             />
           ) : (
-            <View style={styles.marketRow}>
-              {markets.slice(0, 3).map((m, i) => (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.chipRow}
+            >
+              {markets.map((m) => (
                 <Pressable
                   key={m.id}
                   onPress={() => router.push(`/(customer)/market/${m.id}`)}
-                  style={styles.marketCard}
+                  style={styles.chip}
                 >
-                  <Photo uri={m.image_url} name={m.name} height={112} dark />
-                  <LinearGradient
-                    colors={["transparent", MARKET_WASH[i % MARKET_WASH.length]]}
-                    style={styles.marketWash}
-                  />
-                  <Text style={styles.marketName} numberOfLines={1}>
+                  <View style={styles.chipLogo}>
+                    {m.image_url ? (
+                      <Image
+                        source={{ uri: m.image_url }}
+                        style={StyleSheet.absoluteFillObject}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <Ionicons name="storefront" size={28} color={colors.customerDeep} />
+                    )}
+                  </View>
+                  <Text style={styles.chipName} numberOfLines={2}>
                     {m.name}
                   </Text>
+                  {m.area ? (
+                    <Text style={styles.chipMeta} numberOfLines={1}>
+                      {m.area}
+                    </Text>
+                  ) : null}
                 </Pressable>
               ))}
-            </View>
+            </ScrollView>
           )}
 
-          <View style={[styles.sectionHead, { marginTop: 24 }]}>
+          {/* Featured — large hero + 2-column grid like the reel */}
+          <View style={[styles.sectionHead, { marginTop: 22 }]}>
             <View style={styles.sectionTitleRow}>
               <View style={styles.chefBadge}>
                 <Ionicons name="restaurant" size={16} color="#fff" />
@@ -132,25 +208,54 @@ export default function Home() {
               hint="When Admin marks a meal as featured, it shows here with its photo."
             />
           ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-              {featured.map((meal) => (
-                <Pressable
-                  key={meal.id}
-                  onPress={() => router.push({ pathname: "/(customer)/meal/[id]", params: { id: meal.id } })}
-                  style={styles.mealCard}
-                >
-                  <Photo uri={meal.image_url} name={meal.name} height={108} />
-                  <View style={{ padding: 12 }}>
-                    <Text style={{ fontFamily: fonts.title, color: colors.ink }} numberOfLines={1}>
-                      {meal.name}
-                    </Text>
-                    <Text style={{ color: colors.goldDeep, fontFamily: fonts.title, marginTop: 4 }}>
-                      {formatKw(meal.price)}
-                    </Text>
-                  </View>
-                </Pressable>
-              ))}
-            </ScrollView>
+            <View>
+              {/* Big featured hero */}
+              <Pressable
+                onPress={() =>
+                  router.push({
+                    pathname: "/(customer)/meal/[id]",
+                    params: { id: featured[0].id },
+                  })
+                }
+                style={styles.heroMeal}
+              >
+                <Photo uri={featured[0].image_url} name={featured[0].name} height={180} />
+                <LinearGradient
+                  colors={["transparent", "rgba(0,0,0,0.7)"]}
+                  style={styles.heroWash}
+                />
+                <View style={styles.heroCopy}>
+                  <Text style={styles.heroName} numberOfLines={1}>
+                    {featured[0].name}
+                  </Text>
+                  <Text style={styles.heroPrice}>{formatKw(featured[0].price)}</Text>
+                </View>
+              </Pressable>
+
+              {/* 2-column food cards */}
+              <View style={styles.grid}>
+                {featured.slice(1).map((meal) => (
+                  <Pressable
+                    key={meal.id}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(customer)/meal/[id]",
+                        params: { id: meal.id },
+                      })
+                    }
+                    style={styles.gridCard}
+                  >
+                    <Photo uri={meal.image_url} name={meal.name} height={110} />
+                    <View style={styles.gridBody}>
+                      <Text style={styles.gridName} numberOfLines={2}>
+                        {meal.name}
+                      </Text>
+                      <Text style={styles.gridPrice}>{formatKw(meal.price)}</Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
           )}
 
           {count > 0 && (
@@ -184,19 +289,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  bannerWrap: { marginBottom: 4 },
   banner: {
-    height: 240,
-    marginHorizontal: 14,
+    height: 220,
     borderRadius: 24,
     overflow: "hidden",
     backgroundColor: "#111",
-    marginBottom: 4,
   },
   bannerCopy: {
     flex: 1,
     justifyContent: "flex-end",
-    padding: 20,
-    maxWidth: "78%",
+    padding: 18,
+    maxWidth: "85%",
   },
   bannerKicker: {
     color: colors.gold,
@@ -207,22 +311,38 @@ const styles = StyleSheet.create({
   bannerText: {
     color: "#fff",
     fontFamily: fonts.display,
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 26,
+    lineHeight: 32,
   },
+  bannerMeal: {
+    color: "#fff",
+    fontFamily: fonts.display,
+    fontSize: 22,
+  },
+  dots: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 10,
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "rgba(255,255,255,0.35)",
+  },
+  dotOn: { backgroundColor: colors.gold, width: 18 },
   sheet: {
     marginTop: 12,
-    marginHorizontal: 0,
-    backgroundColor: "rgba(255,255,255,0.96)",
+    backgroundColor: "rgba(255,255,255,0.97)",
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: 16,
     paddingTop: 22,
     paddingBottom: 40,
-    minHeight: 480,
+    minHeight: 520,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.55)",
-    // subtle glass feel
     shadowColor: "#000",
     shadowOpacity: 0.25,
     shadowRadius: 20,
@@ -235,11 +355,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 14,
   },
-  sectionTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
+  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   chefBadge: {
     width: 28,
     height: 28,
@@ -250,32 +366,70 @@ const styles = StyleSheet.create({
   },
   section: { fontFamily: fonts.title, fontSize: 17, color: colors.ink },
   see: { color: colors.customerDeep, fontFamily: fonts.bodySemi, fontSize: 14 },
-  marketRow: { flexDirection: "row", gap: 10 },
-  marketCard: {
-    flex: 1,
-    borderRadius: 18,
-    overflow: "hidden",
-    backgroundColor: "#111",
+  chipRow: { gap: 12, paddingRight: 8, paddingBottom: 4 },
+  chip: {
+    width: 96,
+    alignItems: "center",
   },
-  marketWash: { ...StyleSheet.absoluteFillObject, top: 44 },
-  marketName: {
-    position: "absolute",
-    left: 6,
-    right: 6,
-    bottom: 12,
-    color: "#fff",
-    fontFamily: fonts.display,
-    fontSize: 13,
+  chipLogo: {
+    width: 72,
+    height: 72,
+    borderRadius: 18,
+    backgroundColor: "#F4F6F3",
+    borderWidth: 1,
+    borderColor: colors.line,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  chipName: {
+    fontFamily: fonts.bodySemi,
+    fontSize: 12,
+    color: colors.ink,
     textAlign: "center",
   },
-  mealCard: {
-    width: 152,
+  chipMeta: {
+    fontFamily: fonts.body,
+    fontSize: 10,
+    color: colors.muted,
+    textAlign: "center",
+    marginTop: 2,
+  },
+  heroMeal: {
+    borderRadius: 22,
+    overflow: "hidden",
+    marginBottom: 12,
+    backgroundColor: "#111",
+  },
+  heroWash: {
+    ...StyleSheet.absoluteFillObject,
+    top: 60,
+  },
+  heroCopy: {
+    position: "absolute",
+    left: 14,
+    right: 14,
+    bottom: 14,
+  },
+  heroName: { color: "#fff", fontFamily: fonts.display, fontSize: 20 },
+  heroPrice: { color: colors.gold, fontFamily: fonts.title, marginTop: 4 },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  gridCard: {
+    width: (W - 32 - 12) / 2,
     backgroundColor: "#fff",
-    borderRadius: 20,
+    borderRadius: 18,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: colors.line,
   },
+  gridBody: { padding: 10 },
+  gridName: { fontFamily: fonts.title, color: colors.ink, fontSize: 13, minHeight: 34 },
+  gridPrice: { color: colors.goldDeep, fontFamily: fonts.title, marginTop: 4, fontSize: 13 },
   basketBar: {
     marginTop: 24,
     backgroundColor: colors.ink,
