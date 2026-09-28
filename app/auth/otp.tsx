@@ -6,14 +6,20 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, fonts } from "@/lib/theme";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { currentProfile } from "@/lib/session";
-import { PREVIEW_OTP, setPreviewSession } from "@/lib/preview";
+import { PREVIEW_OTP, clearPreviewSession, setPreviewSession } from "@/lib/preview";
 
 export default function Otp() {
-  const { phone, mode, preview } = useLocalSearchParams<{ phone: string; mode?: string; preview?: string }>();
+  const { phone, mode, preview } = useLocalSearchParams<{
+    phone: string;
+    mode?: string;
+    preview?: string;
+  }>();
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const usePreview = preview === "1" || !isSupabaseConfigured;
+
+  // Real path whenever Supabase is in the build — ignore leftover preview=1
+  const usePreview = !isSupabaseConfigured;
 
   const boxes = useMemo(() => Array.from({ length: 6 }, (_, i) => code[i] || ""), [code]);
 
@@ -36,29 +42,34 @@ export default function Otp() {
     setLoading(true);
     setError("");
 
-    if (usePreview && token === PREVIEW_OTP) {
-      await setPreviewSession({ mode: mode === "rider" ? "rider" : "customer", phone: String(phone) });
-      await goIn();
-      return;
-    }
-
-    if (isSupabaseConfigured && !usePreview) {
-      const { error: otpError } = await supabase.auth.verifyOtp({
-        phone: String(phone),
-        token,
-        type: "sms",
-      });
-      if (otpError) {
-        setLoading(false);
-        setError(otpError.message);
+    // Offline / missing env only
+    if (usePreview) {
+      if (token === PREVIEW_OTP) {
+        await setPreviewSession({
+          mode: mode === "rider" ? "rider" : "customer",
+          phone: String(phone),
+        });
+        await goIn();
         return;
       }
-      await goIn();
+      setLoading(false);
+      setError("Wrong code. This build has no Supabase keys.");
       return;
     }
 
-    setLoading(false);
-    setError("Wrong code. Use 123456 to preview the app.");
+    // Live: verify with Supabase (SMS from Africa's Talking)
+    await clearPreviewSession();
+    const { error: otpError } = await supabase.auth.verifyOtp({
+      phone: String(phone),
+      token,
+      type: "sms",
+    });
+    if (otpError) {
+      setLoading(false);
+      setError(otpError.message || "Invalid code. Try again.");
+      return;
+    }
+    await goIn();
   }
 
   return (
@@ -89,7 +100,12 @@ export default function Otp() {
             />
           </View>
 
-          {usePreview ? <Text style={styles.hint}>Preview login code: 123456</Text> : null}
+          {usePreview ? (
+            <Text style={styles.hint}>No Supabase in this build. Preview code: 123456</Text>
+          ) : (
+            <Text style={styles.live}>Enter the SMS code from Africa&apos;s Talking</Text>
+          )}
+
           {error ? (
             <View style={styles.error}>
               <Text style={styles.errorText}>{error}</Text>
@@ -149,6 +165,7 @@ const styles = StyleSheet.create({
   digit: { color: "#fff", fontFamily: fonts.display, fontSize: 22 },
   hidden: { ...StyleSheet.absoluteFillObject, opacity: 0 },
   hint: { color: colors.gold, fontFamily: fonts.bodySemi, fontSize: 13, marginBottom: 12 },
+  live: { color: colors.customer, fontFamily: fonts.bodySemi, fontSize: 13, marginBottom: 12 },
   error: {
     backgroundColor: colors.danger,
     borderRadius: 6,
