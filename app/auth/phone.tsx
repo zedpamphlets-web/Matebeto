@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, fonts } from "@/lib/theme";
-import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { friendlyAuthError, isSupabaseConfigured, pingSupabase, supabase } from "@/lib/supabase";
 import { toZambianMsisdn } from "@/lib/lipila";
 import { clearPreviewSession } from "@/lib/preview";
 
@@ -38,12 +38,19 @@ export default function PhoneAuth() {
 
     if (isSupabaseConfigured) {
       await clearPreviewSession();
-      const { error } = await supabase.auth.signInWithOtp({ phone: e164 });
+      const ping = await pingSupabase();
+      if (!ping.ok) {
+        setLoading(false);
+        setSendError(friendlyAuthError(ping.detail));
+        return;
+      }
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: e164,
+        options: { shouldCreateUser: true, channel: "sms" },
+      });
       setLoading(false);
       if (error) {
-        setSendError(
-          error.message || "Could not send SMS. Check Phone auth and Africa's Talking."
-        );
+        setSendError(friendlyAuthError(error.message));
         return;
       }
       router.push({

@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, fonts } from "@/lib/theme";
-import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { friendlyAuthError, isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { currentProfile } from "@/lib/session";
 import { PREVIEW_OTP, clearPreviewSession, setPreviewSession } from "@/lib/preview";
 
@@ -66,7 +66,7 @@ export default function Otp() {
     });
     if (otpError) {
       setLoading(false);
-      setError(otpError.message || "Invalid code. Try again.");
+      setError(friendlyAuthError(otpError.message) || "Invalid code. Try again.");
       return;
     }
     await goIn();

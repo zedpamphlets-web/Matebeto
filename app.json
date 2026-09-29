@@ -3,7 +3,7 @@
     "name": "Matebeto",
     "slug": "matebeto-team",
     "owner": "matebetos-team",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -27,11 +27,12 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.siximages.matebeto",
-      "buildNumber": "4"
+      "buildNumber": "5"
     },
     "android": {
       "package": "com.siximages.matebeto",
-      "versionCode": 4,
+      "versionCode": 5,
+      "permissions": ["INTERNET", "ACCESS_NETWORK_STATE"],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F4A300"
@@ -76,6 +77,8 @@
         "projectId": "70c2c6ad-a0e0-4a4b-8f69-136bcb7e001a"
       },
       "supabaseUrl": "https://lmyvvwulabezlglxjzul.supabase.co",
+      "supabaseAnonKey": "sb_publishable_XJVKUkLgF-0OJk2Mf4N8nQ_ZhmtezXu",
+      "supabasePublishableKey": "sb_publishable_XJVKUkLgF-0OJk2Mf4N8nQ_ZhmtezXu",
       "paymentApiUrl": "https://lmyvvwulabezlglxjzul.supabase.co/functions/v1"
     }
   }
