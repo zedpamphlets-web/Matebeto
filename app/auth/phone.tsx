@@ -101,8 +101,8 @@ export default function PhoneAuth() {
 
           {!isSupabaseConfigured ? (
             <Text style={styles.warn}>
-              Supabase is not in this build. Rebuild the APK with EXPO_PUBLIC_SUPABASE_URL and
-              ANON_KEY.
+              This APK has no Supabase key. In Expo → Environment variables (production) set
+              EXPO_PUBLIC_SUPABASE_ANON_KEY, then run a new production build and install it.
             </Text>
           ) : (
             <Text style={styles.live}>Live login — SMS code via Africa&apos;s Talking</Text>

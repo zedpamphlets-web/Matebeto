@@ -55,7 +55,6 @@ export function FaceCamera({
         ) : (
           <View style={styles.need}>
             <Ionicons name="camera" size={36} color={colors.gold} />
-            <Text style={styles.needText}>Camera stays in this box. The app will not close.</Text>
             <Pressable onPress={requestPermission} style={styles.allow}>
               <Text style={styles.allowText}>Allow camera</Text>
             </Pressable>

@@ -28,7 +28,10 @@
       "distribution": "store",
       "environment": "production",
       "autoIncrement": true,
-      "node": "22.13.0"
+      "node": "22.13.0",
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {

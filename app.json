@@ -8,7 +8,10 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "scheme": "matebeto",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -71,7 +74,9 @@
       "router": {},
       "eas": {
         "projectId": "70c2c6ad-a0e0-4a4b-8f69-136bcb7e001a"
-      }
+      },
+      "supabaseUrl": "https://lmyvvwulabezlglxjzul.supabase.co",
+      "paymentApiUrl": "https://lmyvvwulabezlglxjzul.supabase.co/functions/v1"
     }
   }
 }

@@ -132,12 +132,8 @@ export default function RiderApply() {
     <DarkScreen>
       <AppHeader title="Rider application" back />
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48 }}>
-        <Text style={{ color: "#fff", fontFamily: fonts.display, fontSize: 28, marginBottom: 8 }}>
+        <Text style={{ color: "#fff", fontFamily: fonts.display, fontSize: 28, marginBottom: 18 }}>
           Rider application
-        </Text>
-        <Text style={{ color: "#B3B3B3", fontFamily: fonts.body, lineHeight: 22, marginBottom: 18 }}>
-          Capture your face in the box. The app stays open. After OTP you fill this form first — jobs open after
-          Admin approves you.
         </Text>
 
         {/* Face photo — same embed camera as before */}
