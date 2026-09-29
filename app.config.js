@@ -1,25 +1,18 @@
 const { expo } = require("./app.json");
 
-/** Matebeto Supabase project — URL always baked in. Anon key from EAS production env. */
+/** Baked into every build so login works even if EAS env injection fails. */
 const URL = "https://lmyvvwulabezlglxjzul.supabase.co";
+const ANON = "sb_publishable_XJVKUkLgF-0OJk2Mf4N8nQ_ZhmtezXu";
 
-module.exports = () => {
-  const anon = (
-    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
-    process.env.SUPABASE_ANON_KEY ||
-    ""
-  ).trim();
-
-  return {
-    ...expo,
-    extra: {
-      ...(expo.extra || {}),
-      supabaseUrl: (process.env.EXPO_PUBLIC_SUPABASE_URL || URL).trim(),
-      supabaseAnonKey: anon,
-      paymentApiUrl: (
-        process.env.EXPO_PUBLIC_PAYMENT_API_URL ||
-        `${URL}/functions/v1`
-      ).trim(),
-    },
-  };
-};
+module.exports = () => ({
+  ...expo,
+  extra: {
+    ...(expo.extra || {}),
+    supabaseUrl: (process.env.EXPO_PUBLIC_SUPABASE_URL || URL).trim(),
+    supabaseAnonKey: (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || ANON).trim(),
+    paymentApiUrl: (
+      process.env.EXPO_PUBLIC_PAYMENT_API_URL ||
+      `${URL}/functions/v1`
+    ).trim(),
+  },
+});
