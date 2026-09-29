@@ -15,17 +15,14 @@ export default function Welcome() {
 
   useEffect(() => {
     let cancelled = false;
-    const timer = setTimeout(() => {
-      if (!cancelled) setReady(true);
-    }, 1600);
-
+    // Natural load only — waits for session check, not a fake 9-second timer
     currentProfile()
       .then(({ user, admin, rider, preview }) => {
         if (cancelled) return;
         if (admin) router.replace("/admin");
         else if (rider?.status === "APPROVED") router.replace("/(rider)");
         else if (preview || user) router.replace("/(customer)");
-        setReady(true);
+        else setReady(true);
       })
       .catch(() => {
         if (!cancelled) setReady(true);
@@ -33,12 +30,11 @@ export default function Welcome() {
 
     return () => {
       cancelled = true;
-      clearTimeout(timer);
     };
   }, []);
 
   if (!ready) {
-    return <BrandSplash message="Entering Matebeto" />;
+    return <BrandSplash />;
   }
 
   return (

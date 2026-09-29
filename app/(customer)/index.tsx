@@ -88,7 +88,7 @@ export default function Home() {
         </View>
       </SafeAreaView>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 28 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 96 }} showsVerticalScrollIndicator={false}>
         {/* Video-style multi banner */}
         <View style={styles.bannerWrap}>
           <ScrollView
@@ -148,12 +148,7 @@ export default function Home() {
           </View>
 
           {markets.length === 0 ? (
-            <EmptyState
-              icon="storefront"
-              color={colors.customer}
-              title="No markets yet"
-              hint="Admin adds Thornpark, Longacres and Olympia from the back office."
-            />
+            <EmptyState icon="storefront" color={colors.customer} title="No markets yet" />
           ) : (
             <ScrollView
               horizontal
@@ -201,12 +196,7 @@ export default function Home() {
           </View>
 
           {featured.length === 0 ? (
-            <EmptyState
-              icon="restaurant"
-              color={colors.gold}
-              title="No featured meals"
-              hint="When Admin marks a meal as featured, it shows here with its photo."
-            />
+            <EmptyState icon="restaurant" color={colors.gold} title="No featured meals" />
           ) : (
             <View>
               {/* Big featured hero */}
@@ -334,20 +324,20 @@ const styles = StyleSheet.create({
   dotOn: { backgroundColor: colors.gold, width: 18 },
   sheet: {
     marginTop: 12,
-    backgroundColor: "rgba(255,255,255,0.97)",
+    backgroundColor: "rgba(255,255,255,0.88)",
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: 16,
     paddingTop: 22,
-    paddingBottom: 40,
+    paddingBottom: 100,
     minHeight: 520,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.55)",
     shadowColor: "#000",
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 8,
+    shadowOpacity: 0.22,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: -6 },
+    elevation: 10,
   },
   sectionHead: {
     flexDirection: "row",

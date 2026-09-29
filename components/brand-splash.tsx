@@ -1,20 +1,18 @@
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import { BrandMark } from "@/components/brand";
 import { colors, fonts } from "@/lib/theme";
 
-export function BrandSplash({
-  message = "Loading",
-}: {
-  message?: string;
-}) {
+/** Full-screen splash: large Matebeto + spinner. Duration is natural load, not a fixed timer. */
+export function BrandSplash({ message }: { message?: string }) {
   return (
     <View style={styles.root}>
       <View style={styles.center}>
-        <BrandMark size={96} />
+        <Text style={styles.word}>Matebeto</Text>
+        <View style={styles.line} />
+        <Text style={styles.tag}>Let&apos;s Eat.</Text>
       </View>
       <View style={styles.spin}>
         <ActivityIndicator size="large" color={colors.gold} />
-        <Text style={styles.msg}>{message}</Text>
+        {message ? <Text style={styles.msg}>{message}</Text> : null}
       </View>
     </View>
   );
@@ -30,18 +28,39 @@ const styles = StyleSheet.create({
   center: {
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 40,
+    marginBottom: 48,
+  },
+  word: {
+    fontFamily: fonts.script,
+    fontSize: 64,
+    color: colors.gold,
+    lineHeight: 78,
+    textAlign: "center",
+  },
+  line: {
+    width: 120,
+    height: 3,
+    backgroundColor: colors.gold,
+    borderRadius: 2,
+    marginTop: 2,
+    opacity: 0.95,
+  },
+  tag: {
+    fontFamily: fonts.italic,
+    color: colors.gold,
+    fontSize: 20,
+    marginTop: 12,
   },
   spin: {
     position: "absolute",
-    bottom: 80,
+    bottom: 72,
     alignItems: "center",
     gap: 12,
   },
   msg: {
-    color: "rgba(255,255,255,0.75)",
+    color: "rgba(255,255,255,0.7)",
     fontFamily: fonts.bodySemi,
-    fontSize: 14,
-    letterSpacing: 0.5,
+    fontSize: 13,
+    letterSpacing: 0.4,
   },
 });

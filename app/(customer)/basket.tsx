@@ -1,9 +1,11 @@
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import { router, useFocusEffect } from "expo-router";
 import { Photo } from "@/components/photo";
 import { EmptyState } from "@/components/empty-state";
 import { AppHeader } from "@/components/app-shell";
+import { GlassSheet } from "@/components/glass-sheet";
 import { clearBasket, foodTotal, loadBasket, saveBasket, type BasketState } from "@/lib/basket";
 import { formatKw } from "@/lib/lipila";
 import { colors, fonts, radius } from "@/lib/theme";
@@ -31,44 +33,28 @@ export default function Basket() {
   const total = foodTotal(basket.items);
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#000" }}>
+    <View style={styles.root}>
+      <Image
+        source={require("../../assets/welcome-food.jpg")}
+        style={StyleSheet.absoluteFillObject}
+        resizeMode="cover"
+      />
+      <View style={styles.dim} />
       <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
         <AppHeader title="Your Basket" onMenu={() => router.push("/(customer)/menu")} />
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(255,255,255,0.97)",
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
-          }}
-        >
-          <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+        <GlassSheet style={{ marginTop: 4 }}>
+          <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
             {basket.items.length === 0 ? (
-              <EmptyState
-                icon="basket"
-                color={colors.gold}
-                title="No basket"
-                hint="Pick a market, add a meal, and your basket will show here."
-              />
+              <EmptyState icon="basket" color={colors.gold} title="No basket" />
             ) : (
               <>
-                <Text style={{ color: colors.muted, marginBottom: 16, fontFamily: fonts.body }}>
-                  {basket.marketName || "Your market"}
-                </Text>
+                {basket.marketName ? (
+                  <Text style={{ color: colors.muted, marginBottom: 14, fontFamily: fonts.body }}>
+                    {basket.marketName}
+                  </Text>
+                ) : null}
                 {basket.items.map((it, idx) => (
-                  <View
-                    key={idx}
-                    style={{
-                      flexDirection: "row",
-                      backgroundColor: "#fff",
-                      borderRadius: radius.md,
-                      padding: 12,
-                      marginBottom: 10,
-                      alignItems: "center",
-                      borderWidth: 1,
-                      borderColor: colors.line,
-                    }}
-                  >
+                  <View key={idx} style={styles.row}>
                     <View style={{ borderRadius: 12, overflow: "hidden" }}>
                       <Photo uri={it.image_url} name={it.name} height={64} width={64} />
                     </View>
@@ -79,7 +65,9 @@ export default function Basket() {
                       <Text style={{ color: colors.muted, fontFamily: fonts.body, fontSize: 12 }}>
                         {it.sides.join(", ") || "No sides"}
                       </Text>
-                      <Text style={{ fontFamily: fonts.title, marginTop: 4 }}>{formatKw(it.price * it.quantity)}</Text>
+                      <Text style={{ fontFamily: fonts.title, marginTop: 4 }}>
+                        {formatKw(it.price * it.quantity)}
+                      </Text>
                     </View>
                     <View style={{ alignItems: "center" }}>
                       <Pressable onPress={() => changeQty(idx, it.quantity + 1)}>
@@ -102,13 +90,30 @@ export default function Basket() {
                   }}
                   style={{ marginTop: 14 }}
                 >
-                  <Text style={{ textAlign: "center", color: colors.muted, fontFamily: fonts.bodySemi }}>Clear basket</Text>
+                  <Text style={{ textAlign: "center", color: colors.muted, fontFamily: fonts.bodySemi }}>
+                    Clear basket
+                  </Text>
                 </Pressable>
               </>
             )}
           </ScrollView>
-        </View>
+        </GlassSheet>
       </SafeAreaView>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: "#000" },
+  dim: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.35)" },
+  row: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255,255,255,0.75)",
+    borderRadius: radius.md,
+    padding: 12,
+    marginBottom: 10,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.6)",
+  },
+});

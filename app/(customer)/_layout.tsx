@@ -1,8 +1,36 @@
 import { useCallback, useState } from "react";
+import { View } from "react-native";
 import { Tabs, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/lib/theme";
 import { loadBasket } from "@/lib/basket";
+
+function TabIcon({
+  name,
+  focused,
+  color,
+}: {
+  name: keyof typeof Ionicons.glyphMap;
+  focused: boolean;
+  color: string;
+}) {
+  return (
+    <View
+      style={{
+        width: 46,
+        height: 46,
+        borderRadius: 16,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: focused ? "rgba(244,163,0,0.18)" : "rgba(255,255,255,0.55)",
+        borderWidth: 1,
+        borderColor: focused ? "rgba(244,163,0,0.45)" : "rgba(255,255,255,0.7)",
+      }}
+    >
+      <Ionicons name={name} size={22} color={color} />
+    </View>
+  );
+}
 
 export default function CustomerTabs() {
   const [count, setCount] = useState(0);
@@ -18,13 +46,26 @@ export default function CustomerTabs() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.gold,
-        tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: { fontFamily: fonts.bodySemi, fontSize: 11 },
+        tabBarInactiveTintColor: "#6B6B6B",
+        tabBarLabelStyle: { fontFamily: fonts.bodySemi, fontSize: 11, marginTop: 2 },
         tabBarStyle: {
-          backgroundColor: "#fff",
-          borderTopColor: colors.line,
-          height: 64,
-          paddingTop: 6,
+          position: "absolute",
+          left: 12,
+          right: 12,
+          bottom: 10,
+          height: 72,
+          paddingTop: 8,
+          paddingBottom: 8,
+          borderRadius: 24,
+          backgroundColor: "rgba(255,255,255,0.92)",
+          borderTopWidth: 0,
+          borderWidth: 1,
+          borderColor: "rgba(255,255,255,0.75)",
+          shadowColor: "#000",
+          shadowOpacity: 0.15,
+          shadowRadius: 16,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: 12,
         },
       }}
     >
@@ -34,7 +75,7 @@ export default function CustomerTabs() {
           title: "Home",
           tabBarLabel: "Home",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "home" : "home-outline"} size={22} color={color} />
+            <TabIcon name={focused ? "home" : "home-outline"} focused={focused} color={color} />
           ),
         }}
       />
@@ -50,7 +91,7 @@ export default function CustomerTabs() {
             fontFamily: fonts.bodySemi,
           },
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "basket" : "basket-outline"} size={22} color={color} />
+            <TabIcon name={focused ? "basket" : "basket-outline"} focused={focused} color={color} />
           ),
         }}
       />
@@ -60,11 +101,10 @@ export default function CustomerTabs() {
           title: "Orders",
           tabBarLabel: "Orders",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "wallet" : "wallet-outline"} size={22} color={color} />
+            <TabIcon name={focused ? "wallet" : "wallet-outline"} focused={focused} color={color} />
           ),
         }}
       />
-      {/* Menu lives in top profile avatar — not in bottom bar */}
       <Tabs.Screen name="menu" options={{ href: null }} />
       <Tabs.Screen name="markets" options={{ href: null }} />
       <Tabs.Screen name="settings" options={{ href: null }} />
