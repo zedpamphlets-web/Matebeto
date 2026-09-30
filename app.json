@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "Matebeto",
-    "slug": "matebeto-team",
-    "owner": "matebetos-team",
+    "slug": "mwape-victor2007",
+    "owner": "matebeto2026s-team",
     "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -74,7 +74,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "70c2c6ad-a0e0-4a4b-8f69-136bcb7e001a"
+        "projectId": "a8c8cd91-6e9b-4b86-abdc-1b1729724899"
       },
       "supabaseUrl": "https://lmyvvwulabezlglxjzul.supabase.co",
       "supabaseAnonKey": "sb_publishable_XJVKUkLgF-0OJk2Mf4N8nQ_ZhmtezXu",

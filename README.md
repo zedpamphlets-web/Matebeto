@@ -12,14 +12,14 @@ Same EAS versions as the previous working Marketplace repo so Android preview bu
 
 ## Expo project
 
-Linked in `app.json` to the Expo org **matebetos-team**:
+Linked in `app.json` to the Expo org **matebeto2026s-team**:
 
 | Field | Value |
 | --- | --- |
 | name | Matebeto |
-| slug | matebeto-team |
-| owner | matebetos-team |
-| extra.eas.projectId | 70c2c6ad-a0e0-4a4b-8f69-136bcb7e001a |
+| slug | mwape-victor2007 |
+| owner | matebeto2026s-team |
+| extra.eas.projectId | a8c8cd91-6e9b-4b86-abdc-1b1729724899 |
 
 That is what EAS uses to find the project when you run `eas build`. You do not need `eas init` again.
 
