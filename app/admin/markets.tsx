@@ -47,21 +47,17 @@ export default function AdminMarkets() {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.adminBg }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
       <Text style={{ fontFamily: fonts.title, fontSize: 18, marginBottom: 8 }}>Add market</Text>
-      <Text style={{ color: colors.muted, fontFamily: fonts.body, marginBottom: 10 }}>
-        Launch markets are Thornpark, Longacres and Olympia. Add more here when you expand. Upload food photos from the
-        phone — do not paste a random stock URL.
-      </Text>
       <Field value={name} onChangeText={setName} placeholder="Market name" />
       <View style={{ height: 10 }} />
       <PhotoPicker folder="markets" uri={image} name={name || "Market"} onChange={setImage} />
       <PrimaryButton label="Save market" onPress={add} />
       <View style={{ height: 18 }} />
       {rows.map((m) => (
-        <View key={m.id} style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 12, marginBottom: 10 }}>
-          <Text style={{ fontFamily: fonts.title }}>{m.name}</Text>
-          <Text style={{ color: colors.muted, fontFamily: fonts.body, marginBottom: 8 }}>
+        <View key={m.id} style={{ backgroundColor: colors.adminCard, borderWidth: 1, borderColor: colors.adminCardBorder, borderRadius: radius.md, padding: 12, marginBottom: 10 }}>
+          <Text style={{ fontFamily: fonts.title, color: colors.adminText }}>{m.name}</Text>
+          <Text style={{ color: colors.adminMuted, fontFamily: fonts.body, marginBottom: 8 }}>
             {m.is_active ? "Active" : "Hidden"}
           </Text>
           <PhotoPicker folder={`markets/${m.id}`} uri={m.image_url} name={m.name} onChange={(url) => saveImage(m, url)} />

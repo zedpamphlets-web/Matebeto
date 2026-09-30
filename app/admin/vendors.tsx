@@ -69,17 +69,14 @@ export default function Vendors() {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      <Text style={{ fontFamily: fonts.title, fontSize: 18 }}>Add vendor</Text>
-      <Text style={{ color: colors.muted, fontFamily: fonts.body, marginBottom: 10 }}>
-        Only real partners. WhatsApp must be a live number. Then tick the meals they can actually cook.
-      </Text>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.adminBg }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <Text style={{ fontFamily: fonts.title, fontSize: 18, color: colors.adminText }}>Add vendor</Text>
       <Field value={name} onChangeText={setName} placeholder="Vendor name" />
       <View style={{ height: 8 }} />
       <Field value={contact} onChangeText={setContact} placeholder="Contact person" />
       <View style={{ height: 8 }} />
       <Field value={whatsapp} onChangeText={setWhatsapp} placeholder="WhatsApp 2609..." />
-      <Text style={{ marginVertical: 8, color: colors.muted, fontFamily: fonts.body }}>Market</Text>
+      <Text style={{ marginVertical: 8, color: colors.adminMuted, fontFamily: fonts.body }}>Market</Text>
       {markets.map((m) => (
         <Pressable key={m.id} onPress={() => setMarketId(m.id)}>
           <Text style={{ fontFamily: marketId === m.id ? fonts.title : fonts.body, marginBottom: 4, color: marketId === m.id ? colors.customerDeep : colors.ink }}>
@@ -90,11 +87,11 @@ export default function Vendors() {
       <View style={{ height: 10 }} />
       <PrimaryButton label="Save vendor" onPress={add} />
       <View style={{ height: 16 }} />
-      {rows.length === 0 && <Text style={{ color: colors.muted, fontFamily: fonts.body }}>No vendors yet.</Text>}
+      {rows.length === 0 && <Text style={{ color: colors.adminMuted, fontFamily: fonts.body }}>No vendors yet.</Text>}
       {rows.map((v) => (
-        <View key={v.id} style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 12, marginBottom: 8 }}>
-          <Text style={{ fontFamily: fonts.title }}>{v.name}</Text>
-          <Text style={{ color: colors.muted, fontFamily: fonts.body }}>
+        <View key={v.id} style={{ backgroundColor: colors.adminCard, borderWidth: 1, borderColor: colors.adminCardBorder, borderRadius: radius.md, padding: 12, marginBottom: 8 }}>
+          <Text style={{ fontFamily: fonts.title, color: colors.adminText }}>{v.name}</Text>
+          <Text style={{ color: colors.adminMuted, fontFamily: fonts.body }}>
             {v.markets?.name} · {v.whatsapp}
           </Text>
           <Pressable onPress={() => toggle(v, "is_available")} style={{ marginTop: 8 }}>
@@ -104,7 +101,7 @@ export default function Vendors() {
           </Pressable>
           <Text style={{ marginTop: 10, fontFamily: fonts.bodySemi }}>Meals this vendor can fulfil</Text>
           {meals.length === 0 && (
-            <Text style={{ color: colors.muted, fontFamily: fonts.body }}>Add meals in Menu first.</Text>
+            <Text style={{ color: colors.adminMuted, fontFamily: fonts.body }}>Add meals in Menu first.</Text>
           )}
           {meals.map((meal) => {
             const on = links.some((l) => l.vendor_id === v.id && l.meal_id === meal.id);

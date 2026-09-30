@@ -5,28 +5,53 @@ import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { BrandMark } from "@/components/brand";
 import { BrandSplash } from "@/components/brand-splash";
 import { colors, fonts } from "@/lib/theme";
 import { currentProfile } from "@/lib/session";
 
+async function isOnline() {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 4000);
+    const res = await fetch("https://clients3.google.com/generate_204", {
+      method: "HEAD",
+      signal: ctrl.signal,
+    });
+    clearTimeout(t);
+    return res.ok || res.status === 204 || res.status === 0;
+  } catch {
+    return false;
+  }
+}
+
 export default function Welcome() {
   const [ready, setReady] = useState(false);
+  const [offline, setOffline] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    // Natural load only — waits for session check, not a fake 9-second timer
-    currentProfile()
-      .then(({ user, admin, rider, preview }) => {
-        if (cancelled) return;
-        if (admin) router.replace("/admin");
-        else if (rider?.status === "APPROVED") router.replace("/(rider)");
-        else if (preview || user) router.replace("/(customer)");
-        else setReady(true);
-      })
-      .catch(() => {
-        if (!cancelled) setReady(true);
-      });
+
+    (async () => {
+      const online = await isOnline();
+      if (cancelled) return;
+      if (!online) {
+        setOffline(true);
+        setReady(true);
+        return;
+      }
+
+      currentProfile()
+        .then(({ user, admin, rider, preview }) => {
+          if (cancelled) return;
+          if (admin) router.replace("/admin");
+          else if (rider?.status === "APPROVED") router.replace("/(rider)");
+          else if (preview || user) router.replace("/(customer)");
+          else setReady(true);
+        })
+        .catch(() => {
+          if (!cancelled) setReady(true);
+        });
+    })();
 
     return () => {
       cancelled = true;
@@ -35,6 +60,40 @@ export default function Welcome() {
 
   if (!ready) {
     return <BrandSplash />;
+  }
+
+  if (offline) {
+    return (
+      <View style={{ flex: 1 }}>
+        <BrandSplash offline />
+        <View style={styles.retryWrap}>
+          <Pressable
+            onPress={async () => {
+              setReady(false);
+              setOffline(false);
+              const online = await isOnline();
+              if (!online) {
+                setOffline(true);
+                setReady(true);
+                return;
+              }
+              try {
+                const { user, admin, rider, preview } = await currentProfile();
+                if (admin) router.replace("/admin");
+                else if (rider?.status === "APPROVED") router.replace("/(rider)");
+                else if (preview || user) router.replace("/(customer)");
+                else setReady(true);
+              } catch {
+                setReady(true);
+              }
+            }}
+            style={styles.retry}
+          >
+            <Text style={styles.retryText}>Try again</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -48,7 +107,12 @@ export default function Welcome() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.copy}>
           <View style={styles.glass}>
-            <BrandMark size={58} />
+            <Image
+              source={require("../assets/logo-wordmark.png")}
+              style={{ width: 220, height: 72 }}
+              contentFit="contain"
+            />
+            <Text style={styles.tag}>Let's Eat.</Text>
             <Text style={styles.one}>One App.</Text>
             <Text style={styles.two}>Two Ways to Serve You.</Text>
           </View>
@@ -94,6 +158,24 @@ function RoleButton({
 }
 
 const styles = StyleSheet.create({
+  retryWrap: {
+    position: "absolute",
+    bottom: 56,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+  },
+  retry: {
+    backgroundColor: colors.gold,
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 28,
+  },
+  retryText: {
+    color: colors.ink,
+    fontFamily: fonts.title,
+    fontSize: 15,
+  },
   root: { flex: 1, backgroundColor: "#000" },
   safe: { flex: 1, justifyContent: "space-between", paddingHorizontal: 22, paddingBottom: 28 },
   copy: { paddingTop: 36, alignItems: "center" },
@@ -107,8 +189,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.12)",
   },
+  tag: {
+    marginTop: 10,
+    color: colors.gold,
+    fontFamily: fonts.italic,
+    fontSize: 16,
+  },
   one: {
-    marginTop: 22,
+    marginTop: 18,
     color: colors.gold,
     fontFamily: fonts.display,
     fontSize: 34,

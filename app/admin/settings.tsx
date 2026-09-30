@@ -46,9 +46,9 @@ export default function Fees() {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-      <Text style={{ fontFamily: fonts.display, fontSize: 28 }}>Home & fees</Text>
-      <Text style={{ color: colors.muted, fontFamily: fonts.body, marginTop: 6, lineHeight: 22 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.adminBg }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+      <Text style={{ fontFamily: fonts.display, fontSize: 28, color: colors.adminText }}>Home & fees</Text>
+      <Text style={{ color: colors.adminMuted, fontFamily: fonts.body, marginTop: 6, lineHeight: 22 }}>
         Upload the home banner food photo from your phone. Customers only see food total, platform fee and delivery fee.
       </Text>
       <View style={{ height: 16 }} />

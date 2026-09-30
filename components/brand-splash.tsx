@@ -1,17 +1,25 @@
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
 import { colors, fonts } from "@/lib/theme";
 
-/** Full-screen splash: large Matebeto + spinner. Duration is natural load, not a fixed timer. */
-export function BrandSplash({ message }: { message?: string }) {
+/** Full-screen splash: official logo + spinner. Optional offline message. */
+export function BrandSplash({ message, offline }: { message?: string; offline?: boolean }) {
   return (
     <View style={styles.root}>
       <View style={styles.center}>
-        <Text style={styles.word}>Matebeto</Text>
-        <View style={styles.line} />
-        <Text style={styles.tag}>Let&apos;s Eat.</Text>
+        <Image
+          source={require("../assets/logo-wordmark.png")}
+          style={{ width: 280, height: 100 }}
+          resizeMode="contain"
+        />
+        {offline ? (
+          <>
+            <Text style={styles.offlineTitle}>No internet connection</Text>
+            <Text style={styles.offlineSub}>Connect to the internet to use Matebeto.</Text>
+          </>
+        ) : null}
       </View>
       <View style={styles.spin}>
-        <ActivityIndicator size="large" color={colors.gold} />
+        {offline ? null : <ActivityIndicator size="large" color={colors.gold} />}
         {message ? <Text style={styles.msg}>{message}</Text> : null}
       </View>
     </View>
@@ -21,7 +29,7 @@ export function BrandSplash({ message }: { message?: string }) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "#0B2B1A",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -29,38 +37,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 48,
+    paddingHorizontal: 28,
   },
-  word: {
-    fontFamily: fonts.script,
-    fontSize: 64,
-    color: colors.gold,
-    lineHeight: 78,
+  offlineTitle: {
+    marginTop: 28,
+    color: "#fff",
+    fontFamily: fonts.title,
+    fontSize: 20,
     textAlign: "center",
   },
-  line: {
-    width: 120,
-    height: 3,
-    backgroundColor: colors.gold,
-    borderRadius: 2,
-    marginTop: 2,
-    opacity: 0.95,
-  },
-  tag: {
-    fontFamily: fonts.italic,
-    color: colors.gold,
-    fontSize: 20,
-    marginTop: 12,
+  offlineSub: {
+    marginTop: 8,
+    color: "#B0B0B0",
+    fontFamily: fonts.body,
+    fontSize: 14,
+    textAlign: "center",
   },
   spin: {
     position: "absolute",
-    bottom: 72,
+    bottom: 56,
     alignItems: "center",
-    gap: 12,
   },
   msg: {
-    color: "rgba(255,255,255,0.7)",
+    marginTop: 12,
+    color: "#9A9A9A",
     fontFamily: fonts.bodySemi,
-    fontSize: 13,
-    letterSpacing: 0.4,
+    fontSize: 14,
   },
 });

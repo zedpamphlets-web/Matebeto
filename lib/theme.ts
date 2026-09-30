@@ -19,7 +19,16 @@ export const colors = {
   glass: "rgba(255,255,255,0.08)",
   glassLine: "rgba(255,255,255,0.18)",
   wash: "#F4F6F3",
+  adminBg: "#2A2A2A",
+  adminCard: "rgba(255,255,255,0.08)",
+  adminCardBorder: "rgba(255,255,255,0.14)",
+  adminMuted: "#A8A8A8",
+  adminText: "#F5F5F5",
+  brandGreen: "#0B2B1A",
 };
+
+export const marketAccents = ["#1FAF4A", "#E53935", "#C2185B", "#F4A300", "#1565C0", "#6A1B9A"];
+
 
 export const fonts = {
   script: "Pacifico_400Regular",

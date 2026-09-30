@@ -18,17 +18,21 @@ export default function AdminTabs() {
     });
   }, []);
 
-  if (!ok) return <View style={{ flex: 1, backgroundColor: colors.cream }} />;
+  if (!ok) return <View style={{ flex: 1, backgroundColor: colors.adminBg }} />;
 
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: colors.ink },
+        headerStyle: { backgroundColor: "#111" },
         headerTintColor: colors.gold,
         headerShadowVisible: false,
         headerTitleStyle: { fontFamily: fonts.title },
-        tabBarActiveTintColor: colors.ink,
-        tabBarInactiveTintColor: colors.muted,
+        tabBarStyle: {
+          backgroundColor: "#111",
+          borderTopColor: "rgba(255,255,255,0.08)",
+        },
+        tabBarActiveTintColor: colors.gold,
+        tabBarInactiveTintColor: "#888",
         tabBarLabelStyle: { fontFamily: fonts.bodySemi, fontSize: 10 },
       }}
     >

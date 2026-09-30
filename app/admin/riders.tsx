@@ -32,19 +32,16 @@ export default function AdminRiders() {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      <Text style={{ color: colors.muted, fontFamily: fonts.body, marginBottom: 12 }}>
-        Only approved riders can go online and receive jobs. Applications come from the rider form in the app.
-      </Text>
-      {rows.length === 0 && <Text style={{ color: colors.muted, fontFamily: fonts.body }}>No rider applications yet.</Text>}
+    <ScrollView style={{ flex: 1, backgroundColor: colors.adminBg }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      {rows.length === 0 && <Text style={{ color: colors.adminMuted, fontFamily: fonts.body }}>No rider applications yet.</Text>}
       {rows.map((r) => (
-        <View key={r.id} style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 14, marginBottom: 10, flexDirection: "row", gap: 12 }}>
+        <View key={r.id} style={{ backgroundColor: colors.adminCard, borderWidth: 1, borderColor: colors.adminCardBorder, borderRadius: radius.md, padding: 14, marginBottom: 10, flexDirection: "row", gap: 12 }}>
           <View style={{ borderRadius: 16, overflow: "hidden" }}>
             <Photo uri={r.photo_url} name={r.full_name} height={72} width={72} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: fonts.title }}>{r.full_name}</Text>
-            <Text style={{ color: colors.muted, fontFamily: fonts.body }}>
+            <Text style={{ fontFamily: fonts.title, color: colors.adminText }}>{r.full_name}</Text>
+            <Text style={{ color: colors.adminMuted, fontFamily: fonts.body }}>
               {r.phone} · {r.vehicle_type} · {r.status}
               {r.is_online ? " · online" : ""}
             </Text>

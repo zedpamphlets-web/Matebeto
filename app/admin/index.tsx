@@ -33,17 +33,14 @@ export default function AdminOrders() {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      <Text style={{ color: colors.muted, fontFamily: fonts.body, marginBottom: 12 }}>
-        Live orders only. Accept/decline here until WhatsApp is connected. Payment and delivery still come from Lipila and the customer OTP.
-      </Text>
-      {rows.length === 0 && <Text style={{ color: colors.muted, fontFamily: fonts.body }}>No orders yet.</Text>}
+    <ScrollView style={{ flex: 1, backgroundColor: colors.adminBg }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      {rows.length === 0 && <Text style={{ color: colors.adminMuted, fontFamily: fonts.body }}>No orders yet.</Text>}
       {rows.map((o) => (
-        <View key={o.id} style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 14, marginBottom: 10 }}>
-          <Text style={{ fontFamily: fonts.title }}>
+        <View key={o.id} style={{ backgroundColor: colors.adminCard, borderWidth: 1, borderColor: colors.adminCardBorder, borderRadius: radius.md, padding: 14, marginBottom: 10 }}>
+          <Text style={{ fontFamily: fonts.title, color: colors.adminText }}>
             #{o.order_number} · {formatKw(o.total)}
           </Text>
-          <Text style={{ color: colors.muted, fontFamily: fonts.body }}>
+          <Text style={{ color: colors.adminMuted, fontFamily: fonts.body }}>
             {o.status.replaceAll("_", " ")} · pay {o.payment_status} · {o.delivery_type}
           </Text>
           {items

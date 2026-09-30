@@ -97,25 +97,22 @@ export default function Catalog() {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      <Text style={{ fontFamily: fonts.title, fontSize: 18 }}>Categories</Text>
-      <Text style={{ color: colors.muted, fontFamily: fonts.body, marginBottom: 10 }}>
-        These tiles appear after a customer picks a market. Upload a food photo from the phone for each category.
-      </Text>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.adminBg }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <Text style={{ fontFamily: fonts.title, fontSize: 18, color: colors.adminText }}>Categories</Text>
       <Field value={catName} onChangeText={setCatName} placeholder="Category name" />
       <View style={{ height: 8 }} />
       <PhotoPicker folder="categories" uri={catImage} name={catName || "Category"} onChange={setCatImage} height={110} />
       <PrimaryButton label="Save category" onPress={addCategory} />
       <View style={{ height: 12 }} />
       {categories.map((c) => (
-        <View key={c.id} style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 12, marginBottom: 8 }}>
+        <View key={c.id} style={{ backgroundColor: colors.adminCard, borderWidth: 1, borderColor: colors.adminCardBorder, borderRadius: radius.md, padding: 12, marginBottom: 8 }}>
           <Text style={{ fontFamily: fonts.title, marginBottom: 8 }}>{c.name}</Text>
           <PhotoPicker folder={`categories/${c.id}`} uri={c.image_url} name={c.name} onChange={(url) => saveCategoryPhoto(c, url)} height={110} />
         </View>
       ))}
 
       <Text style={{ fontFamily: fonts.title, fontSize: 18, marginTop: 10 }}>Add meal</Text>
-      <Text style={{ color: colors.muted, fontFamily: fonts.body, marginBottom: 10 }}>
+      <Text style={{ color: colors.adminMuted, fontFamily: fonts.body, marginBottom: 10 }}>
         Real meal name, Kwacha price, and a photo from your phone. Sides are included in the price.
       </Text>
       <Text style={{ fontFamily: fonts.bodySemi, marginBottom: 6 }}>Category</Text>
@@ -144,13 +141,13 @@ export default function Catalog() {
       <View style={{ height: 10 }} />
       <PrimaryButton label="Save meal" onPress={add} />
       <View style={{ height: 16 }} />
-      {meals.length === 0 && <Text style={{ color: colors.muted, fontFamily: fonts.body }}>No meals yet.</Text>}
+      {meals.length === 0 && <Text style={{ color: colors.adminMuted, fontFamily: fonts.body }}>No meals yet.</Text>}
       {meals.map((m) => (
-        <View key={m.id} style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 12, marginBottom: 8 }}>
-          <Text style={{ fontFamily: fonts.title }}>
+        <View key={m.id} style={{ backgroundColor: colors.adminCard, borderWidth: 1, borderColor: colors.adminCardBorder, borderRadius: radius.md, padding: 12, marginBottom: 8 }}>
+          <Text style={{ fontFamily: fonts.title, color: colors.adminText }}>
             {m.name} · {formatKw(m.price)}
           </Text>
-          <Text style={{ color: colors.muted, fontFamily: fonts.body, marginBottom: 8 }}>
+          <Text style={{ color: colors.adminMuted, fontFamily: fonts.body, marginBottom: 8 }}>
             {sides.filter((s) => s.meal_id === m.id).map((s) => s.name).join(", ") || "No sides"}
           </Text>
           <PhotoPicker folder={`meals/${m.id}`} uri={m.image_url} name={m.name} onChange={(url) => saveMealPhoto(m, url)} height={110} />
