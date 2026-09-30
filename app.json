@@ -76,10 +76,10 @@
       "eas": {
         "projectId": "a8e8cd01-6e9b-4b06-abdc-1b1729724099"
       },
-      "supabaseUrl": "https://lmyvvwulabezlglxjzul.supabase.co",
+      "supabaseUrl": "https://lmyvvwulabezlglxjzvl.supabase.co",
       "supabaseAnonKey": "sb_publishable_XJVKUkLgF-0OJk2Mf4N8nQ_ZhmtezXu",
       "supabasePublishableKey": "sb_publishable_XJVKUkLgF-0OJk2Mf4N8nQ_ZhmtezXu",
-      "paymentApiUrl": "https://lmyvvwulabezlglxjzul.supabase.co/functions/v1"
+      "paymentApiUrl": "https://lmyvvwulabezlglxjzvl.supabase.co/functions/v1"
     }
   }
 }

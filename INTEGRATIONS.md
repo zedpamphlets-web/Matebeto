@@ -124,7 +124,7 @@ Login flow stays: enter +260 number → Africa's Talking sends the code → user
 
 If the phone screen shows **Network request failed**:
 
-1. Confirm the project at `https://lmyvvwulabezlglxjzul.supabase.co` is **Active**, not paused.
+1. Confirm the project at `https://lmyvvwulabezlglxjzvl.supabase.co` is **Active**, not paused.
 2. Authentication → Providers → **Phone** is on.
 3. Authentication → Hooks → **Send SMS** points at the `send-sms` function.
 4. Rebuild the APK after a client change (`app.json` version 1.0.4). The old APK on the phone will keep failing until you install the new one.

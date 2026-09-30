@@ -1,7 +1,7 @@
 const { expo } = require("./app.json");
 
 /** Baked into every build so login works even if EAS env injection fails. */
-const URL = "https://lmyvvwulabezlglxjzul.supabase.co";
+const URL = "https://lmyvvwulabezlglxjzvl.supabase.co";
 const ANON = "sb_publishable_XJVKUkLgF-0OJk2Mf4N8nQ_ZhmtezXu";
 
 module.exports = () => ({
