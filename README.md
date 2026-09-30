@@ -19,7 +19,7 @@ Linked in `app.json` to the Expo org **matebeto2026s-team**:
 | name | Matebeto |
 | slug | mwape-victor2007 |
 | owner | matebeto2026s-team |
-| extra.eas.projectId | a8c8cd91-6e9b-4b86-abdc-1b1729724099 |
+| extra.eas.projectId | a8e8cd91-6e9b-4b06-abdc-1b1729724099 |
 
 That is what EAS uses to find the project when you run `eas build`. You do not need `eas init` again.
 
