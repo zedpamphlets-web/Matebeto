@@ -5,6 +5,28 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/lib/theme";
 import { loadBasket } from "@/lib/basket";
 
+const TAB_BAR_STYLE = {
+  position: "absolute" as const,
+  left: 12,
+  right: 12,
+  bottom: 10,
+  height: 72,
+  paddingTop: 8,
+  paddingBottom: 8,
+  borderRadius: 24,
+  backgroundColor: "rgba(255,255,255,0.92)",
+  borderTopWidth: 0,
+  borderWidth: 1,
+  borderColor: "rgba(255,255,255,0.75)",
+  shadowColor: "#000",
+  shadowOpacity: 0.15,
+  shadowRadius: 16,
+  shadowOffset: { width: 0, height: 6 },
+  elevation: 12,
+};
+
+const HIDDEN_TAB_BAR = { display: "none" as const };
+
 function TabIcon({
   name,
   focused,
@@ -48,27 +70,10 @@ export default function CustomerTabs() {
         tabBarActiveTintColor: colors.gold,
         tabBarInactiveTintColor: "#6B6B6B",
         tabBarLabelStyle: { fontFamily: fonts.bodySemi, fontSize: 11, marginTop: 2 },
-        tabBarStyle: {
-          position: "absolute",
-          left: 12,
-          right: 12,
-          bottom: 10,
-          height: 72,
-          paddingTop: 8,
-          paddingBottom: 8,
-          borderRadius: 24,
-          backgroundColor: "rgba(255,255,255,0.92)",
-          borderTopWidth: 0,
-          borderWidth: 1,
-          borderColor: "rgba(255,255,255,0.75)",
-          shadowColor: "#000",
-          shadowOpacity: 0.15,
-          shadowRadius: 16,
-          shadowOffset: { width: 0, height: 6 },
-          elevation: 12,
-        },
+        tabBarStyle: TAB_BAR_STYLE,
       }}
     >
+      {/* Only these three appear in the bottom bar */}
       <Tabs.Screen
         name="index"
         options={{
@@ -101,17 +106,19 @@ export default function CustomerTabs() {
           title: "Orders",
           tabBarLabel: "Orders",
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon name={focused ? "wallet" : "wallet-outline"} focused={focused} color={color} />
+            <TabIcon name={focused ? "receipt" : "receipt-outline"} focused={focused} color={color} />
           ),
         }}
       />
-      <Tabs.Screen name="menu" options={{ href: null }} />
-      <Tabs.Screen name="markets" options={{ href: null }} />
-      <Tabs.Screen name="settings" options={{ href: null }} />
-      <Tabs.Screen name="market/[id]" options={{ href: null }} />
-      <Tabs.Screen name="meal/[id]" options={{ href: null }} />
-      <Tabs.Screen name="delivery" options={{ href: null }} />
-      <Tabs.Screen name="checkout" options={{ href: null }} />
+
+      {/* Secondary screens: no tab icon + hide bottom bar */}
+      <Tabs.Screen name="menu" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
+      <Tabs.Screen name="markets" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
+      <Tabs.Screen name="settings" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
+      <Tabs.Screen name="market/[id]" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
+      <Tabs.Screen name="meal/[id]" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
+      <Tabs.Screen name="delivery" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
+      <Tabs.Screen name="checkout" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
     </Tabs>
   );
 }

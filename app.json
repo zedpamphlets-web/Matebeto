@@ -27,12 +27,15 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.siximages.matebeto",
-      "buildNumber": "5"
+      "buildNumber": "6"
     },
     "android": {
       "package": "com.siximages.matebeto",
-      "versionCode": 5,
-      "permissions": ["INTERNET", "ACCESS_NETWORK_STATE"],
+      "versionCode": 6,
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F4A300"
@@ -45,7 +48,10 @@
         "expo-build-properties",
         {
           "android": {
-            "kotlinVersion": "1.9.25"
+            "kotlinVersion": "1.9.25",
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 34,
+            "minSdkVersion": 24
           }
         }
       ],
