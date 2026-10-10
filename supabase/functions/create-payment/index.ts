@@ -12,17 +12,30 @@ Deno.serve(async (req) => {
     const db = serviceClient();
     const order = await loadOwnedOrder(db, orderId, userId);
     if (!order) return json({ error: "Order not found." }, 404);
+    if (order.status !== "CREATED") return json({ error: "Order is no longer waiting for payment." }, 409);
     if (order.payment_status === "paid") return json({ error: "This order is already paid." }, 409);
+
+    // Fresh reference for every payment attempt
+    const paymentReference = `${order.id}-${Date.now()}`;
+    const webhookSecret = Deno.env.get("LIPILA_WEBHOOK_SECRET") || "";
+    const callbackUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/lipila-webhook?token=${webhookSecret}`;
+
     const { ok, json: lipilaBody } = await lipilaFetch("/collections/mobile-money", {
-      referenceId: order.id,
+      referenceId: paymentReference,
       amount: Number(order.total),
       narration: `Matebeto order ${order.order_number}`,
       accountNumber: phone,
       currency: "ZMW",
+      callbackUrl,
     });
     if (!ok) return json({ error: lipilaBody?.message || "Could not start payment." }, 502);
-    await db.from("orders").update({ payment_status: "pending" }).eq("id", order.id);
-    return json({ status: "pending", ...lipilaBody });
+
+    await db.from("orders").update({
+      payment_status: "pending",
+      payment_reference: paymentReference,
+    }).eq("id", order.id);
+
+    return json({ status: "pending", reference: paymentReference, ...lipilaBody });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : "Unexpected error." }, 500);
   }

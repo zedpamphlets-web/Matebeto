@@ -14,6 +14,24 @@ function extractMessages(payload: any) {
   return out;
 }
 
+async function verifySignature(req: Request, rawBody: string): Promise<boolean> {
+  const secret = Deno.env.get("WHATSAPP_APP_SECRET");
+  if (!secret) return false;
+  const signature = req.headers.get("X-Hub-Signature-256") || "";
+  if (!signature.startsWith("sha256=")) return false;
+  const expected = signature.slice(7);
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(rawBody));
+  const hex = Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return hex === expected;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "GET") {
     const url = new URL(req.url);
@@ -28,65 +46,75 @@ Deno.serve(async (req) => {
 
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const payload = await req.json().catch(() => ({}));
-  const messages = extractMessages(payload);
-  if (!messages.length) return json({ ok: true, ignored: true });
+  const rawBody = await req.text();
+  if (!(await verifySignature(req, rawBody))) {
+    return new Response("invalid signature", { status: 401 });
+  }
 
-  const db = serviceClient();
+  // Answer Meta quickly
+  const ack = json({ ok: true });
 
-  for (const msg of messages) {
-    const bodyText = (
-      msg.text?.body ||
-      msg.interactive?.button_reply?.title ||
-      msg.button?.text ||
-      ""
-    ).toUpperCase();
-    const buttonId = String(msg.interactive?.button_reply?.id || msg.button?.payload || "");
-    const accept = buttonId.startsWith("accept:") || /\bACCEPT\b/.test(bodyText);
-    const decline = buttonId.startsWith("decline:") || /\bDECLINE\b/.test(bodyText);
-    if (!accept && !decline) continue;
+  try {
+    const payload = JSON.parse(rawBody);
+    const messages = extractMessages(payload);
+    if (!messages.length) return ack;
 
-    let order: any = null;
-    const idFromButton = buttonId.split(":")[1];
-    if (idFromButton) {
-      const { data } = await db.from("orders").select("*").eq("id", idFromButton).maybeSingle();
-      order = data;
-    }
-    if (!order) {
-      const match = `${bodyText} ${JSON.stringify(payload)}`.match(/ORDER\s*#?\s*(\d+)/);
-      if (match) {
-        const { data } = await db.from("orders").select("*").eq("order_number", Number(match[1])).maybeSingle();
-        order = data;
-      }
-    }
-    if (!order) {
+    const db = serviceClient();
+
+    for (const msg of messages) {
+      const buttonId = String(msg.interactive?.button_reply?.id || msg.button?.payload || "");
+      const accept = buttonId.startsWith("accept:");
+      const decline = buttonId.startsWith("decline:");
+      if (!accept && !decline) continue;
+
+      const orderId = buttonId.split(":")[1];
+      if (!orderId) continue;
+
+      const { data: order } = await db.from("orders").select("*").eq("id", orderId).maybeSingle();
+      if (!order || !order.vendor_id) continue;
+
+      // Only the currently offered vendor may reply
       const from = digits(msg.from || "");
-      const { data: vendors } = await db.from("vendors").select("id,whatsapp,phone");
-      const vendor = (vendors || []).find((v: any) => {
-        const n = digits(v.whatsapp || v.phone || "");
-        return n && (n === from || n.endsWith(from.slice(-9)) || from.endsWith(n.slice(-9)));
-      });
-      if (vendor) {
-        const { data: attempt } = await db
-          .from("vendor_attempts")
-          .select("order_id")
-          .eq("vendor_id", vendor.id)
-          .eq("status", "OFFERED")
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (attempt?.order_id) {
-          const { data } = await db.from("orders").select("*").eq("id", attempt.order_id).maybeSingle();
-          order = data;
+      const { data: vendor } = await db.from("vendors").select("id,whatsapp,phone").eq("id", order.vendor_id).maybeSingle();
+      const vendorNum = digits(vendor?.whatsapp || vendor?.phone || "");
+      if (!vendorNum || !(vendorNum === from || vendorNum.endsWith(from.slice(-9)) || from.endsWith(vendorNum.slice(-9)))) {
+        continue;
+      }
+
+      // Ignore duplicates (already accepted or declined)
+      const { data: attempt } = await db
+        .from("vendor_attempts")
+        .select("status")
+        .eq("order_id", orderId)
+        .eq("vendor_id", order.vendor_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (attempt && attempt.status !== "OFFERED") continue;
+
+      await db.rpc("respond_vendor", { p_order: orderId, p_accept: accept });
+
+      if (accept) {
+        await db.rpc("offer_next_rider", { p_order: orderId });
+      } else {
+        // Decline → next vendor + WhatsApp message
+        const next = await db.rpc("offer_next_vendor", { p_order: orderId });
+        if (next.data?.ok) {
+          const notifyUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/notify-vendor`;
+          await fetch(notifyUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({ orderId }),
+          }).catch(() => null);
         }
       }
     }
-    if (!order) continue;
-
-    await db.rpc("respond_vendor", { p_order: order.id, p_accept: accept });
-    if (accept) await db.rpc("offer_next_rider", { p_order: order.id });
-    else await db.rpc("offer_next_vendor", { p_order: order.id });
+  } catch {
+    // still return 200 so Meta does not retry forever
   }
 
-  return json({ ok: true });
+  return ack;
 });
