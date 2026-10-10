@@ -98,34 +98,32 @@ export default function Welcome() {
 
   return (
     <View style={styles.root}>
-      <Image source={require("../assets/welcome-food-new.jpg")} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+      <Image source={require("../assets/welcome-food-clean.jpg")} style={StyleSheet.absoluteFillObject} contentFit="cover" />
       <LinearGradient
-        colors={["rgba(0,0,0,0.78)", "rgba(0,0,0,0.42)", "rgba(0,0,0,0.12)", "rgba(0,0,0,0.55)"]}
-        locations={[0, 0.28, 0.58, 1]}
+        colors={["rgba(0,0,0,0.55)", "rgba(0,0,0,0.25)", "rgba(0,0,0,0.1)", "rgba(0,0,0,0.65)"]}
+        locations={[0, 0.35, 0.6, 1]}
         style={StyleSheet.absoluteFill}
       />
       <SafeAreaView style={styles.safe}>
         <View style={styles.copy}>
-          <View style={styles.glass}>
-            <Image
-              source={require("../assets/logo-wordmark.png")}
-              style={{ width: 220, height: 72 }}
-              contentFit="contain"
-            />
-            <Text style={styles.tag}>Let's Eat.</Text>
-            <Text style={styles.one}>One App.</Text>
-            <Text style={styles.two}>Two Ways to Serve You.</Text>
-          </View>
+          <Image
+            source={require("../assets/logo-wordmark.png")}
+            style={{ width: 260, height: 90 }}
+            contentFit="contain"
+          />
+          <Text style={styles.tag}>Let's Eat.</Text>
+          <Text style={styles.one}>One App.</Text>
+          <Text style={styles.two}>Two Ways to Serve You.</Text>
         </View>
         <View style={styles.actions}>
           <RoleButton
-            color={colors.customer}
+            color="#22C55E"
             icon="person"
             label="I'm a Customer"
             onPress={() => router.push({ pathname: "/auth/phone", params: { mode: "customer" } })}
           />
           <RoleButton
-            color={colors.rider}
+            color="#F97316"
             icon="bicycle"
             label="I'm a Rider"
             onPress={() => router.push({ pathname: "/auth/phone", params: { mode: "rider" } })}
@@ -178,34 +176,24 @@ const styles = StyleSheet.create({
   },
   root: { flex: 1, backgroundColor: "#000" },
   safe: { flex: 1, justifyContent: "space-between", paddingHorizontal: 22, paddingBottom: 28 },
-  copy: { paddingTop: 36, alignItems: "center" },
-  glass: {
-    width: "100%",
-    alignItems: "center",
-    paddingVertical: 22,
-    paddingHorizontal: 16,
-    borderRadius: 28,
-    backgroundColor: "rgba(0,0,0,0.28)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-  },
+  copy: { paddingTop: 48, alignItems: "center" },
   tag: {
-    marginTop: 10,
-    color: colors.gold,
+    marginTop: 6,
+    color: "#F4A300",
     fontFamily: fonts.italic,
-    fontSize: 16,
+    fontSize: 22,
   },
   one: {
-    marginTop: 18,
-    color: colors.gold,
+    marginTop: 4,
+    color: "#F4A300",
     fontFamily: fonts.display,
-    fontSize: 34,
-    letterSpacing: -0.6,
+    fontSize: 42,
+    letterSpacing: -0.5,
     textAlign: "center",
   },
   two: {
-    marginTop: 6,
-    color: "#F4F4F4",
+    marginTop: 2,
+    color: "#FFFFFF",
     fontFamily: fonts.bodySemi,
     fontSize: 18,
     textAlign: "center",

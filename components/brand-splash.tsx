@@ -1,7 +1,7 @@
 import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
 import { colors, fonts } from "@/lib/theme";
 
-/** Full-screen splash: official logo + spinner. Optional offline message. */
+/** Loading splash: logo + spinner. Offline message only when offline=true. */
 export function BrandSplash({ message, offline }: { message?: string; offline?: boolean }) {
   return (
     <View style={styles.root}>
@@ -18,10 +18,12 @@ export function BrandSplash({ message, offline }: { message?: string; offline?: 
           </>
         ) : null}
       </View>
-      <View style={styles.spin}>
-        {offline ? null : <ActivityIndicator size="large" color={colors.gold} />}
-        {message ? <Text style={styles.msg}>{message}</Text> : null}
-      </View>
+      {!offline && (
+        <View style={styles.spin}>
+          <ActivityIndicator size="large" color={colors.gold} />
+          {message ? <Text style={styles.msg}>{message}</Text> : null}
+        </View>
+      )}
       <View style={styles.footer}>
         <Text style={styles.version}>v1.0.0</Text>
         <Text style={styles.powered}>Powered by Six Images</Text>
