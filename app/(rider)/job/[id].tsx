@@ -8,6 +8,8 @@ import { Field, PrimaryButton } from "@/components/ui";
 import { formatKw } from "@/lib/lipila";
 import { startRiderSearch } from "@/lib/orders";
 
+const ACTIVE = ["RIDER_ASSIGNED", "PICKED_UP", "OUT_FOR_DELIVERY", "CUSTOMER_NOT_HOME"];
+
 export default function Job() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [order, setOrder] = useState<any>(null);
@@ -57,14 +59,55 @@ export default function Job() {
     const { data, error } = await supabase.rpc("verify_delivery_otp", { p_order: id, p_code: otp });
     setBusy(false);
     if (error) return Alert.alert("OTP", error.message);
-    if (!data?.ok) return Alert.alert("Wrong OTP", "Delivery is not completed. Ask the customer again.");
-    Alert.alert("Delivered", `Order #${order.order_number} completed. Settlement can now run.`);
+    if (!data?.ok) {
+      if (data?.reason === "LOCKED_AFTER_5" || data?.reason === "LOCKED") {
+        Alert.alert("Too many wrong codes", "This delivery is locked. Matebeto support has been notified and will contact you.");
+        load();
+        return;
+      }
+      const left = typeof data?.attempts_left === "number" ? ` You have ${data.attempts_left} tries left.` : "";
+      return Alert.alert("Wrong OTP", `Delivery is not completed. Ask the customer again.${left}`);
+    }
+    Alert.alert("Delivered", `Order #${order.order_number} completed.`);
     router.replace("/(rider)");
+  }
+
+  async function notHome() {
+    setBusy(true);
+    const { data, error } = await supabase.rpc("customer_not_home", { p_order: id });
+    setBusy(false);
+    if (error) return Alert.alert("Customer not home", error.message);
+    Alert.alert(
+      "Wait for the customer",
+      `Call or message the customer and wait about ${data?.wait_minutes ?? 10} minutes. If they arrive, enter their code. If not, Matebeto support takes over. You cannot complete this order without the code.`
+    );
+    load();
+  }
+
+  function reportProblem() {
+    Alert.alert("Can't complete this delivery?", "Matebeto support will be told and may give the order to another rider.", [
+      { text: "Go back", style: "cancel" },
+      {
+        text: "Report problem",
+        style: "destructive",
+        onPress: async () => {
+          setBusy(true);
+          const { error } = await supabase.rpc("rider_report_problem", {
+            p_order: id,
+            p_reason: "Rider could not complete the delivery",
+          });
+          setBusy(false);
+          if (error) return Alert.alert("Could not report", error.message);
+          load();
+        },
+      },
+    ]);
   }
 
   if (!order) return <View style={{ flex: 1, backgroundColor: colors.cream }} />;
 
   const offered = ["SEARCHING_RIDER"].includes(order.status) && !order.rider_id;
+  const canEnterOtp = ["PICKED_UP", "OUT_FOR_DELIVERY", "CUSTOMER_NOT_HOME"].includes(order.status);
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
@@ -86,6 +129,7 @@ export default function Job() {
         <Text style={{ marginTop: 8, fontFamily: fonts.display }}>{formatKw(order.total)}</Text>
       </View>
       <View style={{ height: 16 }} />
+
       {offered && (
         <>
           <PrimaryButton label="Accept" color={colors.customer} textColor="#fff" onPress={() => accept(true)} loading={busy} />
@@ -93,14 +137,12 @@ export default function Job() {
           <PrimaryButton label="Decline" color="#fff" onPress={() => accept(false)} />
         </>
       )}
+
       {order.status === "RIDER_ASSIGNED" && (
-        <PrimaryButton
-          label={`Marked Picked Up · #${order.order_number}`}
-          onPress={pickup}
-          loading={busy}
-        />
+        <PrimaryButton label={`Marked Picked Up · #${order.order_number}`} onPress={pickup} loading={busy} />
       )}
-      {["PICKED_UP", "OUT_FOR_DELIVERY"].includes(order.status) && (
+
+      {canEnterOtp && (
         <>
           <Text style={{ fontFamily: fonts.title, marginBottom: 8 }}>Customer OTP</Text>
           <Field value={otp} onChangeText={setOtp} placeholder="Enter customer OTP" keyboardType="number-pad" />
@@ -109,52 +151,33 @@ export default function Job() {
           <Text style={{ color: colors.muted, marginTop: 10, fontFamily: fonts.body }}>
             There is no force-complete button. The OTP is the only way this order can finish.
           </Text>
-          <View style={{ height: 16 }} />
-          {order.status === "OUT_FOR_DELIVERY" && (
-            <PrimaryButton
-              label="Customer not home"
-              color="#fff"
-              onPress={async () => {
-                setBusy(true);
-                const { error } = await supabase.rpc("customer_not_home", { p_order: id });
-                setBusy(false);
-                if (error) Alert.alert("Could not report", error.message);
-                else load();
-              }}
-              loading={busy}
-            />
-          )}
-          <View style={{ height: 10 }} />
-          <PrimaryButton
-            label="I can't complete this delivery"
-            color="#fff"
-            onPress={() => {
-              Alert.prompt?.("Problem", "What happened?", async (reason) => {
-                setBusy(true);
-                const { error } = await supabase.rpc("rider_report_problem", { p_order: id, p_reason: reason || "Rider reported problem" });
-                setBusy(false);
-                if (error) Alert.alert("Could not report", error.message);
-                else {
-                  Alert.alert("Reported", "Support has been notified.");
-                  router.back();
-                }
-              }) || Alert.alert("Problem", "Bike broke or other issue?", [
-                { text: "Cancel" },
-                {
-                  text: "Report",
-                  onPress: async () => {
-                    setBusy(true);
-                    const { error } = await supabase.rpc("rider_report_problem", { p_order: id, p_reason: "Rider cannot complete" });
-                    setBusy(false);
-                    if (error) Alert.alert("Could not report", error.message);
-                    else router.back();
-                  },
-                },
-              ]);
-            }}
-            loading={busy}
-          />
         </>
+      )}
+
+      {order.status === "OUT_FOR_DELIVERY" && (
+        <View style={{ marginTop: 14 }}>
+          <PrimaryButton label="Customer not home" color="#fff" onPress={notHome} loading={busy} />
+        </View>
+      )}
+
+      {order.status === "CUSTOMER_NOT_HOME" && (
+        <Text style={{ color: colors.muted, marginTop: 14, fontFamily: fonts.body }}>
+          Waiting for the customer. If they do not arrive, Matebeto support will take over.
+        </Text>
+      )}
+
+      {order.status === "SUPPORT_REQUIRED" && (
+        <View style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 14, marginTop: 8 }}>
+          <Text style={{ fontFamily: fonts.body }}>
+            Matebeto support is looking at this delivery. Wait for their instructions.
+          </Text>
+        </View>
+      )}
+
+      {ACTIVE.includes(order.status) && (
+        <View style={{ marginTop: 14 }}>
+          <PrimaryButton label="I can't complete this delivery" color="#fff" onPress={reportProblem} loading={busy} />
+        </View>
       )}
     </ScrollView>
   );

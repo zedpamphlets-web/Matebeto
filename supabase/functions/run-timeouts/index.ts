@@ -1,61 +1,50 @@
-import { corsHeaders, serviceClient, json } from "../_shared/lipila.ts";
+import { corsHeaders, serviceClient, requireServer, json } from "../_shared/lipila.ts";
+import { confirmPayment, notifyVendor } from "../_shared/payments.ts";
 
-// Service-role only. Protected by secret query param.
-// Calls process_timeouts then notifies vendors for newly offered orders.
-// Schedule with pg_cron every minute (see comments at bottom).
-
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let out = 0;
-  for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return out === 0;
-}
-
+// Run every minute (see docs/FIXES_AND_SETUP.md). Server only.
+//   1. process_timeouts(): vendor/rider timeouts, stuck orders, customer-not-home wait
+//   2. outbox: message any vendor who was offered an order but has not been messaged yet
+//   3. payment safety net: re-check payments that are still pending (callback never arrived)
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (!requireServer(req)) return json({ error: "Unauthorized" }, 401);
 
-  const url = new URL(req.url);
-  const token = url.searchParams.get("token");
-  const expected = Deno.env.get("TIMEOUT_SECRET") || Deno.env.get("LIPILA_WEBHOOK_SECRET") || "";
-  if (!expected || !timingSafeEqual(token || "", expected)) {
-    return json({ error: "Unauthorized" }, 401);
-  }
+  const db = serviceClient();
+  const out: Record<string, unknown> = {};
 
-  try {
-    const db = serviceClient();
-    const { data: newlyOffered, error } = await db.rpc("process_timeouts");
-    if (error) return json({ error: error.message }, 500);
+  const t = await db.rpc("process_timeouts");
+  out.timeouts = t.error ? `error: ${t.error.message}` : "ok";
 
-    const notifyUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/notify-vendor`;
-    const auth = `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`;
-    for (const row of newlyOffered || []) {
-      await fetch(notifyUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: auth },
-        body: JSON.stringify({ orderId: row.order_id }),
-      }).catch(() => null);
+  const { data: waiting } = await db
+    .from("vendor_attempts")
+    .select("order_id")
+    .eq("status", "OFFERED")
+    .is("notified_at", null)
+    .lt("notify_tries", 3)
+    .limit(20);
+  const orderIds: string[] = [...new Set<string>((waiting || []).map((w: any) => String(w.order_id)))];
+  for (const id of orderIds) await notifyVendor(id);
+  out.vendors_notified = orderIds.length;
+
+  const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { data: pending } = await db
+    .from("orders")
+    .select("payment_reference")
+    .eq("payment_status", "pending")
+    .eq("status", "CREATED")
+    .not("payment_reference", "is", null)
+    .gt("updated_at", since)
+    .limit(20);
+  let checked = 0;
+  for (const p of pending || []) {
+    try {
+      await confirmPayment(db, p.payment_reference);
+      checked++;
+    } catch (_e) {
+      // try again next minute
     }
-
-    return json({ ok: true, notified: (newlyOffered || []).length });
-  } catch (e) {
-    return json({ error: e instanceof Error ? e.message : "error" }, 500);
   }
+  out.payments_checked = checked;
+
+  return json({ ok: true, ...out });
 });
-
-/*
-Schedule every minute with pg_cron (run once in SQL editor as superuser):
-
-select cron.schedule(
-  'matebeto-timeouts',
-  '* * * * *',
-  $$
-  select net.http_post(
-    url := 'https://YOUR-PROJECT.supabase.co/functions/v1/run-timeouts?token=YOUR_TIMEOUT_SECRET',
-    headers := '{"Content-Type":"application/json"}'::jsonb,
-    body := '{}'::jsonb
-  );
-  $$
-);
-
-Or use Supabase dashboard Cron Jobs if available.
-*/

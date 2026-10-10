@@ -124,3 +124,7 @@ Until those exist, vendors are offered in the database and an admin can accept/d
 - No rider force-complete
 - OTP triggers COMPLETED
 - Markets are rows, not hard-coded screens
+
+
+## Fix round 1
+See `docs/FIXES_AND_SETUP.md` for the new migration, edge functions, secrets, scheduler and test script.

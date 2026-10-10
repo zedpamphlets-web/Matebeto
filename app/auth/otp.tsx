@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,6 +7,8 @@ import { colors, fonts } from "@/lib/theme";
 import { friendlyAuthError, isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { currentProfile } from "@/lib/session";
 import { PREVIEW_OTP, clearPreviewSession, setPreviewSession } from "@/lib/preview";
+
+const RESEND_SECONDS = 60;
 
 export default function Otp() {
   const { phone, mode, preview } = useLocalSearchParams<{
@@ -17,11 +19,49 @@ export default function Otp() {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
+  const [resending, setResending] = useState(false);
+  const [cycle, setCycle] = useState(0); // bumped on every resend to restart the countdown below
 
   // Real path whenever Supabase is in the build — ignore leftover preview=1
   const usePreview = !isSupabaseConfigured;
 
   const boxes = useMemo(() => Array.from({ length: 6 }, (_, i) => code[i] || ""), [code]);
+
+  // Countdown starts as soon as the OTP screen opens (a code was just sent), and
+  // restarts cleanly whenever the code is resent (via `cycle`).
+  useEffect(() => {
+    const id = setInterval(() => {
+      setSecondsLeft((s) => (s <= 1 ? 0 : s - 1));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [cycle]);
+
+  const timerLabel = `00:${String(secondsLeft).padStart(2, "0")}`;
+
+  async function resend() {
+    if (secondsLeft > 0 || resending) return;
+    setResending(true);
+    setError("");
+    try {
+      if (!usePreview) {
+        const { error: resendError } = await supabase.auth.signInWithOtp({
+          phone: String(phone),
+          options: { shouldCreateUser: true, channel: "sms" },
+        });
+        if (resendError) {
+          setError(friendlyAuthError(resendError.message) || "Could not resend the code.");
+          setResending(false);
+          return;
+        }
+      }
+      setCode("");
+      setSecondsLeft(RESEND_SECONDS);
+      setCycle((c) => c + 1);
+    } finally {
+      setResending(false);
+    }
+  }
 
   async function goIn() {
     const { rider, admin } = await currentProfile();
@@ -106,6 +146,18 @@ export default function Otp() {
             <Text style={styles.live}>Enter the SMS code from Africa&apos;s Talking</Text>
           )}
 
+          <View style={styles.resendRow}>
+            {secondsLeft > 0 ? (
+              <Text style={styles.resendWait}>Resend code in {timerLabel}</Text>
+            ) : (
+              <Pressable onPress={resend} disabled={resending} hitSlop={8}>
+                <Text style={styles.resendLink}>
+                  {resending ? "Resending…" : "Resend code"}
+                </Text>
+              </Pressable>
+            )}
+          </View>
+
           {error ? (
             <View style={styles.error}>
               <Text style={styles.errorText}>{error}</Text>
@@ -166,6 +218,9 @@ const styles = StyleSheet.create({
   hidden: { ...StyleSheet.absoluteFillObject, opacity: 0 },
   hint: { color: colors.gold, fontFamily: fonts.bodySemi, fontSize: 13, marginBottom: 12 },
   live: { color: colors.customer, fontFamily: fonts.bodySemi, fontSize: 13, marginBottom: 12 },
+  resendRow: { marginBottom: 12 },
+  resendWait: { color: "#9A9A9A", fontFamily: fonts.bodySemi, fontSize: 13 },
+  resendLink: { color: colors.gold, fontFamily: fonts.bodySemi, fontSize: 13 },
   error: {
     backgroundColor: colors.danger,
     borderRadius: 6,

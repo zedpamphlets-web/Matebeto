@@ -1,4 +1,4 @@
-import { corsHeaders, serviceClient, json } from "../_shared/lipila.ts";
+import { corsHeaders, serviceClient, requireServer, json } from "../_shared/lipila.ts";
 
 function toWhatsApp(n: string) {
   const d = (n || "").replace(/\D/g, "");
@@ -8,21 +8,10 @@ function toWhatsApp(n: string) {
   return d;
 }
 
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let out = 0;
-  for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return out === 0;
-}
+// WhatsApp template variables cannot contain new lines, tabs or long runs of spaces.
+const clean = (s: string) => String(s ?? "").replace(/[\r\n\t]+/g, " ").replace(/ {2,}/g, " ").trim();
 
-async function sendTemplate(
-  phoneId: string,
-  token: string,
-  to: string,
-  order: any,
-  itemsLine: string,
-  sidesLine: string
-) {
+async function sendTemplate(phoneId: string, token: string, to: string, order: any, itemsLine: string, sidesLine: string) {
   const templateName = Deno.env.get("WHATSAPP_TEMPLATE_NAME") || "vendor_order_request";
   const res = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
     method: "POST",
@@ -39,23 +28,13 @@ async function sendTemplate(
             type: "body",
             parameters: [
               { type: "text", text: String(order.order_number) },
-              { type: "text", text: itemsLine || "None" },
-              { type: "text", text: sidesLine || "None" },
-              { type: "text", text: String(order.food_total) },
+              { type: "text", text: clean(itemsLine) || "None" },
+              { type: "text", text: clean(sidesLine) || "None" },
+              { type: "text", text: String(Number(order.food_total)) },
             ],
           },
-          {
-            type: "button",
-            sub_type: "quick_reply",
-            index: "0",
-            parameters: [{ type: "payload", payload: `accept:${order.id}` }],
-          },
-          {
-            type: "button",
-            sub_type: "quick_reply",
-            index: "1",
-            parameters: [{ type: "payload", payload: `decline:${order.id}` }],
-          },
+          { type: "button", sub_type: "quick_reply", index: "0", parameters: [{ type: "payload", payload: `accept:${order.id}` }] },
+          { type: "button", sub_type: "quick_reply", index: "1", parameters: [{ type: "payload", payload: `decline:${order.id}` }] },
         ],
       },
     }),
@@ -64,67 +43,85 @@ async function sendTemplate(
   return { ok: res.ok, data };
 }
 
+// Server only. Sends the vendor_order_request template for the vendor currently offered the order.
+// A vendor that cannot be reached after 3 tries counts as one of the 3 vendor attempts.
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (!requireServer(req)) return json({ error: "Unauthorized" }, 401);
+
   try {
-    const auth = req.headers.get("Authorization") || "";
-    const expected = `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""}`;
-    if (!timingSafeEqual(auth, expected)) {
-      return json({ error: "Unauthorized" }, 401);
-    }
-
-    const { orderId } = await req.json();
+    const { orderId } = await req.json().catch(() => ({}));
     if (!orderId) return json({ error: "Missing orderId" }, 400);
-
-    const db = serviceClient();
-    const { data: order } = await db.from("orders").select("*").eq("id", orderId).maybeSingle();
-    if (!order || !order.vendor_id) return json({ error: "Order or vendor not found." }, 404);
-    if (order.status !== "VENDOR_OFFERED") return json({ ok: false, reason: "not VENDOR_OFFERED" });
-
-    const { data: attempt } = await db
-      .from("vendor_attempts")
-      .select("id, status")
-      .eq("order_id", orderId)
-      .eq("vendor_id", order.vendor_id)
-      .eq("status", "OFFERED")
-      .maybeSingle();
-    if (!attempt) return json({ ok: false, reason: "no OFFERED attempt" });
-
-    const { data: vendor } = await db.from("vendors").select("*").eq("id", order.vendor_id).maybeSingle();
-    const { data: items } = await db.from("order_items").select("*").eq("order_id", orderId);
-
-    const itemsLine = (items || [])
-      .map((i: any) => `${i.quantity} × ${i.meal_name}`)
-      .join(", ")
-      .slice(0, 200);
-    const sides = [...new Set((items || []).flatMap((i: any) => i.sides || []))];
-    const sidesLine = sides.length ? sides.join(", ").slice(0, 200) : "None";
 
     const token = Deno.env.get("WHATSAPP_TOKEN");
     const phoneId = Deno.env.get("WHATSAPP_PHONE_ID");
-    const to = toWhatsApp(vendor?.whatsapp || vendor?.phone || "");
-    if (!token || !phoneId || !to) {
-      // Mark failed and move on
-      await db.from("vendor_attempts").update({ status: "FAILED" }).eq("id", attempt.id);
-      await db.rpc("offer_next_vendor", { p_order: orderId });
-      return json({ ok: false, reason: "WhatsApp not configured" });
-    }
+    if (!token || !phoneId) return json({ ok: false, configured: false, reason: "WhatsApp is not configured." });
 
-    const result = await sendTemplate(phoneId, token, to, order, itemsLine, sidesLine);
-    if (!result.ok) {
-      await db.from("vendor_attempts").update({ status: "FAILED" }).eq("id", attempt.id);
-      const next = await db.rpc("offer_next_vendor", { p_order: orderId });
-      if (next.data?.ok) {
-        // recurse / call self for the next vendor
-        await fetch(req.url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: auth },
-          body: JSON.stringify({ orderId }),
-        }).catch(() => null);
+    const db = serviceClient();
+
+    for (let round = 0; round < 3; round++) {
+      const { data: order } = await db
+        .from("orders")
+        .select("id,order_number,food_total,status,vendor_id")
+        .eq("id", orderId)
+        .maybeSingle();
+      if (!order || order.status !== "VENDOR_OFFERED" || !order.vendor_id) return json({ ok: false, reason: "NOT_OFFERED" });
+
+      const { data: attempt } = await db
+        .from("vendor_attempts")
+        .select("id,notified_at,notify_tries")
+        .eq("order_id", orderId)
+        .eq("vendor_id", order.vendor_id)
+        .eq("status", "OFFERED")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!attempt) return json({ ok: false, reason: "NOT_OFFERED" });
+      if (attempt.notified_at) return json({ ok: true, already: true });
+
+      // Claim the message first, so two callers can never message the same vendor twice.
+      const { data: claimed } = await db
+        .from("vendor_attempts")
+        .update({ notified_at: new Date().toISOString() })
+        .eq("id", attempt.id)
+        .is("notified_at", null)
+        .select("id");
+      if (!claimed?.length) return json({ ok: true, already: true });
+
+      const { data: vendor } = await db.from("vendors").select("name,whatsapp,phone").eq("id", order.vendor_id).maybeSingle();
+      const { data: items } = await db.from("order_items").select("meal_name,quantity,sides").eq("order_id", orderId);
+
+      const itemsLine = (items || []).map((i: any) => `${i.quantity} x ${i.meal_name}`).join(", ").slice(0, 200);
+      const sides = [...new Set((items || []).flatMap((i: any) => i.sides || []))];
+      const sidesLine = sides.length ? sides.join(", ").slice(0, 200) : "None";
+
+      const to = toWhatsApp(vendor?.whatsapp || vendor?.phone || "");
+      let sent = false;
+      let detail: unknown = "vendor has no number";
+      if (to) {
+        const r = await sendTemplate(phoneId, token, to, order, itemsLine, sidesLine);
+        sent = r.ok;
+        detail = r.data;
       }
-      return json({ ok: false, error: result.data }, 502);
+      if (sent) return json({ ok: true });
+
+      console.error("WhatsApp send failed", JSON.stringify(detail));
+      const tries = (attempt.notify_tries || 0) + 1;
+
+      if (to && tries < 3) {
+        // release the claim; run-timeouts retries every minute
+        await db.from("vendor_attempts").update({ notified_at: null, notify_tries: tries }).eq("id", attempt.id);
+        return json({ ok: false, retry: true });
+      }
+
+      // give up on this vendor and move to the next one (max 3 vendors in total)
+      await db.from("vendor_attempts").update({ status: "UNAVAILABLE", notify_tries: tries }).eq("id", attempt.id);
+      await db.from("order_events").insert({ order_id: orderId, event: "VENDOR_UNREACHABLE", detail: vendor?.name ?? null });
+      await db.from("orders").update({ vendor_id: null, status: "SEARCHING_VENDOR" }).eq("id", orderId).eq("status", "VENDOR_OFFERED");
+      const next = await db.rpc("offer_next_vendor", { p_order: orderId });
+      if (!next?.data?.ok) return json({ ok: false, reason: next?.data?.reason || "NO_VENDOR_FOUND" });
     }
-    return json({ ok: true, provider: result.data });
+    return json({ ok: false, reason: "gave up" });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : "Unexpected error." }, 500);
   }

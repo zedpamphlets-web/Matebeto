@@ -17,10 +17,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandMark } from "@/components/brand";
 import { Photo } from "@/components/photo";
 import { EmptyState } from "@/components/empty-state";
+import { HomeSkeleton } from "@/components/skeleton";
+import { OfflineNotice } from "@/components/offline-notice";
 import { supabase } from "@/lib/supabase";
 import { colors, fonts } from "@/lib/theme";
 import { formatKw } from "@/lib/lipila";
 import { loadBasket } from "@/lib/basket";
+import { isOnline, withTimeout } from "@/lib/network";
 
 const W = Dimensions.get("window").width;
 const BANNER_W = W - 28;
@@ -31,30 +34,48 @@ export default function Home() {
   const [banner, setBanner] = useState<string | null>(null);
   const [count, setCount] = useState(0);
   const [bannerIndex, setBannerIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [offline, setOffline] = useState(false);
   const bannerRef = useRef<ScrollView>(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    setOffline(false);
+    withTimeout(
+      Promise.all([
+        supabase
+          .from("markets")
+          .select("*")
+          .eq("is_active", true)
+          .order("sort_order")
+          .then(({ data }) => setMarkets(data || [])),
+        supabase
+          .from("meals")
+          .select("*")
+          .eq("is_featured", true)
+          .eq("is_available", true)
+          .then(({ data }) => setFeatured(data || [])),
+        supabase
+          .from("settings")
+          .select("home_banner_url")
+          .eq("id", 1)
+          .single()
+          .then(({ data }) => setBanner(data?.home_banner_url || null)),
+      ])
+    )
+      .then(() => setLoading(false))
+      .catch(async () => {
+        const online = await isOnline();
+        setOffline(!online);
+        setLoading(false);
+      });
+    loadBasket().then((b) => setCount(b.items.reduce((n, i) => n + i.quantity, 0)));
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      supabase
-        .from("markets")
-        .select("*")
-        .eq("is_active", true)
-        .order("sort_order")
-        .then(({ data }) => setMarkets(data || []));
-      supabase
-        .from("meals")
-        .select("*")
-        .eq("is_featured", true)
-        .eq("is_available", true)
-        .then(({ data }) => setFeatured(data || []));
-      supabase
-        .from("settings")
-        .select("home_banner_url")
-        .eq("id", 1)
-        .single()
-        .then(({ data }) => setBanner(data?.home_banner_url || null));
-      loadBasket().then((b) => setCount(b.items.reduce((n, i) => n + i.quantity, 0)));
-    }, [])
+      load();
+    }, [load])
   );
 
   // Hero slides: admin banner + featured meal photos (video-style carousel)
@@ -139,6 +160,12 @@ export default function Home() {
 
         {/* White sheet over dark — sits on banners */}
         <View style={styles.sheet}>
+          {offline ? (
+            <OfflineNotice onRetry={load} />
+          ) : loading ? (
+            <HomeSkeleton />
+          ) : (
+            <>
           {/* Market logo chips — horizontal like Hungry Lion / KFC row */}
           <View style={styles.sectionHead}>
             <Text style={styles.section}>Markets</Text>
@@ -255,6 +282,8 @@ export default function Home() {
                 {count} item{count === 1 ? "" : "s"}
               </Text>
             </Pressable>
+          )}
+            </>
           )}
         </View>
       </ScrollView>

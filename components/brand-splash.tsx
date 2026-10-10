@@ -1,13 +1,13 @@
 import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
 import { colors, fonts } from "@/lib/theme";
 
-/** Loading splash: logo + spinner. Offline message only when offline=true. */
+/** Full-screen splash: official logo + spinner. Optional offline message. */
 export function BrandSplash({ message, offline }: { message?: string; offline?: boolean }) {
   return (
     <View style={styles.root}>
       <View style={styles.center}>
         <Image
-          source={require("../assets/logo-wordmark.png")}
+          source={require("../assets/splash-wordmark-new.png")}
           style={{ width: 280, height: 100 }}
           resizeMode="contain"
         />
@@ -18,15 +18,9 @@ export function BrandSplash({ message, offline }: { message?: string; offline?: 
           </>
         ) : null}
       </View>
-      {!offline && (
-        <View style={styles.spin}>
-          <ActivityIndicator size="large" color={colors.gold} />
-          {message ? <Text style={styles.msg}>{message}</Text> : null}
-        </View>
-      )}
-      <View style={styles.footer}>
-        <Text style={styles.version}>v1.0.0</Text>
-        <Text style={styles.powered}>Powered by Six Images</Text>
+      <View style={styles.spin}>
+        {offline ? null : <ActivityIndicator size="large" color={colors.gold} />}
+        {message ? <Text style={styles.msg}>{message}</Text> : null}
       </View>
     </View>
   );
@@ -69,21 +63,5 @@ const styles = StyleSheet.create({
     color: "#9A9A9A",
     fontFamily: fonts.bodySemi,
     fontSize: 14,
-  },
-  footer: {
-    position: "absolute",
-    bottom: 24,
-    alignItems: "center",
-  },
-  version: {
-    color: "#9A9A9A",
-    fontFamily: fonts.body,
-    fontSize: 12,
-  },
-  powered: {
-    color: "#B0B0B0",
-    fontFamily: fonts.body,
-    fontSize: 11,
-    marginTop: 2,
   },
 });

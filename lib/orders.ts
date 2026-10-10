@@ -1,6 +1,4 @@
 import { supabase } from "@/lib/supabase";
-import { NOTIFY_VENDOR_URL } from "@/lib/config";
-import { SUPABASE_ANON_KEY } from "@/lib/supabase";
 
 export type BasketItem = {
   meal_id: string;
@@ -31,21 +29,10 @@ export async function createOrder(input: {
   return data;
 }
 
+// Admin only. Customers no longer start vendor searches: the server does it after payment.
 export async function startVendorSearch(orderId: string) {
   const { data, error } = await supabase.rpc("offer_next_vendor", { p_order: orderId });
   if (error) throw error;
-  if (data?.ok && NOTIFY_VENDOR_URL) {
-    const { data: session } = await supabase.auth.getSession();
-    await fetch(NOTIFY_VENDOR_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.session?.access_token}`,
-        apikey: SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify({ orderId }),
-    }).catch(() => null);
-  }
   return data;
 }
 

@@ -101,11 +101,9 @@ create policy "admin_write_admins" on public.platform_admins for all to authenti
 grant usage on schema public to anon, authenticated;
 grant select on public.markets, public.categories, public.meals, public.meal_sides, public.settings to anon, authenticated;
 
--- Permissions (see 20261010030000_fixes.sql for full revoke + grants)
-revoke execute on all functions in schema public from public, anon, authenticated;
-alter default privileges for role postgres in schema public revoke execute on functions from public, anon, authenticated;
-
-grant execute on function public.is_admin() to anon, authenticated;
+-- Only the functions the app actually calls (is_admin kept for policies)
+revoke execute on all functions in schema public from authenticated;
+grant execute on function public.is_admin() to authenticated;
 grant execute on function public.create_order(uuid, text, jsonb, jsonb) to authenticated;
 grant execute on function public.offer_next_vendor(uuid) to authenticated;
 grant execute on function public.offer_next_rider(uuid) to authenticated;
@@ -117,10 +115,3 @@ grant execute on function public.apply_rider(text, text, text, text, text, text,
 grant execute on function public.respond_vendor(uuid, boolean, text) to authenticated;
 grant execute on function public.order_vendor_name(uuid) to authenticated;
 grant execute on function public.reset_delivery_lock(uuid) to authenticated;
-grant execute on function public.customer_cancel(uuid) to authenticated;
-grant execute on function public.customer_not_home(uuid) to authenticated;
-grant execute on function public.vendor_cannot_fulfil(uuid) to authenticated;
-grant execute on function public.rider_cannot_finish(uuid) to authenticated;
-grant execute on function public.rider_report_problem(uuid, text) to authenticated;
-
-grant execute on all functions in schema public to service_role;

@@ -4,6 +4,8 @@ import { Image as ExpoImage } from "expo-image";
 import { router, useFocusEffect } from "expo-router";
 import { Photo } from "@/components/photo";
 import { EmptyState } from "@/components/empty-state";
+import { BasketSkeleton } from "@/components/skeleton";
+import { OfflineNotice } from "@/components/offline-notice";
 import { AppHeader } from "@/components/app-shell";
 import { GlassSheet } from "@/components/glass-sheet";
 import { clearBasket, foodTotal, loadBasket, saveBasket, type BasketState } from "@/lib/basket";
@@ -11,14 +13,34 @@ import { formatKw } from "@/lib/lipila";
 import { colors, fonts, radius } from "@/lib/theme";
 import { MoneyRow, PrimaryButton } from "@/components/ui";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { isOnline, withTimeout } from "@/lib/network";
 
 export default function Basket() {
   const [basket, setBasket] = useState<BasketState>({ marketId: null, marketName: null, items: [] });
+  const [loading, setLoading] = useState(true);
+  const [offline, setOffline] = useState(false);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    setOffline(false);
+    // Basket lives in local storage, but is wrapped with the same timeout/offline
+    // handling as the network screens so every loading state behaves consistently.
+    withTimeout(loadBasket())
+      .then((b) => {
+        setBasket(b);
+        setLoading(false);
+      })
+      .catch(async () => {
+        const online = await isOnline();
+        setOffline(!online);
+        setLoading(false);
+      });
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      loadBasket().then(setBasket);
-    }, [])
+      load();
+    }, [load])
   );
 
   async function changeQty(idx: number, qty: number) {
@@ -44,7 +66,11 @@ export default function Basket() {
         <AppHeader title="Your Basket" onMenu={() => router.push("/(customer)/menu")} />
         <GlassSheet style={{ marginTop: 4 }}>
           <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
-            {basket.items.length === 0 ? (
+            {offline ? (
+              <OfflineNotice onRetry={load} />
+            ) : loading ? (
+              <BasketSkeleton />
+            ) : basket.items.length === 0 ? (
               <EmptyState icon="basket" color={colors.gold} title="No basket" />
             ) : (
               <>

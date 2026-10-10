@@ -2,25 +2,46 @@ import { useCallback, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { EmptyState } from "@/components/empty-state";
+import { OrdersSkeleton } from "@/components/skeleton";
+import { OfflineNotice } from "@/components/offline-notice";
 import { AppHeader } from "@/components/app-shell";
 import { GlassSheet } from "@/components/glass-sheet";
 import { supabase } from "@/lib/supabase";
 import { colors, fonts, radius } from "@/lib/theme";
 import { formatKw } from "@/lib/lipila";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { isOnline, withTimeout } from "@/lib/network";
 
 export default function Orders() {
   const [rows, setRows] = useState<any[]>([]);
   const [tab, setTab] = useState<"current" | "past">("current");
+  const [loading, setLoading] = useState(true);
+  const [offline, setOffline] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
+  const load = useCallback(() => {
+    setLoading(true);
+    setOffline(false);
+    withTimeout(
       supabase
         .from("orders")
         .select("*")
         .order("created_at", { ascending: false })
-        .then(({ data }) => setRows(data || []));
-    }, [])
+    )
+      .then(({ data }) => {
+        setRows(data || []);
+        setLoading(false);
+      })
+      .catch(async () => {
+        const online = await isOnline();
+        setOffline(!online);
+        setLoading(false);
+      });
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
   );
 
   const current = rows.filter((o) => o.status !== "COMPLETED" && o.status !== "CANCELLED");
@@ -52,7 +73,11 @@ export default function Orders() {
                 </Pressable>
               ))}
             </View>
-            {list.length === 0 ? (
+            {offline ? (
+              <OfflineNotice onRetry={load} />
+            ) : loading ? (
+              <OrdersSkeleton />
+            ) : list.length === 0 ? (
               <EmptyState icon="wallet" color={colors.customer} title="No orders" />
             ) : (
               list.map((o) => (

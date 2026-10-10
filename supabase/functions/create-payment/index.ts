@@ -9,52 +9,66 @@ Deno.serve(async (req) => {
     const orderId = body.orderId;
     const phone = body.phone;
     if (!orderId || !phone) return json({ error: "Missing orderId or phone." }, 400);
+
     const db = serviceClient();
     const order = await loadOwnedOrder(db, orderId, userId);
     if (!order) return json({ error: "Order not found." }, 404);
     if (order.status !== "CREATED") return json({ error: "Order is no longer waiting for payment." }, 409);
     if (order.payment_status === "paid") return json({ error: "This order is already paid." }, 409);
 
-    // Refuse a new collection while a pending payment is under 3 minutes old
-    const { data: recent } = await db
-      .from("payment_attempts")
-      .select("created_at")
-      .eq("order_id", orderId)
-      .eq("status", "pending")
-      .gte("created_at", new Date(Date.now() - 3 * 60 * 1000).toISOString())
-      .limit(1)
-      .maybeSingle();
-    if (recent) return json({ error: "A payment is already pending. Wait a few minutes and try again." }, 429);
+    // A payment is already waiting for approval on the customer's phone: do not charge twice.
+    if (order.payment_status === "pending" && order.payment_reference) {
+      const last = Number(String(order.payment_reference).split("-").pop());
+      if (Number.isFinite(last) && Date.now() - last < 3 * 60 * 1000) {
+        return json(
+          { error: "A payment is already waiting for approval on your phone. Approve it, or wait 3 minutes and try again." },
+          409,
+        );
+      }
+    }
 
-    const paymentReference = `${order.id}_${Date.now()}`;
+    // Fresh reference for every attempt: "<order id>-<timestamp>"
+    const paymentReference = `${order.id}-${Date.now()}`;
+
+    // Record the attempt BEFORE asking Lipila, so a fast callback can never be overwritten.
+    const { data: marked } = await db
+      .from("orders")
+      .update({ payment_status: "pending", payment_reference: paymentReference })
+      .eq("id", order.id)
+      .eq("status", "CREATED")
+      .neq("payment_status", "paid")
+      .select("id");
+    if (!marked?.length) return json({ error: "Order is no longer waiting for payment." }, 409);
+
     const webhookSecret = Deno.env.get("LIPILA_WEBHOOK_SECRET") || "";
-    const callbackUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/lipila-webhook?token=${webhookSecret}`;
+    const callbackUrl = webhookSecret
+      ? `${Deno.env.get("SUPABASE_URL")}/functions/v1/lipila-webhook?token=${encodeURIComponent(webhookSecret)}`
+      : "";
 
-    // callbackUrl is a HEADER per Lipila official docs (not body)
+    // callbackUrl is sent as BOTH a header and a body field. Check in the Lipila sandbox which one
+    // Lipila uses and remove the other once confirmed (see docs/FIXES_AND_SETUP.md).
     const { ok, json: lipilaBody } = await lipilaFetch(
       "/collections/mobile-money",
       {
         referenceId: paymentReference,
-        amount: Number(order.total),
+        amount: Number(order.total), // always from the database, never from the app
         narration: `Matebeto order ${order.order_number}`,
         accountNumber: phone,
         currency: "ZMW",
+        ...(callbackUrl ? { callbackUrl } : {}),
       },
-      { callbackUrl }
+      callbackUrl ? { callbackUrl } : {},
     );
-    if (!ok) return json({ error: lipilaBody?.message || "Could not start payment." }, 502);
 
-    await db.from("payment_attempts").insert({
-      order_id: order.id,
-      reference: paymentReference,
-      amount: Number(order.total),
-      currency: "ZMW",
-      status: "pending",
-    });
-    await db.from("orders").update({
-      payment_status: "pending",
-      payment_reference: paymentReference,
-    }).eq("id", order.id);
+    if (!ok) {
+      await db
+        .from("orders")
+        .update({ payment_status: "failed" })
+        .eq("id", order.id)
+        .eq("payment_reference", paymentReference)
+        .eq("payment_status", "pending");
+      return json({ error: lipilaBody?.message || "Could not start payment." }, 502);
+    }
 
     return json({ status: "pending", reference: paymentReference, ...lipilaBody });
   } catch (e) {

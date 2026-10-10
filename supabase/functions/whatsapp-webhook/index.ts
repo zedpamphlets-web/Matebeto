@@ -1,4 +1,5 @@
-import { corsHeaders, serviceClient, json } from "../_shared/lipila.ts";
+import { corsHeaders, serviceClient, timingSafeEqual, json } from "../_shared/lipila.ts";
+import { notifyVendor } from "../_shared/payments.ts";
 
 function digits(n: string) {
   return (n || "").replace(/\D/g, "");
@@ -19,26 +20,20 @@ async function verifySignature(req: Request, rawBody: string): Promise<boolean> 
   if (!secret) return false;
   const signature = req.headers.get("X-Hub-Signature-256") || "";
   if (!signature.startsWith("sha256=")) return false;
-  const expected = signature.slice(7);
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(rawBody));
   const hex = Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
-  return hex === expected;
+  return timingSafeEqual(hex, signature.slice(7));
 }
 
 Deno.serve(async (req) => {
   if (req.method === "GET") {
     const url = new URL(req.url);
     const mode = url.searchParams.get("hub.mode");
-    const token = url.searchParams.get("hub.verify_token");
+    const token = url.searchParams.get("hub.verify_token") || "";
     const challenge = url.searchParams.get("hub.challenge");
-    if (mode === "subscribe" && token === Deno.env.get("WHATSAPP_VERIFY_TOKEN")) {
+    const expected = Deno.env.get("WHATSAPP_VERIFY_TOKEN") || "";
+    if (mode === "subscribe" && expected && timingSafeEqual(token, expected)) {
       return new Response(challenge || "", { status: 200 });
     }
     return new Response("forbidden", { status: 403 });
@@ -47,18 +42,11 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const rawBody = await req.text();
-  if (!(await verifySignature(req, rawBody))) {
-    return new Response("invalid signature", { status: 401 });
-  }
-
-  // Answer Meta quickly
-  const ack = json({ ok: true });
+  if (!(await verifySignature(req, rawBody))) return new Response("invalid signature", { status: 401 });
 
   try {
     const payload = JSON.parse(rawBody);
     const messages = extractMessages(payload);
-    if (!messages.length) return ack;
-
     const db = serviceClient();
 
     for (const msg of messages) {
@@ -70,52 +58,31 @@ Deno.serve(async (req) => {
       const orderId = buttonId.split(":")[1];
       if (!orderId) continue;
 
-      const { data: order } = await db.from("orders").select("*").eq("id", orderId).maybeSingle();
-      if (!order || !order.vendor_id) continue;
+      const { data: order } = await db.from("orders").select("id,status,vendor_id").eq("id", orderId).maybeSingle();
+      if (!order || !order.vendor_id || order.status !== "VENDOR_OFFERED") continue;
 
-      // Only the currently offered vendor may reply
+      // Only the vendor currently offered this order may reply (compare the last 9 digits)
       const from = digits(msg.from || "");
-      const { data: vendor } = await db.from("vendors").select("id,whatsapp,phone").eq("id", order.vendor_id).maybeSingle();
+      const { data: vendor } = await db.from("vendors").select("whatsapp,phone").eq("id", order.vendor_id).maybeSingle();
       const vendorNum = digits(vendor?.whatsapp || vendor?.phone || "");
-      if (!vendorNum || !(vendorNum === from || vendorNum.endsWith(from.slice(-9)) || from.endsWith(vendorNum.slice(-9)))) {
-        continue;
-      }
+      if (from.length < 9 || vendorNum.length < 9 || from.slice(-9) !== vendorNum.slice(-9)) continue;
 
-      // Ignore duplicates (already accepted or declined)
-      const { data: attempt } = await db
-        .from("vendor_attempts")
-        .select("status")
-        .eq("order_id", orderId)
-        .eq("vendor_id", order.vendor_id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (attempt && attempt.status !== "OFFERED") continue;
-
-      const resp = await db.rpc("respond_vendor", { p_order: orderId, p_accept: accept });
-      if (!resp.data?.changed) continue;
+      // respond_vendor only works while the order is waiting for this vendor, so duplicates and
+      // late replies are rejected by the database itself.
+      const replied = await db.rpc("respond_vendor", { p_order: orderId, p_accept: accept });
+      if (replied.error) continue;
 
       if (accept) {
         await db.rpc("offer_next_rider", { p_order: orderId });
       } else {
-        // Decline → next vendor + WhatsApp message
         const next = await db.rpc("offer_next_vendor", { p_order: orderId });
-        if (next.data?.ok) {
-          const notifyUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/notify-vendor`;
-          await fetch(notifyUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-            },
-            body: JSON.stringify({ orderId }),
-          }).catch(() => null);
-        }
+        if (next.data?.ok) await notifyVendor(orderId);
       }
     }
-  } catch {
+  } catch (e) {
+    console.error("whatsapp-webhook error", e);
     // still return 200 so Meta does not retry forever
   }
 
-  return ack;
+  return json({ ok: true });
 });

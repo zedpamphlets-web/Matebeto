@@ -78,19 +78,26 @@ export default function PhoneAuth() {
           <Text style={styles.kicker}>Log in or Sign up</Text>
           <Text style={styles.heading}>YOUR MOBILE{"\n"}NUMBER</Text>
 
-          <TextInput
-            value={phone}
-            onChangeText={(t) => {
-              setPhone(t);
-              if (invalid) setInvalid(false);
-              if (sendError) setSendError("");
-            }}
-            placeholder="Your mobile number"
-            placeholderTextColor="#7A7A7A"
-            keyboardType="phone-pad"
-            autoFocus
-            style={[styles.input, invalid && styles.inputBad]}
-          />
+          <View style={[styles.inputRow, invalid && styles.inputBad]}>
+            <View style={styles.flagChip}>
+              <Text style={styles.flagEmoji}>🇿🇲</Text>
+              <Text style={styles.codeText}>+260</Text>
+            </View>
+            <View style={styles.inputDivider} />
+            <TextInput
+              value={phone}
+              onChangeText={(t) => {
+                setPhone(t);
+                if (invalid) setInvalid(false);
+                if (sendError) setSendError("");
+              }}
+              placeholder="Your mobile number"
+              placeholderTextColor="#7A7A7A"
+              keyboardType="phone-pad"
+              autoFocus
+              style={styles.input}
+            />
+          </View>
 
           {invalid ? (
             <View style={styles.error}>
@@ -167,13 +174,32 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     marginBottom: 22,
   },
-  input: {
+  inputRow: {
     height: 54,
     borderRadius: 10,
     backgroundColor: "#1C1C1C",
     borderWidth: 1.5,
     borderColor: "#2A2A2A",
-    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  flagChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    gap: 6,
+  },
+  flagEmoji: { fontSize: 20 },
+  codeText: { color: "#fff", fontFamily: fonts.bodySemi, fontSize: 16 },
+  inputDivider: {
+    width: 1.5,
+    height: 26,
+    backgroundColor: "#2A2A2A",
+  },
+  input: {
+    flex: 1,
+    height: 54,
+    paddingHorizontal: 14,
     color: "#fff",
     fontFamily: fonts.body,
     fontSize: 16,

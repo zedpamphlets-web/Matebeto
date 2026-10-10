@@ -6,14 +6,19 @@ import { supabase } from "@/lib/supabase";
 import { colors, fonts, radius } from "@/lib/theme";
 import { formatKw } from "@/lib/lipila";
 import { PrimaryButton } from "@/components/ui";
-import { TRACK_STEPS, stepDone } from "@/lib/orders";
+import { startRiderSearch, TRACK_STEPS, stepDone } from "@/lib/orders";
 import { verifyLipilaPayment } from "@/lib/payments";
+
+const CANCELLABLE = ["CREATED", "PAYMENT_CONFIRMED", "SEARCHING_VENDOR", "VENDOR_OFFERED", "NO_VENDOR_FOUND"];
+const OTP_STATUSES = ["RIDER_ASSIGNED", "PICKED_UP", "OUT_FOR_DELIVERY", "CUSTOMER_NOT_HOME", "SUPPORT_REQUIRED"];
+const PROBLEM_STATUSES = ["NO_VENDOR_FOUND", "CANCELLED", "DELIVERY_FAILED", "SUPPORT_REQUIRED", "NO_RIDER_AVAILABLE"];
 
 export default function OrderTrack() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [order, setOrder] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [otp, setOtp] = useState<string | null>(null);
+  const [supportPhone, setSupportPhone] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function refresh() {
@@ -21,7 +26,7 @@ export default function OrderTrack() {
     setOrder(o);
     const { data: its } = await supabase.from("order_items").select("*").eq("order_id", id);
     setItems(its || []);
-    if (o && ["RIDER_ASSIGNED", "PICKED_UP", "OUT_FOR_DELIVERY"].includes(o.status)) {
+    if (o && OTP_STATUSES.includes(o.status)) {
       const { data } = await supabase.rpc("customer_delivery_otp", { p_order: id });
       setOtp(data || null);
     }
@@ -29,10 +34,17 @@ export default function OrderTrack() {
 
   useEffect(() => {
     refresh();
+    supabase
+      .from("settings")
+      .select("support_phone")
+      .eq("id", 1)
+      .maybeSingle()
+      .then(({ data }) => setSupportPhone(data?.support_phone || null));
     const t = setInterval(refresh, 8000);
     return () => clearInterval(t);
   }, [id]);
 
+  // Backup for the payment callback. The server starts the vendor search by itself.
   async function checkPay() {
     setBusy(true);
     await verifyLipilaPayment(String(id));
@@ -40,27 +52,67 @@ export default function OrderTrack() {
     refresh();
   }
 
-  async function cancel() {
-    Alert.alert("Cancel order?", "This cannot be undone.", [
-      { text: "No", style: "cancel" },
-      {
-        text: "Yes, cancel",
-        style: "destructive",
-        onPress: async () => {
-          setBusy(true);
-          const { error } = await supabase.rpc("customer_cancel", { p_order: id });
-          setBusy(false);
-          if (error) Alert.alert("Could not cancel", error.message);
-          refresh();
-        },
-      },
-    ]);
+  async function retryRider() {
+    setBusy(true);
+    try {
+      const res = await startRiderSearch(String(id));
+      if (!res?.ok && res?.reason === "NO_RIDER_AVAILABLE") {
+        Alert.alert(
+          "No matching rider",
+          "No bicycle/motorbike rider of the type you chose is online. Wait and try again, or contact support. The vehicle type will not be silently swapped."
+        );
+      }
+    } catch (e: any) {
+      Alert.alert("Could not search", e?.message || "Please try again.");
+    }
+    setBusy(false);
+    refresh();
+  }
+
+  function confirmCancel() {
+    const paid = order?.payment_status === "paid";
+    Alert.alert(
+      "Cancel this order?",
+      paid ? "Your payment will be marked for a refund." : "You have not been charged for a completed payment.",
+      [
+        { text: "Keep order", style: "cancel" },
+        { text: "Cancel order", style: "destructive", onPress: doCancel },
+      ]
+    );
+  }
+
+  async function doCancel() {
+    setBusy(true);
+    const { data, error } = await supabase.rpc("customer_cancel", { p_order: id });
+    setBusy(false);
+    if (error) Alert.alert("Could not cancel", error.message);
+    else if (!data?.ok) Alert.alert("Could not cancel", data?.reason || "Please contact support.");
+    refresh();
   }
 
   if (!order) return <View style={{ flex: 1, backgroundColor: colors.cream }} />;
 
   const delivered = order.status === "COMPLETED";
-  const failed = ["NO_VENDOR_FOUND", "CANCELLED", "DELIVERY_FAILED"].includes(order.status);
+  const failed = PROBLEM_STATUSES.includes(order.status);
+  const support = supportPhone ? ` Support: ${supportPhone}` : "";
+
+  let notice: string | null = null;
+  if (order.status === "NO_VENDOR_FOUND") {
+    notice = "Matebeto could not find a suitable vendor after 3 attempts. You can cancel for a refund, or place a new order with a different basket.";
+  } else if (order.status === "NO_RIDER_AVAILABLE") {
+    notice = `No ${order.delivery_type} rider is online right now. Your food partner has your order. Try again in a moment.${support}`;
+  } else if (order.status === "SUPPORT_REQUIRED") {
+    notice = `Our support team is looking after your delivery.${support}`;
+  } else if (order.status === "CUSTOMER_NOT_HOME") {
+    notice = "Your rider is at your door. Please give them the code below.";
+  } else if (order.status === "CANCELLED") {
+    notice =
+      order.payment_status === "refund_pending"
+        ? "This order was cancelled. Your refund is being processed."
+        : order.payment_status === "refunded"
+        ? "This order was cancelled and refunded."
+        : "This order was cancelled.";
+  }
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
@@ -98,6 +150,12 @@ export default function OrderTrack() {
             {failed ? "We need a moment" : "Order Placed!"}
           </Text>
           <Text style={{ fontFamily: fonts.title, fontSize: 18, color: colors.muted }}>Order #{order.order_number}</Text>
+        </View>
+      )}
+
+      {notice && (
+        <View style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: colors.line }}>
+          <Text style={{ fontFamily: fonts.body, color: colors.ink }}>{notice}</Text>
         </View>
       )}
 
@@ -154,48 +212,19 @@ export default function OrderTrack() {
         </View>
       )}
 
-      {order.status === "SUPPORT_REQUIRED" && (
-        <View style={{ marginTop: 16, backgroundColor: "#fff3cd", borderRadius: radius.md, padding: 14 }}>
-          <Text style={{ fontFamily: fonts.title }}>Support is needed</Text>
-          <Text style={{ fontFamily: fonts.body, marginTop: 4 }}>
-            This order needs help from Matebeto support. Nobody will be paid until the correct OTP is entered.
-          </Text>
-        </View>
-      )}
-      {order.status === "CUSTOMER_NOT_HOME" && (
-        <View style={{ marginTop: 16, backgroundColor: "#fff3cd", borderRadius: radius.md, padding: 14 }}>
-          <Text style={{ fontFamily: fonts.title }}>Rider is waiting</Text>
-          <Text style={{ fontFamily: fonts.body, marginTop: 4 }}>
-            The rider could not find you. They will wait a few minutes then the order will go to support.
-          </Text>
-        </View>
-      )}
-      {order.status === "NO_VENDOR_FOUND" && (
-        <View style={{ marginTop: 16, backgroundColor: "#f8d7da", borderRadius: radius.md, padding: 14 }}>
-          <Text style={{ fontFamily: fonts.title }}>No vendor available</Text>
-          <Text style={{ fontFamily: fonts.body, marginTop: 4 }}>
-            We tried 3 vendors. If you paid, a refund has been marked for review.
-          </Text>
+      {order.status === "CREATED" && order.payment_status !== "paid" && (
+        <View style={{ marginTop: 16 }}>
+          <PrimaryButton label="I've paid — check Lipila" onPress={checkPay} loading={busy} />
         </View>
       )}
       {order.status === "NO_RIDER_AVAILABLE" && (
-        <View style={{ marginTop: 16, backgroundColor: "#f8d7da", borderRadius: radius.md, padding: 14 }}>
-          <Text style={{ fontFamily: fonts.title }}>No rider available</Text>
-          <Text style={{ fontFamily: fonts.body, marginTop: 4 }}>
-            No matching {order.delivery_type} rider is online. If you paid, a refund has been marked for review.
-          </Text>
+        <View style={{ marginTop: 16 }}>
+          <PrimaryButton label="Try finding a rider again" onPress={retryRider} loading={busy} />
         </View>
       )}
-
-      {["CREATED", "PAYMENT_CONFIRMED", "SEARCHING_VENDOR", "VENDOR_OFFERED"].includes(order.status) && (
-        <View style={{ marginTop: 16 }}>
-          <PrimaryButton label="Cancel order" onPress={cancel} loading={busy} />
-        </View>
-      )}
-
-      {order.payment_status !== "paid" && order.status === "CREATED" && (
-        <View style={{ marginTop: 16 }}>
-          <PrimaryButton label="I've paid — check status" onPress={checkPay} loading={busy} />
+      {CANCELLABLE.includes(order.status) && (
+        <View style={{ marginTop: 12 }}>
+          <PrimaryButton label="Cancel order" color="#fff" onPress={confirmCancel} loading={busy} />
         </View>
       )}
     </ScrollView>

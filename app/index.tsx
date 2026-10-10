@@ -8,21 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandSplash } from "@/components/brand-splash";
 import { colors, fonts } from "@/lib/theme";
 import { currentProfile } from "@/lib/session";
-
-async function isOnline() {
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 4000);
-    const res = await fetch("https://clients3.google.com/generate_204", {
-      method: "HEAD",
-      signal: ctrl.signal,
-    });
-    clearTimeout(t);
-    return res.ok || res.status === 204 || res.status === 0;
-  } catch {
-    return false;
-  }
-}
+import { isOnline, withTimeout } from "@/lib/network";
 
 export default function Welcome() {
   const [ready, setReady] = useState(false);
@@ -40,7 +26,7 @@ export default function Welcome() {
         return;
       }
 
-      currentProfile()
+      withTimeout(currentProfile())
         .then(({ user, admin, rider, preview }) => {
           if (cancelled) return;
           if (admin) router.replace("/admin");
@@ -48,8 +34,15 @@ export default function Welcome() {
           else if (preview || user) router.replace("/(customer)");
           else setReady(true);
         })
-        .catch(() => {
-          if (!cancelled) setReady(true);
+        .catch(async () => {
+          if (cancelled) return;
+          // A stalled request (e.g. connection dropped mid-check) shouldn't leave
+          // the splash spinning forever — re-check connectivity and show the
+          // offline screen if it's genuinely gone, otherwise just continue in.
+          const stillOnline = await isOnline();
+          if (cancelled) return;
+          if (!stillOnline) setOffline(true);
+          setReady(true);
         });
     })();
 
@@ -78,12 +71,16 @@ export default function Welcome() {
                 return;
               }
               try {
-                const { user, admin, rider, preview } = await currentProfile();
+                const { user, admin, rider, preview } = await withTimeout(currentProfile());
                 if (admin) router.replace("/admin");
                 else if (rider?.status === "APPROVED") router.replace("/(rider)");
                 else if (preview || user) router.replace("/(customer)");
                 else setReady(true);
               } catch {
+                const stillOnline = await isOnline();
+                if (!stillOnline) {
+                  setOffline(true);
+                }
                 setReady(true);
               }
             }}
@@ -98,32 +95,23 @@ export default function Welcome() {
 
   return (
     <View style={styles.root}>
-      <Image source={require("../assets/welcome-food-clean.jpg")} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+      <Image source={require("../assets/welcome-food-new.jpg")} style={StyleSheet.absoluteFillObject} contentFit="cover" />
       <LinearGradient
-        colors={["rgba(0,0,0,0.55)", "rgba(0,0,0,0.25)", "rgba(0,0,0,0.1)", "rgba(0,0,0,0.65)"]}
-        locations={[0, 0.35, 0.6, 1]}
+        colors={["rgba(0,0,0,0.05)", "rgba(0,0,0,0.05)", "rgba(0,0,0,0.18)", "rgba(0,0,0,0.68)"]}
+        locations={[0, 0.5, 0.75, 1]}
         style={StyleSheet.absoluteFill}
       />
       <SafeAreaView style={styles.safe}>
-        <View style={styles.copy}>
-          <Image
-            source={require("../assets/logo-wordmark.png")}
-            style={{ width: 260, height: 90 }}
-            contentFit="contain"
-          />
-          <Text style={styles.tag}>Let's Eat.</Text>
-          <Text style={styles.one}>One App.</Text>
-          <Text style={styles.two}>Two Ways to Serve You.</Text>
-        </View>
+        <View />
         <View style={styles.actions}>
           <RoleButton
-            color="#22C55E"
+            color={colors.customer}
             icon="person"
             label="I'm a Customer"
             onPress={() => router.push({ pathname: "/auth/phone", params: { mode: "customer" } })}
           />
           <RoleButton
-            color="#F97316"
+            color={colors.rider}
             icon="bicycle"
             label="I'm a Rider"
             onPress={() => router.push({ pathname: "/auth/phone", params: { mode: "rider" } })}
@@ -176,28 +164,6 @@ const styles = StyleSheet.create({
   },
   root: { flex: 1, backgroundColor: "#000" },
   safe: { flex: 1, justifyContent: "space-between", paddingHorizontal: 22, paddingBottom: 28 },
-  copy: { paddingTop: 48, alignItems: "center" },
-  tag: {
-    marginTop: 6,
-    color: "#F4A300",
-    fontFamily: fonts.italic,
-    fontSize: 22,
-  },
-  one: {
-    marginTop: 4,
-    color: "#F4A300",
-    fontFamily: fonts.display,
-    fontSize: 42,
-    letterSpacing: -0.5,
-    textAlign: "center",
-  },
-  two: {
-    marginTop: 2,
-    color: "#FFFFFF",
-    fontFamily: fonts.bodySemi,
-    fontSize: 18,
-    textAlign: "center",
-  },
   actions: { gap: 14, paddingBottom: 8 },
   role: {
     height: 64,
