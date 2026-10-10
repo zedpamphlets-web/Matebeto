@@ -96,6 +96,12 @@ export default function Catalog() {
     load();
   }
 
+  async function deleteMeal(id: string) {
+    const { error } = await supabase.from("meals").delete().eq("id", id);
+    if (error) Alert.alert("Meal", error.message);
+    load();
+  }
+
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.adminBg }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
       <Text style={{ fontFamily: fonts.title, fontSize: 18, color: colors.adminText }}>Categories</Text>
@@ -160,6 +166,9 @@ export default function Catalog() {
             <Text style={{ fontFamily: fonts.bodySemi, color: colors.customerDeep }}>
               {m.is_available ? "Available" : "Hidden"}
             </Text>
+          </Pressable>
+          <Pressable onPress={() => deleteMeal(m.id)} style={{ marginTop: 6 }}>
+            <Text style={{ fontFamily: fonts.bodySemi, color: "#c00" }}>Delete meal</Text>
           </Pressable>
         </View>
       ))}

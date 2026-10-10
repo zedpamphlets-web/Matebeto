@@ -107,6 +107,16 @@ create table if not exists public.settings (
 
 insert into public.settings (id) values (1) on conflict (id) do nothing;
 
+create table if not exists public.banners (
+  id uuid primary key default gen_random_uuid(),
+  image_url text,
+  title text,
+  amount numeric(12,2),
+  sort_order int not null default 0,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
   order_number int unique not null default nextval('public.order_number_seq'),
@@ -691,6 +701,7 @@ alter table public.vendor_meals enable row level security;
 alter table public.riders enable row level security;
 alter table public.platform_admins enable row level security;
 alter table public.settings enable row level security;
+alter table public.banners enable row level security;
 alter table public.orders enable row level security;
 alter table public.order_items enable row level security;
 alter table public.vendor_attempts enable row level security;
@@ -711,6 +722,7 @@ create policy "sides_read" on public.meal_sides for select using (true);
 create policy "vendors_admin" on public.vendors for select to authenticated using (public.is_admin());
 create policy "vendor_meals_read" on public.vendor_meals for select using (true);
 create policy "settings_read" on public.settings for select using (true);
+create policy "banners_read" on public.banners for select using (is_active = true or public.is_admin());
 
 create policy "riders_self" on public.riders for select to authenticated
   using (user_id = auth.uid() or public.is_admin());
@@ -752,6 +764,7 @@ create policy "admin_write_vendors" on public.vendors for all to authenticated u
 create policy "admin_write_vendor_meals" on public.vendor_meals for all to authenticated using (public.is_admin()) with check (public.is_admin());
 create policy "admin_write_riders" on public.riders for all to authenticated using (public.is_admin()) with check (public.is_admin());
 create policy "admin_write_settings" on public.settings for all to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy "admin_write_banners" on public.banners for all to authenticated using (public.is_admin()) with check (public.is_admin());
 create policy "admin_write_admins" on public.platform_admins for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 -- Create payout records when order is completed by OTP
@@ -888,7 +901,7 @@ end;
 $$;
 
 grant usage on schema public to anon, authenticated;
-grant select on public.markets, public.categories, public.meals, public.meal_sides, public.settings to anon, authenticated;
+grant select on public.markets, public.categories, public.meals, public.meal_sides, public.settings, public.banners to anon, authenticated;
 
 -- Only the functions the app actually calls (is_admin kept for policies)
 revoke execute on all functions in schema public from authenticated;

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   NativeScrollEvent,
@@ -31,7 +31,7 @@ const BANNER_W = W - 28;
 export default function Home() {
   const [markets, setMarkets] = useState<any[]>([]);
   const [featured, setFeatured] = useState<any[]>([]);
-  const [banner, setBanner] = useState<string | null>(null);
+  const [banners, setBanners] = useState<any[]>([]);
   const [count, setCount] = useState(0);
   const [bannerIndex, setBannerIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -56,18 +56,27 @@ export default function Home() {
           .eq("is_available", true)
           .then(({ data }) => setFeatured(data || [])),
         supabase
-          .from("settings")
-          .select("home_banner_url")
-          .eq("id", 1)
-          .single()
-          .then(({ data }) => setBanner(data?.home_banner_url || null)),
+          .from("banners")
+          .select("*")
+          .eq("is_active", true)
+          .order("sort_order")
+          .then(({ data }) => setBanners(data || [])),
       ])
     )
-      .then(() => setLoading(false))
+      .then(() => {
+        setLoading(false);
+        setOffline(false);
+      })
       .catch(async () => {
         const online = await isOnline();
-        setOffline(!online);
-        setLoading(false);
+        if (!online) {
+          // Keep skeleton forever until internet returns
+          setOffline(true);
+          setLoading(true);
+          setTimeout(load, 3000);
+        } else {
+          setLoading(false);
+        }
       });
     loadBasket().then((b) => setCount(b.items.reduce((n, i) => n + i.quantity, 0)));
   }, []);
@@ -78,20 +87,35 @@ export default function Home() {
     }, [load])
   );
 
-  // Hero slides: admin banner + featured meal photos (video-style carousel)
-  const slides: { key: string; uri?: string | null; title?: string; fallback?: number }[] = [
-    {
-      key: "main",
-      uri: banner,
-      title: "Real Meals.\nReal Flavours.\nDelivered.",
-      fallback: require("../../assets/welcome-food.jpg"),
-    },
-    ...featured.slice(0, 4).map((m) => ({
-      key: m.id,
-      uri: m.image_url,
-      title: m.name,
-    })),
-  ];
+  // Banners from admin (text + amount), auto-swap every 10s
+  const slides = banners.length
+    ? banners.map((b) => ({
+        key: b.id,
+        uri: b.image_url,
+        title: b.title || "",
+        amount: b.amount,
+      }))
+    : [
+        {
+          key: "fallback",
+          uri: null,
+          title: "Real Meals. Real Flavours.",
+          amount: null,
+          fallback: require("../../assets/welcome-food.jpg"),
+        },
+      ];
+
+  useEffect(() => {
+    if (slides.length < 2 || offline || loading) return;
+    const t = setInterval(() => {
+      setBannerIndex((i) => {
+        const next = (i + 1) % slides.length;
+        bannerRef.current?.scrollTo({ x: next * BANNER_W, animated: true });
+        return next;
+      });
+    }, 10000);
+    return () => clearInterval(t);
+  }, [slides.length, offline, loading]);
 
   function onBannerScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
     const x = e.nativeEvent.contentOffset.x;
@@ -135,16 +159,10 @@ export default function Home() {
                   style={StyleSheet.absoluteFill}
                 />
                 <View style={styles.bannerCopy}>
-                  {s.key === "main" ? (
-                    <>
-                      <Text style={styles.bannerKicker}>Let&apos;s Eat.</Text>
-                      <Text style={styles.bannerText}>{s.title}</Text>
-                    </>
-                  ) : (
-                    <Text style={styles.bannerMeal} numberOfLines={2}>
-                      {s.title}
-                    </Text>
-                  )}
+                  {s.title ? <Text style={styles.bannerText}>{s.title}</Text> : null}
+                  {s.amount != null ? (
+                    <Text style={styles.bannerMeal}>{formatKw(Number(s.amount))}</Text>
+                  ) : null}
                 </View>
               </View>
             ))}
@@ -160,9 +178,7 @@ export default function Home() {
 
         {/* White sheet over dark — sits on banners */}
         <View style={styles.sheet}>
-          {offline ? (
-            <OfflineNotice onRetry={load} />
-          ) : loading ? (
+          {loading || offline ? (
             <HomeSkeleton />
           ) : (
             <>

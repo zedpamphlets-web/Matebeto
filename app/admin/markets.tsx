@@ -46,6 +46,12 @@ export default function AdminMarkets() {
     load();
   }
 
+  async function deleteMarket(id: string) {
+    const { error } = await supabase.from("markets").delete().eq("id", id);
+    if (error) Alert.alert("Market", error.message);
+    load();
+  }
+
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.adminBg }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
       <Text style={{ fontFamily: fonts.title, fontSize: 18, marginBottom: 8 }}>Add market</Text>
@@ -65,6 +71,9 @@ export default function AdminMarkets() {
             <Text style={{ fontFamily: fonts.bodySemi, color: colors.customerDeep }}>
               {m.is_active ? "Hide market" : "Show market"}
             </Text>
+          </Pressable>
+          <Pressable onPress={() => deleteMarket(m.id)} style={{ marginTop: 6 }}>
+            <Text style={{ fontFamily: fonts.bodySemi, color: "#c00" }}>Delete market</Text>
           </Pressable>
         </View>
       ))}

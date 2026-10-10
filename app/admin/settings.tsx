@@ -10,15 +10,20 @@ export default function Fees() {
   const [platform, setPlatform] = useState("");
   const [bike, setBike] = useState("");
   const [moto, setMoto] = useState("");
-  const [banner, setBanner] = useState<string | null>(null);
+  const [banners, setBanners] = useState<any[]>([]);
+  const [newTitle, setNewTitle] = useState("");
+  const [newAmount, setNewAmount] = useState("");
+  const [newImage, setNewImage] = useState<string | null>(null);
 
   async function load() {
     const { data } = await supabase.from("settings").select("*").eq("id", 1).single();
-    if (!data) return;
-    setPlatform(String(data.platform_fee));
-    setBike(String(data.bicycle_delivery_fee));
-    setMoto(String(data.motorbike_delivery_fee));
-    setBanner(data.home_banner_url || null);
+    if (data) {
+      setPlatform(String(data.platform_fee));
+      setBike(String(data.bicycle_delivery_fee));
+      setMoto(String(data.motorbike_delivery_fee));
+    }
+    const { data: b } = await supabase.from("banners").select("*").order("sort_order");
+    setBanners(b || []);
   }
 
   useEffect(() => {
@@ -39,10 +44,26 @@ export default function Fees() {
     else Alert.alert("Saved");
   }
 
-  async function saveBanner(url: string | null) {
-    setBanner(url);
-    const { error } = await supabase.from("settings").update({ home_banner_url: url }).eq("id", 1);
+  async function addBanner() {
+    if (!newTitle.trim()) return Alert.alert("Banner", "Title is required.");
+    const { error } = await supabase.from("banners").insert({
+      title: newTitle.trim(),
+      amount: newAmount ? Number(newAmount) : null,
+      image_url: newImage,
+      sort_order: banners.length + 1,
+      is_active: true,
+    });
+    if (error) return Alert.alert("Banner", error.message);
+    setNewTitle("");
+    setNewAmount("");
+    setNewImage(null);
+    load();
+  }
+
+  async function deleteBanner(id: string) {
+    const { error } = await supabase.from("banners").delete().eq("id", id);
     if (error) Alert.alert("Banner", error.message);
+    load();
   }
 
   return (
@@ -52,8 +73,21 @@ export default function Fees() {
         Upload the home banner food photo from your phone. Customers only see food total, platform fee and delivery fee.
       </Text>
       <View style={{ height: 16 }} />
-      <Text style={{ fontFamily: fonts.title, marginBottom: 8 }}>Home banner</Text>
-      <PhotoPicker folder="banner" uri={banner} name="Home banner" onChange={saveBanner} height={160} />
+      <Text style={{ fontFamily: fonts.title, marginBottom: 8 }}>Banners (auto-swap every 10s)</Text>
+      {banners.map((b) => (
+        <View key={b.id} style={{ marginBottom: 12, backgroundColor: colors.adminCard, padding: 10, borderRadius: 12 }}>
+          <Text style={{ color: colors.adminText, fontFamily: fonts.title }}>{b.title} {b.amount != null ? `· ${b.amount}` : ""}</Text>
+          <PrimaryButton label="Delete" onPress={() => deleteBanner(b.id)} />
+        </View>
+      ))}
+      <Field value={newTitle} onChangeText={setNewTitle} placeholder="Banner title / text" />
+      <View style={{ height: 8 }} />
+      <Field value={newAmount} onChangeText={setNewAmount} placeholder="Amount (optional)" keyboardType="decimal-pad" />
+      <View style={{ height: 8 }} />
+      <PhotoPicker folder="banner" uri={newImage} name="Banner image" onChange={setNewImage} height={120} />
+      <View style={{ height: 8 }} />
+      <PrimaryButton label="Add banner" onPress={addBanner} />
+      <View style={{ height: 16 }} />
       <Field value={platform} onChangeText={setPlatform} placeholder="Platform fee" keyboardType="decimal-pad" />
       <View style={{ height: 10 }} />
       <Field value={bike} onChangeText={setBike} placeholder="Bicycle delivery fee" keyboardType="decimal-pad" />
