@@ -22,6 +22,10 @@ export function BrandSplash({ message, offline }: { message?: string; offline?: 
         {offline ? null : <ActivityIndicator size="large" color={colors.gold} />}
         {message ? <Text style={styles.msg}>{message}</Text> : null}
       </View>
+      <View style={styles.footer}>
+        <Text style={styles.version}>v1.0.0</Text>
+        <Text style={styles.powered}>Powered by Six Images</Text>
+      </View>
     </View>
   );
 }
@@ -63,5 +67,21 @@ const styles = StyleSheet.create({
     color: "#9A9A9A",
     fontFamily: fonts.bodySemi,
     fontSize: 14,
+  },
+  footer: {
+    position: "absolute",
+    bottom: 24,
+    alignItems: "center",
+  },
+  version: {
+    color: "#9A9A9A",
+    fontFamily: fonts.body,
+    fontSize: 12,
+  },
+  powered: {
+    color: "#B0B0B0",
+    fontFamily: fonts.body,
+    fontSize: 11,
+    marginTop: 2,
   },
 });

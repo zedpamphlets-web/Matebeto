@@ -98,7 +98,7 @@ export default function Welcome() {
 
   return (
     <View style={styles.root}>
-      <Image source={require("../assets/welcome-food.jpg")} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+      <Image source={require("../assets/welcome-food-new.jpg")} style={StyleSheet.absoluteFillObject} contentFit="cover" />
       <LinearGradient
         colors={["rgba(0,0,0,0.78)", "rgba(0,0,0,0.42)", "rgba(0,0,0,0.12)", "rgba(0,0,0,0.55)"]}
         locations={[0, 0.28, 0.58, 1]}
