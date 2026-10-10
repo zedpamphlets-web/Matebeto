@@ -3,6 +3,7 @@ import { corsHeaders, serviceClient, lipilaFetch, json } from "../_shared/lipila
 // Protected webhook. Lipila calls this when a payment finishes.
 // We do NOT trust the payload — we re-query Lipila for the real status.
 // URL must include ?token=YOUR_LIPILA_WEBHOOK_SECRET
+// callbackUrl is sent as a HEADER (see Lipila docs).
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -21,15 +22,16 @@ Deno.serve(async (req) => {
 
     const db = serviceClient();
 
-    // Find order by the payment reference we stored
-    const { data: order } = await db
-      .from("orders")
-      .select("*")
-      .eq("payment_reference", referenceId)
+    // Look up via payment_attempts so earlier attempts are never lost
+    const { data: attempt } = await db
+      .from("payment_attempts")
+      .select("*, orders(*)")
+      .eq("reference", referenceId)
       .maybeSingle();
 
-    if (!order) return json({ ok: true, ignored: "order not found" });
-    if (order.payment_status === "paid") return json({ ok: true, already: "paid" });
+    if (!attempt) return json({ ok: true, ignored: "attempt not found" });
+    const order = attempt.orders;
+    if (!order) return json({ ok: true, ignored: "order missing" });
 
     // Re-query Lipila — do not trust the webhook body
     const { ok, json: statusBody } = await lipilaFetch(
@@ -39,31 +41,58 @@ Deno.serve(async (req) => {
     if (!ok) return json({ ok: false, reason: "status check failed" }, 502);
 
     const providerStatus = String(statusBody?.status || "").toLowerCase();
+    const returnedAmount = Number(statusBody?.amount);
+    const returnedCurrency = String(statusBody?.currency || "ZMW");
+
     if (providerStatus === "successful" || providerStatus === "success") {
-      await db.from("orders").update({
-        payment_status: "paid",
-        status: "PAYMENT_CONFIRMED",
-      }).eq("id", order.id);
+      // Amount / currency check when Lipila returns them
+      if (returnedAmount && Math.abs(returnedAmount - Number(order.total)) > 0.01) {
+        await db.from("orders").update({ payment_status: "refund_pending" }).eq("id", order.id);
+        await db.from("payment_attempts").update({ status: "amount_mismatch" }).eq("id", attempt.id);
+        return json({ ok: false, reason: "amount mismatch — marked for refund" });
+      }
+      if (returnedCurrency && returnedCurrency !== "ZMW") {
+        await db.from("orders").update({ payment_status: "refund_pending" }).eq("id", order.id);
+        return json({ ok: false, reason: "currency mismatch" });
+      }
 
-      // Start vendor search on the server
-      await db.rpc("offer_next_vendor", { p_order: order.id });
+      // Atomic: only the caller that gets a row continues
+      const { data: updated } = await db
+        .from("orders")
+        .update({ payment_status: "paid", status: "PAYMENT_CONFIRMED" })
+        .eq("id", order.id)
+        .neq("payment_status", "paid")
+        .select("id")
+        .maybeSingle();
 
-      // Message the vendor (server-to-server call)
-      const notifyUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/notify-vendor`;
-      await fetch(notifyUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-          apikey: Deno.env.get("SUPABASE_ANON_KEY") || "",
-        },
-        body: JSON.stringify({ orderId: order.id }),
-      }).catch(() => null);
+      if (!updated) {
+        // Already paid — second successful payment must be refunded
+        await db.from("orders").update({ payment_status: "refund_pending" }).eq("id", order.id);
+        await db.from("payment_attempts").update({ status: "duplicate_paid" }).eq("id", attempt.id);
+        return json({ ok: true, status: "already_paid_marked_refund" });
+      }
+
+      await db.from("payment_attempts").update({ status: "paid" }).eq("id", attempt.id);
+
+      // Start vendor search
+      const offer = await db.rpc("offer_next_vendor", { p_order: order.id });
+      if (offer.data?.ok) {
+        const notifyUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/notify-vendor`;
+        await fetch(notifyUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({ orderId: order.id }),
+        }).catch(() => null);
+      }
 
       return json({ ok: true, status: "paid" });
     }
 
     if (providerStatus === "failed") {
+      await db.from("payment_attempts").update({ status: "failed" }).eq("id", attempt.id);
       await db.from("orders").update({ payment_status: "failed" }).eq("id", order.id);
       return json({ ok: true, status: "failed" });
     }

@@ -15,21 +15,42 @@ Deno.serve(async (req) => {
     if (order.status !== "CREATED") return json({ error: "Order is no longer waiting for payment." }, 409);
     if (order.payment_status === "paid") return json({ error: "This order is already paid." }, 409);
 
-    // Fresh reference for every payment attempt
-    const paymentReference = `${order.id}-${Date.now()}`;
+    // Refuse a new collection while a pending payment is under 3 minutes old
+    const { data: recent } = await db
+      .from("payment_attempts")
+      .select("created_at")
+      .eq("order_id", orderId)
+      .eq("status", "pending")
+      .gte("created_at", new Date(Date.now() - 3 * 60 * 1000).toISOString())
+      .limit(1)
+      .maybeSingle();
+    if (recent) return json({ error: "A payment is already pending. Wait a few minutes and try again." }, 429);
+
+    const paymentReference = `${order.id}_${Date.now()}`;
     const webhookSecret = Deno.env.get("LIPILA_WEBHOOK_SECRET") || "";
     const callbackUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/lipila-webhook?token=${webhookSecret}`;
 
-    const { ok, json: lipilaBody } = await lipilaFetch("/collections/mobile-money", {
-      referenceId: paymentReference,
-      amount: Number(order.total),
-      narration: `Matebeto order ${order.order_number}`,
-      accountNumber: phone,
-      currency: "ZMW",
-      callbackUrl,
-    });
+    // callbackUrl is a HEADER per Lipila official docs (not body)
+    const { ok, json: lipilaBody } = await lipilaFetch(
+      "/collections/mobile-money",
+      {
+        referenceId: paymentReference,
+        amount: Number(order.total),
+        narration: `Matebeto order ${order.order_number}`,
+        accountNumber: phone,
+        currency: "ZMW",
+      },
+      { callbackUrl }
+    );
     if (!ok) return json({ error: lipilaBody?.message || "Could not start payment." }, 502);
 
+    await db.from("payment_attempts").insert({
+      order_id: order.id,
+      reference: paymentReference,
+      amount: Number(order.total),
+      currency: "ZMW",
+      status: "pending",
+    });
     await db.from("orders").update({
       payment_status: "pending",
       payment_reference: paymentReference,

@@ -36,11 +36,15 @@ export async function loadOwnedOrder(db: ReturnType<typeof serviceClient>, order
   return admin ? order : null;
 }
 
-export async function lipilaFetch(path: string, body: unknown) {
+export async function lipilaFetch(path: string, body: unknown, extraHeaders: Record<string, string> = {}) {
   if (!LIPILA_SECRET_KEY) throw new Error("LIPILA_SECRET_KEY is not set");
   const res = await fetch(`${LIPILA_BASE_URL}${path}`, {
     method: path.includes("check-status") ? "GET" : "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": LIPILA_SECRET_KEY },
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": LIPILA_SECRET_KEY,
+      ...extraHeaders,
+    },
     body: path.includes("check-status") ? undefined : JSON.stringify(body),
   });
   const json = await res.json().catch(() => ({}));

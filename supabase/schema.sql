@@ -102,7 +102,8 @@ create table if not exists public.settings (
   home_banner_url text,
   vendor_timeout_minutes int not null default 10,
   rider_timeout_minutes int not null default 5,
-  customer_wait_minutes int not null default 10
+  customer_wait_minutes int not null default 10,
+  payouts_enabled boolean not null default false
 );
 
 insert into public.settings (id) values (1) on conflict (id) do nothing;
@@ -172,7 +173,16 @@ create table if not exists public.delivery_otps (
   created_at timestamptz not null default now()
 );
 
--- Payouts (created when OTP completes the order)
+-- Payment attempts (so earlier tries are never lost)
+create table if not exists public.payment_attempts (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid not null references public.orders(id) on delete cascade,
+  reference text unique not null,
+  amount numeric(12,2) not null,
+  currency text not null default 'ZMW',
+  status text not null default 'pending',
+  created_at timestamptz not null default now()
+);
 create table if not exists public.payouts (
   id uuid primary key default gen_random_uuid(),
   order_id uuid not null references public.orders(id) on delete cascade,
@@ -699,6 +709,7 @@ alter table public.order_events enable row level security;
 alter table public.delivery_otps enable row level security;
 alter table public.delivery_otp_private enable row level security;
 alter table public.payouts enable row level security;
+alter table public.payment_attempts enable row level security;
 
 create policy "profiles_self" on public.profiles for select to authenticated using (user_id = auth.uid() or public.is_admin());
 create policy "profiles_self_upd" on public.profiles for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
@@ -890,9 +901,10 @@ $$;
 grant usage on schema public to anon, authenticated;
 grant select on public.markets, public.categories, public.meals, public.meal_sides, public.settings to anon, authenticated;
 
--- Only the functions the app actually calls (is_admin kept for policies)
-revoke execute on all functions in schema public from authenticated;
-grant execute on function public.is_admin() to authenticated;
+revoke execute on all functions in schema public from public, anon, authenticated;
+alter default privileges for role postgres in schema public revoke execute on functions from public, anon, authenticated;
+
+grant execute on function public.is_admin() to anon, authenticated;
 grant execute on function public.create_order(uuid, text, jsonb, jsonb) to authenticated;
 grant execute on function public.offer_next_vendor(uuid) to authenticated;
 grant execute on function public.offer_next_rider(uuid) to authenticated;
@@ -904,5 +916,12 @@ grant execute on function public.apply_rider(text, text, text, text, text, text,
 grant execute on function public.respond_vendor(uuid, boolean, text) to authenticated;
 grant execute on function public.order_vendor_name(uuid) to authenticated;
 grant execute on function public.reset_delivery_lock(uuid) to authenticated;
+grant execute on function public.customer_cancel(uuid) to authenticated;
+grant execute on function public.customer_not_home(uuid) to authenticated;
+grant execute on function public.vendor_cannot_fulfil(uuid) to authenticated;
+grant execute on function public.rider_cannot_finish(uuid) to authenticated;
+grant execute on function public.rider_report_problem(uuid, text) to authenticated;
+
+grant execute on all functions in schema public to service_role;
 grant execute on function public.customer_cancel(uuid) to authenticated;
 grant execute on function public.customer_not_home(uuid) to authenticated;

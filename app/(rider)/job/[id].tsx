@@ -109,6 +109,51 @@ export default function Job() {
           <Text style={{ color: colors.muted, marginTop: 10, fontFamily: fonts.body }}>
             There is no force-complete button. The OTP is the only way this order can finish.
           </Text>
+          <View style={{ height: 16 }} />
+          {order.status === "OUT_FOR_DELIVERY" && (
+            <PrimaryButton
+              label="Customer not home"
+              color="#fff"
+              onPress={async () => {
+                setBusy(true);
+                const { error } = await supabase.rpc("customer_not_home", { p_order: id });
+                setBusy(false);
+                if (error) Alert.alert("Could not report", error.message);
+                else load();
+              }}
+              loading={busy}
+            />
+          )}
+          <View style={{ height: 10 }} />
+          <PrimaryButton
+            label="I can't complete this delivery"
+            color="#fff"
+            onPress={() => {
+              Alert.prompt?.("Problem", "What happened?", async (reason) => {
+                setBusy(true);
+                const { error } = await supabase.rpc("rider_report_problem", { p_order: id, p_reason: reason || "Rider reported problem" });
+                setBusy(false);
+                if (error) Alert.alert("Could not report", error.message);
+                else {
+                  Alert.alert("Reported", "Support has been notified.");
+                  router.back();
+                }
+              }) || Alert.alert("Problem", "Bike broke or other issue?", [
+                { text: "Cancel" },
+                {
+                  text: "Report",
+                  onPress: async () => {
+                    setBusy(true);
+                    const { error } = await supabase.rpc("rider_report_problem", { p_order: id, p_reason: "Rider cannot complete" });
+                    setBusy(false);
+                    if (error) Alert.alert("Could not report", error.message);
+                    else router.back();
+                  },
+                },
+              ]);
+            }}
+            loading={busy}
+          />
         </>
       )}
     </ScrollView>

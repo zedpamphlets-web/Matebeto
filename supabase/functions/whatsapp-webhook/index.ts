@@ -92,7 +92,8 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (attempt && attempt.status !== "OFFERED") continue;
 
-      await db.rpc("respond_vendor", { p_order: orderId, p_accept: accept });
+      const resp = await db.rpc("respond_vendor", { p_order: orderId, p_accept: accept });
+      if (!resp.data?.changed) continue;
 
       if (accept) {
         await db.rpc("offer_next_rider", { p_order: orderId });

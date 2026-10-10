@@ -50,6 +50,59 @@ export default function AdminOrders() {
                 {i.quantity} × {i.meal_name}
               </Text>
             ))}
+          {["SUPPORT_REQUIRED", "CUSTOMER_NOT_HOME", "NO_VENDOR_FOUND", "NO_RIDER_AVAILABLE", "CANCELLED"].includes(o.status) && (
+            <Text style={{ color: colors.danger || "#c00", fontFamily: fonts.bodySemi, marginTop: 6 }}>
+              Needs attention
+            </Text>
+          )}
+          {o.status === "SUPPORT_REQUIRED" && (
+            <Pressable
+              onPress={async () => {
+                const { error } = await supabase.rpc("reset_delivery_lock", { p_order: o.id });
+                if (error) Alert.alert("Reset", error.message);
+                load();
+              }}
+              style={[chip, { marginTop: 10 }]}
+            >
+              <Text style={{ fontFamily: fonts.bodySemi }}>Reset OTP lock</Text>
+            </Pressable>
+          )}
+          {["VENDOR_ACCEPTED", "VENDOR_OFFERED"].includes(o.status) && (
+            <Pressable
+              onPress={async () => {
+                const { error } = await supabase.rpc("vendor_cannot_fulfil", { p_order: o.id });
+                if (error) Alert.alert("Vendor", error.message);
+                load();
+              }}
+              style={[chip, { marginTop: 10 }]}
+            >
+              <Text style={{ fontFamily: fonts.bodySemi }}>Vendor cannot fulfil</Text>
+            </Pressable>
+          )}
+          {o.rider_id && (
+            <Pressable
+              onPress={async () => {
+                const { error } = await supabase.rpc("rider_cannot_finish", { p_order: o.id });
+                if (error) Alert.alert("Rider", error.message);
+                load();
+              }}
+              style={[chip, { marginTop: 10 }]}
+            >
+              <Text style={{ fontFamily: fonts.bodySemi }}>Reassign rider</Text>
+            </Pressable>
+          )}
+          {o.payment_status === "refund_pending" && (
+            <Pressable
+              onPress={async () => {
+                const { error } = await supabase.from("orders").update({ payment_status: "refunded" }).eq("id", o.id);
+                if (error) Alert.alert("Refund", error.message);
+                else load();
+              }}
+              style={[chip, { marginTop: 10 }]}
+            >
+              <Text style={{ fontFamily: fonts.bodySemi }}>Mark refund done</Text>
+            </Pressable>
+          )}
           {o.status === "VENDOR_OFFERED" && (
             <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
               <Pressable onPress={() => acceptVendor(o.id, true)} style={chip}>

@@ -8,6 +8,13 @@ function toWhatsApp(n: string) {
   return d;
 }
 
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let out = 0;
+  for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return out === 0;
+}
+
 async function sendTemplate(
   phoneId: string,
   token: string,
@@ -60,12 +67,10 @@ async function sendTemplate(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    // Callable by signed-in user OR by the server (service role)
     const auth = req.headers.get("Authorization") || "";
-    const isService = auth.includes(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "___none___");
-    if (!isService) {
-      // fall back to user check if needed later; for now require service or valid user
-      // (kept simple — the webhook and cron call with service role)
+    const expected = `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""}`;
+    if (!timingSafeEqual(auth, expected)) {
+      return json({ error: "Unauthorized" }, 401);
     }
 
     const { orderId } = await req.json();
@@ -74,6 +79,16 @@ Deno.serve(async (req) => {
     const db = serviceClient();
     const { data: order } = await db.from("orders").select("*").eq("id", orderId).maybeSingle();
     if (!order || !order.vendor_id) return json({ error: "Order or vendor not found." }, 404);
+    if (order.status !== "VENDOR_OFFERED") return json({ ok: false, reason: "not VENDOR_OFFERED" });
+
+    const { data: attempt } = await db
+      .from("vendor_attempts")
+      .select("id, status")
+      .eq("order_id", orderId)
+      .eq("vendor_id", order.vendor_id)
+      .eq("status", "OFFERED")
+      .maybeSingle();
+    if (!attempt) return json({ ok: false, reason: "no OFFERED attempt" });
 
     const { data: vendor } = await db.from("vendors").select("*").eq("id", order.vendor_id).maybeSingle();
     const { data: items } = await db.from("order_items").select("*").eq("order_id", orderId);
@@ -89,15 +104,26 @@ Deno.serve(async (req) => {
     const phoneId = Deno.env.get("WHATSAPP_PHONE_ID");
     const to = toWhatsApp(vendor?.whatsapp || vendor?.phone || "");
     if (!token || !phoneId || !to) {
-      return json({
-        ok: false,
-        configured: false,
-        reason: "WhatsApp not configured or vendor has no number.",
-      });
+      // Mark failed and move on
+      await db.from("vendor_attempts").update({ status: "FAILED" }).eq("id", attempt.id);
+      await db.rpc("offer_next_vendor", { p_order: orderId });
+      return json({ ok: false, reason: "WhatsApp not configured" });
     }
 
     const result = await sendTemplate(phoneId, token, to, order, itemsLine, sidesLine);
-    if (!result.ok) return json({ ok: false, error: result.data }, 502);
+    if (!result.ok) {
+      await db.from("vendor_attempts").update({ status: "FAILED" }).eq("id", attempt.id);
+      const next = await db.rpc("offer_next_vendor", { p_order: orderId });
+      if (next.data?.ok) {
+        // recurse / call self for the next vendor
+        await fetch(req.url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: auth },
+          body: JSON.stringify({ orderId }),
+        }).catch(() => null);
+      }
+      return json({ ok: false, error: result.data }, 502);
+    }
     return json({ ok: true, provider: result.data });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : "Unexpected error." }, 500);
