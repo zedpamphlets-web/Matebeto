@@ -168,6 +168,14 @@ create table if not exists public.delivery_otps (
   created_at timestamptz not null default now()
 );
 
+-- Private OTP hash. No RLS select policy → app users cannot read it.
+create table if not exists public.delivery_otp_private (
+  order_id uuid primary key references public.orders(id) on delete cascade,
+  hash text not null,
+  failed_attempts int not null default 0,
+  locked boolean not null default false
+);
+
 create or replace function public.is_admin()
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.platform_admins where user_id = auth.uid());
@@ -292,11 +300,14 @@ language plpgsql security definer set search_path = public as $$
 declare
   v_order public.orders%rowtype;
   v_vendor public.vendors%rowtype;
+  v_is_server boolean := (auth.role() = 'service_role');
 begin
-  if auth.uid() is null then raise exception 'Not signed in'; end if;
+  if auth.uid() is null and not v_is_server then raise exception 'Not signed in'; end if;
   select * into v_order from public.orders where id = p_order;
   if not found then raise exception 'Order not found'; end if;
-  if v_order.customer_id <> auth.uid() and not public.is_admin() then raise exception 'Forbidden'; end if;
+  if not v_is_server and v_order.customer_id <> auth.uid() and not public.is_admin() then
+    raise exception 'Forbidden';
+  end if;
   if v_order.payment_status <> 'paid' then raise exception 'Payment not confirmed'; end if;
   if v_order.vendor_attempts >= 3 then
     update public.orders set status = 'NO_VENDOR_FOUND' where id = p_order;
@@ -367,8 +378,25 @@ language plpgsql security definer set search_path = public as $$
 declare
   v_order public.orders%rowtype;
   v_rider public.riders%rowtype;
+  v_my_rider uuid;
+  v_is_server boolean := (auth.role() = 'service_role');
+  v_allowed boolean := false;
 begin
   select * into v_order from public.orders where id = p_order;
+  if not found then raise exception 'Order not found'; end if;
+
+  select id into v_my_rider from public.riders where user_id = auth.uid() and status = 'APPROVED';
+
+  v_allowed := v_is_server
+    or public.is_admin()
+    or v_order.customer_id = auth.uid()
+    or (v_my_rider is not null and exists (
+         select 1 from public.rider_offers
+         where order_id = p_order and rider_id = v_my_rider
+       ));
+
+  if not v_allowed then raise exception 'Forbidden'; end if;
+
   if v_order.status not in ('VENDOR_ACCEPTED','SEARCHING_RIDER') then
     raise exception 'Order is not ready for a rider';
   end if;
@@ -418,13 +446,21 @@ begin
 
   update public.rider_offers set status = 'ACCEPTED' where order_id = p_order and rider_id = v_rider.id;
   v_code := lpad((floor(random()*900000)+100000)::int::text, 6, '0');
+
+  insert into public.delivery_otp_private (order_id, hash, failed_attempts, locked)
+  values (p_order, encode(digest(v_code, 'sha256'), 'hex'), 0, false)
+  on conflict (order_id) do update
+    set hash = excluded.hash, failed_attempts = 0, locked = false;
+
+  perform set_config('matebeto.allow_rider_update', 'true', true);
   update public.orders
     set rider_id = v_rider.id,
-        status = 'RIDER_ASSIGNED',
-        delivery_otp_hash = encode(digest(v_code, 'sha256'), 'hex')
+        status = 'RIDER_ASSIGNED'
     where id = p_order
     returning * into v_order;
   update public.riders set current_order_id = p_order, is_online = true where id = v_rider.id;
+  perform set_config('matebeto.allow_rider_update', 'false', true);
+
   perform public.log_event(p_order, 'RIDER_ASSIGNED', v_rider.full_name);
   insert into public.delivery_otps (order_id, customer_id, code)
   values (p_order, v_order.customer_id, v_code)
@@ -474,6 +510,7 @@ language plpgsql security definer set search_path = public as $$
 declare
   v_rider public.riders%rowtype;
   v_order public.orders%rowtype;
+  v_secret public.delivery_otp_private%rowtype;
   v_hash text;
 begin
   select * into v_rider from public.riders where user_id = auth.uid() and status = 'APPROVED';
@@ -484,20 +521,107 @@ begin
     raise exception 'Order is not out for delivery';
   end if;
 
-  v_hash := encode(digest(trim(p_code), 'sha256'), 'hex');
-  if v_order.delivery_otp_hash is null or v_order.delivery_otp_hash <> v_hash then
-    perform public.log_event(p_order, 'OTP_FAILED', 'Wrong OTP');
-    return jsonb_build_object('ok', false, 'reason', 'WRONG_OTP');
+  select * into v_secret from public.delivery_otp_private where order_id = p_order;
+  if not found or v_secret.locked then
+    perform public.log_event(p_order, 'OTP_LOCKED', 'Already locked or missing');
+    return jsonb_build_object('ok', false, 'reason', 'LOCKED');
   end if;
 
+  v_hash := encode(digest(trim(p_code), 'sha256'), 'hex');
+  if v_secret.hash <> v_hash then
+    update public.delivery_otp_private
+      set failed_attempts = failed_attempts + 1
+      where order_id = p_order
+      returning * into v_secret;
+
+    perform public.log_event(p_order, 'OTP_FAILED', 'Wrong OTP');
+
+    if v_secret.failed_attempts >= 5 then
+      update public.delivery_otp_private set locked = true where order_id = p_order;
+      update public.orders set status = 'SUPPORT_REQUIRED' where id = p_order;
+      perform public.log_event(p_order, 'OTP_LOCKED', '5 wrong codes — support required');
+      return jsonb_build_object('ok', false, 'reason', 'LOCKED_AFTER_5');
+    end if;
+
+    return jsonb_build_object('ok', false, 'reason', 'WRONG_OTP', 'attempts_left', 5 - v_secret.failed_attempts);
+  end if;
+
+  -- Correct
+  perform set_config('matebeto.allow_rider_update', 'true', true);
   update public.orders set status = 'OTP_VERIFIED' where id = p_order;
   update public.orders set status = 'COMPLETED' where id = p_order returning * into v_order;
   update public.riders set current_order_id = null where id = v_rider.id;
+  perform set_config('matebeto.allow_rider_update', 'false', true);
   perform public.log_event(p_order, 'OTP_VERIFIED', null);
   perform public.log_event(p_order, 'COMPLETED', 'Settlement triggered');
   return jsonb_build_object('ok', true, 'status', 'COMPLETED');
 end;
 $$;
+
+-- Admin-only reset of OTP lock
+create or replace function public.reset_delivery_lock(p_order uuid)
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then
+    raise exception 'Admin only';
+  end if;
+  update public.delivery_otp_private
+    set failed_attempts = 0, locked = false
+    where order_id = p_order;
+  update public.orders
+    set status = 'OUT_FOR_DELIVERY'
+    where id = p_order and status = 'SUPPORT_REQUIRED';
+  perform public.log_event(p_order, 'OTP_LOCK_RESET', 'Admin reset');
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
+-- Authorized vendor name lookup (customer / assigned rider / admin)
+create or replace function public.order_vendor_name(p_order uuid)
+returns text
+language plpgsql stable security definer set search_path = public as $$
+declare
+  v_order public.orders%rowtype;
+  v_name text;
+  v_rider_id uuid;
+begin
+  select * into v_order from public.orders where id = p_order;
+  if not found then return null; end if;
+
+  select id into v_rider_id from public.riders where user_id = auth.uid();
+  if v_order.customer_id <> auth.uid()
+     and not public.is_admin()
+     and (v_rider_id is null or v_order.rider_id is distinct from v_rider_id) then
+    raise exception 'Forbidden';
+  end if;
+
+  select name into v_name from public.vendors where id = v_order.vendor_id;
+  return v_name;
+end;
+$$;
+
+-- Protect sensitive rider columns from non-admin direct updates
+create or replace function public.prevent_rider_sensitive_update()
+returns trigger language plpgsql as $$
+begin
+  if public.is_admin() or current_setting('matebeto.allow_rider_update', true) = 'true' then
+    return new;
+  end if;
+  if old.status is distinct from new.status
+     or old.user_id is distinct from new.user_id
+     or old.vehicle_type is distinct from new.vehicle_type
+     or old.current_order_id is distinct from new.current_order_id then
+    raise exception 'You cannot change rider status, user, vehicle type or current order';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists riders_protect_sensitive on public.riders;
+create trigger riders_protect_sensitive
+  before update on public.riders
+  for each row execute function public.prevent_rider_sensitive_update();
 
 create or replace function public.apply_rider(
   p_full_name text,
@@ -556,6 +680,7 @@ alter table public.vendor_attempts enable row level security;
 alter table public.rider_offers enable row level security;
 alter table public.order_events enable row level security;
 alter table public.delivery_otps enable row level security;
+alter table public.delivery_otp_private enable row level security;
 
 create policy "profiles_self" on public.profiles for select to authenticated using (user_id = auth.uid() or public.is_admin());
 create policy "profiles_self_upd" on public.profiles for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
@@ -565,7 +690,7 @@ create policy "markets_read" on public.markets for select using (is_active = tru
 create policy "categories_read" on public.categories for select using (true);
 create policy "meals_read" on public.meals for select using (is_available = true or public.is_admin());
 create policy "sides_read" on public.meal_sides for select using (true);
-create policy "vendors_admin" on public.vendors for select to authenticated using (public.is_admin() or is_active);
+create policy "vendors_admin" on public.vendors for select to authenticated using (public.is_admin());
 create policy "vendor_meals_read" on public.vendor_meals for select using (true);
 create policy "settings_read" on public.settings for select using (true);
 
@@ -611,4 +736,18 @@ create policy "admin_write_admins" on public.platform_admins for all to authenti
 
 grant usage on schema public to anon, authenticated;
 grant select on public.markets, public.categories, public.meals, public.meal_sides, public.settings to anon, authenticated;
-grant execute on all functions in schema public to authenticated;
+
+-- Only the functions the app actually calls (is_admin kept for policies)
+revoke execute on all functions in schema public from authenticated;
+grant execute on function public.is_admin() to authenticated;
+grant execute on function public.create_order(uuid, text, jsonb, jsonb) to authenticated;
+grant execute on function public.offer_next_vendor(uuid) to authenticated;
+grant execute on function public.offer_next_rider(uuid) to authenticated;
+grant execute on function public.rider_respond(uuid, boolean) to authenticated;
+grant execute on function public.confirm_pickup(uuid) to authenticated;
+grant execute on function public.verify_delivery_otp(uuid, text) to authenticated;
+grant execute on function public.customer_delivery_otp(uuid) to authenticated;
+grant execute on function public.apply_rider(text, text, text, text, text, text, text, text, text) to authenticated;
+grant execute on function public.respond_vendor(uuid, boolean, text) to authenticated;
+grant execute on function public.order_vendor_name(uuid) to authenticated;
+grant execute on function public.reset_delivery_lock(uuid) to authenticated;

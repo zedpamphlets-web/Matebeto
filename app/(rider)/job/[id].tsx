@@ -22,8 +22,8 @@ export default function Job() {
     const { data: its } = await supabase.from("order_items").select("*").eq("order_id", id);
     setItems(its || []);
     if (o?.vendor_id) {
-      const { data: v } = await supabase.from("vendors").select("*").eq("id", o.vendor_id).single();
-      setVendor(v);
+      const { data: name } = await supabase.rpc("order_vendor_name", { p_order: id });
+      setVendor({ name: name || "Vendor" });
     }
   }
 

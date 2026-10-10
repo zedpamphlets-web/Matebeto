@@ -54,7 +54,7 @@ create policy "markets_read" on public.markets for select using (is_active = tru
 create policy "categories_read" on public.categories for select using (true);
 create policy "meals_read" on public.meals for select using (is_available = true or public.is_admin());
 create policy "sides_read" on public.meal_sides for select using (true);
-create policy "vendors_admin" on public.vendors for select to authenticated using (public.is_admin() or is_active);
+create policy "vendors_admin" on public.vendors for select to authenticated using (public.is_admin());
 create policy "vendor_meals_read" on public.vendor_meals for select using (true);
 create policy "settings_read" on public.settings for select using (true);
 
@@ -100,4 +100,18 @@ create policy "admin_write_admins" on public.platform_admins for all to authenti
 
 grant usage on schema public to anon, authenticated;
 grant select on public.markets, public.categories, public.meals, public.meal_sides, public.settings to anon, authenticated;
-grant execute on all functions in schema public to authenticated;
+
+-- Only the functions the app actually calls (is_admin kept for policies)
+revoke execute on all functions in schema public from authenticated;
+grant execute on function public.is_admin() to authenticated;
+grant execute on function public.create_order(uuid, text, jsonb, jsonb) to authenticated;
+grant execute on function public.offer_next_vendor(uuid) to authenticated;
+grant execute on function public.offer_next_rider(uuid) to authenticated;
+grant execute on function public.rider_respond(uuid, boolean) to authenticated;
+grant execute on function public.confirm_pickup(uuid) to authenticated;
+grant execute on function public.verify_delivery_otp(uuid, text) to authenticated;
+grant execute on function public.customer_delivery_otp(uuid) to authenticated;
+grant execute on function public.apply_rider(text, text, text, text, text, text, text, text, text) to authenticated;
+grant execute on function public.respond_vendor(uuid, boolean, text) to authenticated;
+grant execute on function public.order_vendor_name(uuid) to authenticated;
+grant execute on function public.reset_delivery_lock(uuid) to authenticated;
