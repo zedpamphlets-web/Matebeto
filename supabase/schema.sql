@@ -101,7 +101,8 @@ create table if not exists public.settings (
   support_phone text,
   home_banner_url text,
   vendor_timeout_minutes int not null default 10,
-  rider_timeout_minutes int not null default 5
+  rider_timeout_minutes int not null default 5,
+  customer_wait_minutes int not null default 10
 );
 
 insert into public.settings (id) values (1) on conflict (id) do nothing;
@@ -171,7 +172,19 @@ create table if not exists public.delivery_otps (
   created_at timestamptz not null default now()
 );
 
--- Private OTP hash. No RLS select policy → app users cannot read it.
+-- Payouts (created when OTP completes the order)
+create table if not exists public.payouts (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid not null references public.orders(id) on delete cascade,
+  payee_type text not null check (payee_type in ('vendor','rider')),
+  payee_id uuid not null,
+  amount numeric(12,2) not null,
+  reference text unique not null,
+  status text not null default 'PENDING' check (status in ('PENDING','SENT','FAILED','MANUAL')),
+  lipila_response jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
 create table if not exists public.delivery_otp_private (
   order_id uuid primary key references public.orders(id) on delete cascade,
   hash text not null,
@@ -557,6 +570,7 @@ begin
   perform set_config('matebeto.allow_rider_update', 'false', true);
   perform public.log_event(p_order, 'OTP_VERIFIED', null);
   perform public.log_event(p_order, 'COMPLETED', 'Settlement triggered');
+  perform public.create_payout_records(p_order);
   return jsonb_build_object('ok', true, 'status', 'COMPLETED');
 end;
 $$;
@@ -684,6 +698,7 @@ alter table public.rider_offers enable row level security;
 alter table public.order_events enable row level security;
 alter table public.delivery_otps enable row level security;
 alter table public.delivery_otp_private enable row level security;
+alter table public.payouts enable row level security;
 
 create policy "profiles_self" on public.profiles for select to authenticated using (user_id = auth.uid() or public.is_admin());
 create policy "profiles_self_upd" on public.profiles for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
@@ -727,6 +742,8 @@ create policy "events_own" on public.order_events for select to authenticated
 create policy "otp_customer_only" on public.delivery_otps for select to authenticated
   using (customer_id = auth.uid() or public.is_admin());
 
+create policy "payouts_admin" on public.payouts for select to authenticated using (public.is_admin());
+
 create policy "admin_write_markets" on public.markets for all to authenticated using (public.is_admin()) with check (public.is_admin());
 create policy "admin_write_categories" on public.categories for all to authenticated using (public.is_admin()) with check (public.is_admin());
 create policy "admin_write_meals" on public.meals for all to authenticated using (public.is_admin()) with check (public.is_admin());
@@ -737,6 +754,101 @@ create policy "admin_write_riders" on public.riders for all to authenticated usi
 create policy "admin_write_settings" on public.settings for all to authenticated using (public.is_admin()) with check (public.is_admin());
 create policy "admin_write_admins" on public.platform_admins for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
+-- Create payout records when order is completed by OTP
+create or replace function public.create_payout_records(p_order uuid)
+returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  v_order public.orders%rowtype;
+  v_vendor_amount numeric;
+  v_rider_amount numeric;
+begin
+  select * into v_order from public.orders where id = p_order;
+  if not found or v_order.status <> 'COMPLETED' then return; end if;
+  -- PLACEHOLDER — confirm amounts with client
+  v_vendor_amount := v_order.food_total;
+  v_rider_amount := v_order.delivery_fee;
+  if v_order.vendor_id is not null then
+    insert into public.payouts (order_id, payee_type, payee_id, amount, reference)
+    values (p_order, 'vendor', v_order.vendor_id, v_vendor_amount, p_order || '-vendor')
+    on conflict (reference) do nothing;
+  end if;
+  if v_order.rider_id is not null then
+    insert into public.payouts (order_id, payee_type, payee_id, amount, reference)
+    values (p_order, 'rider', v_order.rider_id, v_rider_amount, p_order || '-rider')
+    on conflict (reference) do nothing;
+  end if;
+end;
+$$;
+
+-- Customer cancel before vendor accepts
+create or replace function public.customer_cancel(p_order uuid)
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  v_order public.orders%rowtype;
+begin
+  select * into v_order from public.orders where id = p_order;
+  if v_order.customer_id <> auth.uid() and not public.is_admin() then raise exception 'Forbidden'; end if;
+  if v_order.status not in ('CREATED','PAYMENT_CONFIRMED','SEARCHING_VENDOR','VENDOR_OFFERED') then
+    return jsonb_build_object('ok', false, 'reason', 'Too late to cancel');
+  end if;
+  update public.orders set status = 'CANCELLED' where id = p_order;
+  if v_order.payment_status = 'paid' then
+    update public.orders set payment_status = 'refund_pending' where id = p_order;
+  end if;
+  perform public.log_event(p_order, 'CANCELLED', 'Customer cancelled');
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
+-- Vendor cannot fulfil → re-offer same order number
+create or replace function public.vendor_cannot_fulfil(p_order uuid)
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() and auth.role() <> 'service_role' then raise exception 'Forbidden'; end if;
+  update public.orders set vendor_id = null, status = 'SEARCHING_VENDOR' where id = p_order;
+  perform public.log_event(p_order, 'VENDOR_CANNOT_FULFIL', null);
+  return public.offer_next_vendor(p_order);
+end;
+$$;
+
+-- Rider cannot finish → free rider, re-offer same order number
+create or replace function public.rider_cannot_finish(p_order uuid)
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  v_rider uuid;
+begin
+  if not public.is_admin() and auth.role() <> 'service_role' then raise exception 'Forbidden'; end if;
+  select rider_id into v_rider from public.orders where id = p_order;
+  if v_rider is not null then
+    perform set_config('matebeto.allow_rider_update', 'true', true);
+    update public.riders set current_order_id = null where id = v_rider;
+    perform set_config('matebeto.allow_rider_update', 'false', true);
+  end if;
+  update public.orders set rider_id = null, status = 'SEARCHING_RIDER' where id = p_order;
+  perform public.log_event(p_order, 'RIDER_CANNOT_FINISH', null);
+  return public.offer_next_rider(p_order);
+end;
+$$;
+
+-- Customer not at home
+create or replace function public.customer_not_home(p_order uuid)
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (
+    select 1 from public.orders o join public.riders r on r.id = o.rider_id
+    where o.id = p_order and r.user_id = auth.uid()
+  ) then raise exception 'Not your job'; end if;
+  update public.orders set status = 'CUSTOMER_NOT_HOME' where id = p_order;
+  perform public.log_event(p_order, 'CUSTOMER_NOT_HOME', null);
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
 -- Process vendor and rider timeouts (schedule with pg_cron)
 create or replace function public.process_timeouts()
 returns void
@@ -745,6 +857,7 @@ declare
   v_settings public.settings%rowtype;
   v_attempt record;
   v_offer record;
+  v_order record;
 begin
   select * into v_settings from public.settings where id = 1;
   if not found then return; end if;
@@ -762,17 +875,14 @@ begin
     perform public.offer_next_vendor(v_attempt.order_id);
   end loop;
 
-  for v_offer in
-    select ro.*
-    from public.rider_offers ro
-    join public.orders o on o.id = ro.order_id
-    where ro.status = 'OFFERED'
-      and o.status = 'SEARCHING_RIDER'
-      and ro.created_at < now() - (v_settings.rider_timeout_minutes || ' minutes')::interval
+  -- customer not home → support after wait
+  for v_order in
+    select id from public.orders
+    where status = 'CUSTOMER_NOT_HOME'
+      and updated_at < now() - (v_settings.customer_wait_minutes || ' minutes')::interval
   loop
-    update public.rider_offers set status = 'DECLINED' where id = v_offer.id;
-    perform public.log_event(v_offer.order_id, 'RIDER_TIMEOUT', null);
-    perform public.offer_next_rider(v_offer.order_id);
+    update public.orders set status = 'SUPPORT_REQUIRED' where id = v_order.id;
+    perform public.log_event(v_order.id, 'CUSTOMER_NOT_HOME_SUPPORT', null);
   end loop;
 end;
 $$;
@@ -794,3 +904,5 @@ grant execute on function public.apply_rider(text, text, text, text, text, text,
 grant execute on function public.respond_vendor(uuid, boolean, text) to authenticated;
 grant execute on function public.order_vendor_name(uuid) to authenticated;
 grant execute on function public.reset_delivery_lock(uuid) to authenticated;
+grant execute on function public.customer_cancel(uuid) to authenticated;
+grant execute on function public.customer_not_home(uuid) to authenticated;
