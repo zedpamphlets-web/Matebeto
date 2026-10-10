@@ -95,23 +95,32 @@ export default function Welcome() {
 
   return (
     <View style={styles.root}>
-      <Image source={require("../assets/welcome-food-new.jpg")} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+      <Image source={require("../assets/welcome-bg-full.jpg")} style={StyleSheet.absoluteFillObject} contentFit="cover" />
       <LinearGradient
-        colors={["rgba(0,0,0,0.05)", "rgba(0,0,0,0.05)", "rgba(0,0,0,0.18)", "rgba(0,0,0,0.68)"]}
-        locations={[0, 0.5, 0.75, 1]}
+        colors={["rgba(0,0,0,0.35)", "rgba(0,0,0,0.15)", "rgba(0,0,0,0.1)", "rgba(0,0,0,0.55)"]}
+        locations={[0, 0.3, 0.6, 1]}
         style={StyleSheet.absoluteFill}
       />
       <SafeAreaView style={styles.safe}>
-        <View />
+        <View style={styles.copy}>
+          <Image
+            source={require("../assets/logo-wordmark.png")}
+            style={{ width: 280, height: 100 }}
+            contentFit="contain"
+          />
+          <Text style={styles.tag}>Let's Eat.</Text>
+          <Text style={styles.one}>One App.</Text>
+          <Text style={styles.two}>Two Ways to Serve You.</Text>
+        </View>
         <View style={styles.actions}>
           <RoleButton
-            color={colors.customer}
+            color="#22C55E"
             icon="person"
             label="I'm a Customer"
             onPress={() => router.push({ pathname: "/auth/phone", params: { mode: "customer" } })}
           />
           <RoleButton
-            color={colors.rider}
+            color="#F97316"
             icon="bicycle"
             label="I'm a Rider"
             onPress={() => router.push({ pathname: "/auth/phone", params: { mode: "rider" } })}
@@ -164,6 +173,28 @@ const styles = StyleSheet.create({
   },
   root: { flex: 1, backgroundColor: "#000" },
   safe: { flex: 1, justifyContent: "space-between", paddingHorizontal: 22, paddingBottom: 28 },
+  copy: { paddingTop: 40, alignItems: "center" },
+  tag: {
+    marginTop: 8,
+    color: "#F4A300",
+    fontFamily: fonts.italic,
+    fontSize: 22,
+  },
+  one: {
+    marginTop: 2,
+    color: "#F4A300",
+    fontFamily: fonts.display,
+    fontSize: 40,
+    letterSpacing: -0.5,
+    textAlign: "center",
+  },
+  two: {
+    marginTop: 4,
+    color: "#FFFFFF",
+    fontFamily: fonts.bodySemi,
+    fontSize: 17,
+    textAlign: "center",
+  },
   actions: { gap: 14, paddingBottom: 8 },
   role: {
     height: 64,
