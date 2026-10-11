@@ -43,7 +43,12 @@ export default function Checkout() {
   const total = food + platform + deliveryFee;
 
   async function pay() {
-    if (!basketReady?.marketId || !basketReady.items.length) {
+    const mk = basketReady?.marketId;
+    if (!mk || mk === "null" || mk === "undefined") {
+      Alert.alert("Choose your market", "Your basket has no market yet. Open Thornpark, Longacres or Olympia and add a meal from there.");
+      return;
+    }
+    if (!basketReady.items.length) {
       Alert.alert("Basket empty");
       return;
     }

@@ -29,7 +29,14 @@ export default function MealDetail() {
   async function add() {
     if (!meal) return;
     const basket = await loadBasket();
-    if (basket.marketId && marketId && basket.marketId !== marketId && basket.items.length) {
+    const clean = (v: any) => (v && v !== "null" && v !== "undefined" ? String(v) : null);
+    const mk = clean(marketId) || clean(basket.marketId);
+    if (!mk) {
+      Alert.alert("Choose your market", "Pick Thornpark, Longacres or Olympia first, then add this meal from there.");
+      router.push("/(customer)/markets");
+      return;
+    }
+    if (clean(basket.marketId) && clean(marketId) && clean(basket.marketId) !== clean(marketId) && basket.items.length) {
       Alert.alert("One market per order", "Clear the basket to order from a different market.");
       return;
     }
@@ -48,8 +55,8 @@ export default function MealDetail() {
           },
         ];
     await saveBasket({
-      marketId: String(marketId || basket.marketId),
-      marketName: String(marketName || basket.marketName),
+      marketId: mk,
+      marketName: clean(marketName) || basket.marketName || null,
       items,
     });
     router.push("/(customer)/basket");

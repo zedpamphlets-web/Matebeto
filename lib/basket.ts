@@ -13,7 +13,12 @@ const empty: BasketState = { marketId: null, marketName: null, items: [] };
 
 export async function loadBasket(): Promise<BasketState> {
   const raw = await AsyncStorage.getItem(KEY);
-  return raw ? JSON.parse(raw) : empty;
+  if (!raw) return empty;
+  const parsed = JSON.parse(raw);
+  // older builds could save the text "null" as the market id
+  if (parsed.marketId === "null" || parsed.marketId === "undefined") parsed.marketId = null;
+  if (parsed.marketName === "null" || parsed.marketName === "undefined") parsed.marketName = null;
+  return parsed;
 }
 
 export async function saveBasket(state: BasketState) {
