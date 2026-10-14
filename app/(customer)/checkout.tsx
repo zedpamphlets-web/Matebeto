@@ -10,7 +10,6 @@ import { supabase } from "@/lib/supabase";
 import { formatKw } from "@/lib/lipila";
 import { createOrder } from "@/lib/orders";
 import { LIPILA_PROVIDERS, type LipilaProvider } from "@/lib/lipila";
-import { startLipilaPayment } from "@/lib/payments";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Checkout() {
@@ -64,9 +63,8 @@ export default function Checkout() {
         address,
         items: basketReady.items,
       });
-      await startLipilaPayment({ provider, orderId: order.id, phone });
       await clearBasket();
-      router.replace(`/order/${order.id}`);
+      router.replace(`/payment/${order.id}?provider=${provider}&phone=${encodeURIComponent(phone)}`);
     } catch (e: any) {
       Alert.alert("Payment", e.message || "Could not start payment.");
     } finally {

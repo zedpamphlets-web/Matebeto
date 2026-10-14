@@ -60,11 +60,13 @@ export async function lipilaFetch(path: string, body: unknown, extraHeaders: Rec
   const isGet = path.includes("check-status");
   const res = await fetch(`${LIPILA_BASE_URL}${path}`, {
     method: isGet ? "GET" : "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": LIPILA_SECRET_KEY, ...extraHeaders },
+    headers: isGet
+      ? { "x-api-key": LIPILA_SECRET_KEY }
+      : { "Content-Type": "application/json", "x-api-key": LIPILA_SECRET_KEY, ...extraHeaders },
     body: isGet ? undefined : JSON.stringify(body),
   });
   const json = await res.json().catch(() => ({}));
-  return { ok: res.ok, json };
+  return { ok: res.ok, status: res.status, json };
 }
 
 export function json(body: unknown, status = 200) {

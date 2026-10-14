@@ -46,6 +46,7 @@ export default function Root() {
         <Stack.Screen name="(customer)" />
         <Stack.Screen name="(rider)" />
         <Stack.Screen name="admin" />
+        <Stack.Screen name="payment/[id]" options={{ headerShown: false, gestureEnabled: false, contentStyle: { backgroundColor: "#000" } }} />
         <Stack.Screen
           name="order/[id]"
           options={{

@@ -13,38 +13,45 @@ const clean = (s: string) => String(s ?? "").replace(/[\r\n\t]+/g, " ").replace(
 
 async function sendTemplate(phoneId: string, token: string, to: string, order: any, itemsLine: string, sidesLine: string) {
   const templateName = Deno.env.get("WHATSAPP_TEMPLATE_NAME") || "vendor_order_request";
-  const res = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      to,
-      type: "template",
-      template: {
-        name: templateName,
-        language: { code: "en_US" },
-        components: [
-          {
-            type: "body",
-            parameters: [
-              { type: "text", text: String(order.order_number) },
-              { type: "text", text: clean(itemsLine) || "None" },
-              { type: "text", text: clean(sidesLine) || "None" },
-              { type: "text", text: String(Number(order.food_total)) },
-            ],
-          },
-          { type: "button", sub_type: "quick_reply", index: "0", parameters: [{ type: "payload", payload: `accept:${order.id}` }] },
-          { type: "button", sub_type: "quick_reply", index: "1", parameters: [{ type: "payload", payload: `decline:${order.id}` }] },
-        ],
-      },
-    }),
-  });
-  const data = await res.json().catch(() => ({}));
-  return { ok: res.ok, data };
+  const preferred = Deno.env.get("WHATSAPP_TEMPLATE_LANG");
+  const languages = preferred ? [preferred] : ["en", "en_US"];
+  let last: { ok: boolean; data: any } = { ok: false, data: null };
+  for (const code of languages) {
+    const res = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to,
+        type: "template",
+        template: {
+          name: templateName,
+          language: { code },
+          components: [
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: String(order.order_number) },
+                { type: "text", text: clean(itemsLine) || "None" },
+                { type: "text", text: clean(sidesLine) || "None" },
+                { type: "text", text: String(Number(order.food_total)) },
+              ],
+            },
+            { type: "button", sub_type: "quick_reply", index: "0", parameters: [{ type: "payload", payload: `accept:${order.id}` }] },
+            { type: "button", sub_type: "quick_reply", index: "1", parameters: [{ type: "payload", payload: `decline:${order.id}` }] },
+          ],
+        },
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    last = { ok: res.ok, data };
+    if (res.ok) return last;
+    // 132001 = template not found in that language: try the next language, otherwise stop
+    if (data?.error?.code !== 132001) return last;
+  }
+  return last;
 }
 
-// Server only. Sends the vendor_order_request template for the vendor currently offered the order.
-// A vendor that cannot be reached after 3 tries counts as one of the 3 vendor attempts.
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (!requireServer(req)) return json({ error: "Unauthorized" }, 401);
@@ -111,7 +118,7 @@ Deno.serve(async (req) => {
       if (to && tries < 3) {
         // release the claim; run-timeouts retries every minute
         await db.from("vendor_attempts").update({ notified_at: null, notify_tries: tries }).eq("id", attempt.id);
-        return json({ ok: false, retry: true });
+        return json({ ok: false, retry: true, meta_error: (detail as any)?.error?.message ?? String(detail) });
       }
 
       // give up on this vendor and move to the next one (max 3 vendors in total)

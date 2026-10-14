@@ -44,6 +44,21 @@ export default function OrderTrack() {
     return () => clearInterval(t);
   }, [id]);
 
+  // While a payment is waiting, ask the server every few seconds. The moment the customer approves
+  // on their phone, the order is confirmed and the vendor search starts.
+  useEffect(() => {
+    if (!order || order.status !== "CREATED" || order.payment_status !== "pending") return;
+    const t = setInterval(async () => {
+      try {
+        await verifyLipilaPayment(String(id));
+      } catch (_e) {
+        // try again on the next tick
+      }
+      refresh();
+    }, 4000);
+    return () => clearInterval(t);
+  }, [order?.status, order?.payment_status, id]);
+
   // Backup for the payment callback. The server starts the vendor search by itself.
   async function checkPay() {
     setBusy(true);

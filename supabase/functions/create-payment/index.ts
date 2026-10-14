@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     if (order.payment_status === "paid") return json({ error: "This order is already paid." }, 409);
 
     // A payment is already waiting for approval on the customer's phone: do not charge twice.
-    if (order.payment_status === "pending" && order.payment_reference) {
+    if (order.payment_status === "pending" && order.payment_reference && String(order.payment_reference).length > 36) {
       const last = Number(String(order.payment_reference).split("-").pop());
       if (Number.isFinite(last) && Date.now() - last < 3 * 60 * 1000) {
         return json(
@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     }
 
     // Fresh reference for every attempt: "<order id>-<timestamp>"
-    const paymentReference = `${order.id}-${Date.now()}`;
+    const paymentReference = order.payment_reference ? `${order.id}-${Date.now()}` : order.id;
 
     // Record the attempt BEFORE asking Lipila, so a fast callback can never be overwritten.
     const { data: marked } = await db
@@ -45,17 +45,14 @@ Deno.serve(async (req) => {
       ? `${Deno.env.get("SUPABASE_URL")}/functions/v1/lipila-webhook?token=${encodeURIComponent(webhookSecret)}`
       : "";
 
-    // callbackUrl is sent as BOTH a header and a body field. Check in the Lipila sandbox which one
-    // Lipila uses and remove the other once confirmed (see docs/FIXES_AND_SETUP.md).
-    const { ok, json: lipilaBody } = await lipilaFetch(
+    const { ok, status, json: lipilaBody } = await lipilaFetch(
       "/collections/mobile-money",
       {
         referenceId: paymentReference,
-        amount: Number(order.total), // always from the database, never from the app
+        amount: Number(order.total),
         narration: `Matebeto order ${order.order_number}`,
         accountNumber: phone,
         currency: "ZMW",
-        ...(callbackUrl ? { callbackUrl } : {}),
       },
       callbackUrl ? { callbackUrl } : {},
     );
@@ -67,7 +64,9 @@ Deno.serve(async (req) => {
         .eq("id", order.id)
         .eq("payment_reference", paymentReference)
         .eq("payment_status", "pending");
-      return json({ error: lipilaBody?.message || "Could not start payment." }, 502);
+      console.error("Lipila rejected the payment", status, JSON.stringify(lipilaBody), "ref", paymentReference);
+      const detail = lipilaBody?.errors ? ` ${JSON.stringify(lipilaBody.errors).slice(0, 250)}` : "";
+      return json({ error: `${lipilaBody?.message || "Could not start payment."} (Lipila ${status})${detail}` }, 502);
     }
 
     return json({ status: "pending", reference: paymentReference, ...lipilaBody });
