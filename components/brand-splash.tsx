@@ -1,7 +1,8 @@
-import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
+import { CitrusSpinner } from "@/components/citrus-spinner";
 import { colors, fonts } from "@/lib/theme";
 
-/** Full-screen splash: official logo + spinner. Optional offline message. */
+/** Full-screen splash: official logo + citrus spinner. Optional offline message. */
 export function BrandSplash({ message, offline }: { message?: string; offline?: boolean }) {
   return (
     <View style={styles.root}>
@@ -19,7 +20,7 @@ export function BrandSplash({ message, offline }: { message?: string; offline?: 
         ) : null}
       </View>
       <View style={styles.spin}>
-        {offline ? null : <ActivityIndicator size="large" color={colors.gold} />}
+        {offline ? null : <CitrusSpinner />}
         {message ? <Text style={styles.msg}>{message}</Text> : null}
       </View>
     </View>
