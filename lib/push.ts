@@ -4,13 +4,17 @@ import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
 import { supabase } from "@/lib/supabase";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+} catch {
+  // Missing notification support must not stop the app from opening.
+}
 
 function projectId() {
   const extra = Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined;
@@ -58,20 +62,24 @@ export async function registerPush() {
 }
 
 export function startPush() {
-  registerPush();
-  const auth = supabase.auth.onAuthStateChange((event) => {
-    if (event === "SIGNED_IN" || event === "INITIAL_SESSION") registerPush();
-  });
-  const opened = Notifications.addNotificationResponseReceivedListener((response) => {
-    openFromPush(response.notification.request.content.data as Record<string, unknown>);
-  });
-  Notifications.getLastNotificationResponseAsync()
-    .then((response) => {
-      if (response) openFromPush(response.notification.request.content.data as Record<string, unknown>);
-    })
-    .catch(() => {});
-  return () => {
-    auth.data.subscription.unsubscribe();
-    opened.remove();
-  };
+  try {
+    registerPush();
+    const auth = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "INITIAL_SESSION") registerPush();
+    });
+    const opened = Notifications.addNotificationResponseReceivedListener((response) => {
+      openFromPush(response.notification.request.content.data as Record<string, unknown>);
+    });
+    Notifications.getLastNotificationResponseAsync()
+      .then((response) => {
+        if (response) openFromPush(response.notification.request.content.data as Record<string, unknown>);
+      })
+      .catch(() => {});
+    return () => {
+      auth.data.subscription.unsubscribe();
+      opened.remove();
+    };
+  } catch {
+    return () => {};
+  }
 }

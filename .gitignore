@@ -13,3 +13,5 @@ web-build/
 *.mobileprovision
 npm-debug.log*
 .DS_Store
+*-firebase-adminsdk-*.json
+firebase-adminsdk-*.json
