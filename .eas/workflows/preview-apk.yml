@@ -1,12 +1,12 @@
-name: Preview APK for testing
+name: Internal Play APK
 
 on:
   workflow_dispatch: {}
 
 jobs:
-  android_preview_apk:
-    name: Build test APK
+  android_internal_apk:
+    name: Build Play internal APK
     type: build
     params:
       platform: android
-      profile: preview
+      profile: internal

@@ -98,7 +98,7 @@ insert into public.platform_admins (user_id) values ('YOUR-USER-UUID');
 
 7. Replace vendor WhatsApp numbers in Admin with real partners.
 8. `npm install` then `npx expo start`
-9. `eas build --platform android --profile preview`
+9. `eas build --platform android --profile internal`
 
 ## Later (you said you will send these)
 

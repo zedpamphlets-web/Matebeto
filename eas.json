@@ -16,9 +16,10 @@
         "buildConfiguration": "Debug"
       }
     },
-    "preview": {
-      "distribution": "internal",
-      "environment": "preview",
+    "internal": {
+      "distribution": "store",
+      "environment": "production",
+      "autoIncrement": true,
       "node": "22.13.0",
       "android": {
         "buildType": "apk"
@@ -35,6 +36,15 @@
     }
   },
   "submit": {
-    "production": {}
+    "internal": {
+      "android": {
+        "track": "internal"
+      }
+    },
+    "production": {
+      "android": {
+        "track": "internal"
+      }
+    }
   }
 }

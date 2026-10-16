@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android internal APK
 
 on:
   workflow_dispatch: {}
@@ -8,8 +8,8 @@ on:
 
 jobs:
   build_android:
-    name: Build Android APK
+    name: Build Play internal APK
     type: build
     params:
       platform: android
-      profile: preview
+      profile: internal
