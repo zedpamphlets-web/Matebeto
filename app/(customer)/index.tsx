@@ -23,7 +23,6 @@ import { supabase } from "@/lib/supabase";
 import { fonts, ui } from "@/lib/theme";
 import { formatKw } from "@/lib/lipila";
 import { useCachedLoad } from "@/lib/offline-cache";
-import { homeBannerFood, marketFallback } from "@/lib/mockup-images";
 
 const W = Dimensions.get("window").width;
 const PAD = 16;
@@ -139,13 +138,17 @@ export default function Home() {
           >
             {slides.map((sl) => (
               <View key={sl.key} style={[styles.banner, { width: BANNER_W, backgroundColor: ui.banner }]}>
-                <Image source={sl.uri ? { uri: sl.uri } : homeBannerFood} style={styles.bannerFood} contentFit="cover" />
-                <LinearGradient
-                  colors={[ui.banner, "rgba(64,20,43,0)"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.bannerFade}
-                />
+                {sl.uri ? (
+                  <>
+                    <Image source={{ uri: sl.uri }} style={styles.bannerFood} contentFit="cover" />
+                    <LinearGradient
+                      colors={[ui.banner, "rgba(64,20,43,0)"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.bannerFade}
+                    />
+                  </>
+                ) : null}
                 <View style={styles.bannerCopy}>
                   {sl.title ? <Text style={styles.bannerTitle}>{sl.title}</Text> : null}
                   {sl.amount != null ? <Text style={styles.bannerAmount}>{formatKw(Number(sl.amount))}</Text> : null}
@@ -193,7 +196,6 @@ export default function Home() {
                         uri={m.image_url}
                         name={m.name}
                         height={Math.round(CARD_W * 0.5)}
-                        fallback={marketFallback(m.name)}
                       />
                       <View style={styles.cardBody}>
                         <View style={{ flex: 1 }}>

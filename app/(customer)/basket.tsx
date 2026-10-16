@@ -11,7 +11,6 @@ import { clearBasket, foodTotal, loadBasket, saveBasket, type BasketState } from
 import { supabase } from "@/lib/supabase";
 import { fonts, ui } from "@/lib/theme";
 import { kw } from "@/lib/format";
-import { foodFallback } from "@/lib/mockup-images";
 import { isOnline, withTimeout } from "@/lib/network";
 
 const ETA = "25 – 35 mins";
@@ -119,7 +118,6 @@ export default function Basket() {
                       name={it.name}
                       height={80}
                       width={86}
-                      fallback={foodFallback(it.name)}
                     />
                   </View>
                   <View style={{ flex: 1, marginLeft: 14 }}>

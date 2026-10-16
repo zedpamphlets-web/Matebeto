@@ -12,7 +12,6 @@ import { OfflineBanner } from "@/components/offline-banner";
 import { fonts, ui } from "@/lib/theme";
 import { kw, marketShortName } from "@/lib/format";
 import { useFavourite } from "@/lib/favourites";
-import { foodFallback, marketBannerFallback } from "@/lib/mockup-images";
 
 const W = Dimensions.get("window").width;
 const PAD = 16;
@@ -95,7 +94,6 @@ export default function Market() {
               uri={market?.image_url}
               name={market?.name}
               height={104}
-              fallback={marketBannerFallback(market?.name)}
             />
           </View>
 
@@ -110,7 +108,7 @@ export default function Market() {
                 onPress={() => pickCategory(c.id)}
                 style={[styles.tile, active === c.id && { borderColor: ui.red }]}
               >
-                <Photo uri={c.image_url} name={c.name} height={Math.round(TILE_W * 0.62)} fallback={foodFallback(c.name)} />
+                <Photo uri={c.image_url} name={c.name} height={Math.round(TILE_W * 0.62)} />
                 <View style={styles.tileBody}>
                   <Text style={styles.tileName} numberOfLines={1}>
                     {c.name}
@@ -132,7 +130,6 @@ export default function Market() {
                       name={meal.name}
                       height={84}
                       width={84}
-                      fallback={foodFallback(meal.name)}
                     />
                   </View>
                   <View style={{ flex: 1, paddingLeft: 12 }}>

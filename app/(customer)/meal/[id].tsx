@@ -10,7 +10,6 @@ import { loadBasket, saveBasket } from "@/lib/basket";
 import { fonts, ui } from "@/lib/theme";
 import { kw, marketLabel } from "@/lib/format";
 import { useFavourite } from "@/lib/favourites";
-import { mealHeroFallback } from "@/lib/mockup-images";
 import { Photo } from "@/components/photo";
 import { Checkbox, HeartButton, MkHeader, MkScreen, MkStepper, RedButton } from "@/components/mk";
 
@@ -105,7 +104,7 @@ export default function MealDetail() {
       <MkHeader title={meal.name} right={<HeartButton on={fav.on} onPress={fav.toggle} />} />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
-          <Photo uri={meal.image_url} name={meal.name} height={150} fallback={mealHeroFallback(meal.name)} />
+          <Photo uri={meal.image_url} name={meal.name} height={150} />
         </View>
 
         <Text style={styles.name}>{meal.name}</Text>
