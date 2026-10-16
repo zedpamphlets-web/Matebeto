@@ -1,44 +1,71 @@
+import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { CitrusSpinner } from "@/components/citrus-spinner";
-import { colors, fonts } from "@/lib/theme";
+import { fonts } from "@/lib/theme";
 
-/** Splash like the reference: logo centered, spinner at the bottom. */
-export function BrandSplash({ message, offline }: { message?: string; offline?: boolean }) {
-  return (
-    <View style={styles.root}>
-      <View style={styles.center}>
+/**
+ * Yango-style open:
+ * 1. Full screen brand (black + yellow Matebeto)
+ * 2. Swap to white splash
+ * 3. Spinner appears
+ */
+export function BrandSplash({ message, offline, whiteOnly }: { message?: string; offline?: boolean; whiteOnly?: boolean }) {
+  const [phase, setPhase] = useState<"brand" | "white">("brand");
+
+  useEffect(() => {
+    const t = setTimeout(() => setPhase("white"), 1600);
+    return () => clearTimeout(t);
+  }, []);
+
+  if (phase === "brand" && !offline && !whiteOnly) {
+    return (
+      <View style={styles.brand}>
         <Image
-          source={require("../assets/logo-wordmark-clear.png")}
-          style={{ width: 300, height: 110 }}
+          source={require("../assets/logo-black.png")}
+          style={{ width: 320, height: 160 }}
           resizeMode="contain"
         />
-        <Text style={styles.tag}>Let's Eat.</Text>
-        {offline ? (
-          <>
-            <Text style={styles.offlineTitle}>No internet connection</Text>
-            <Text style={styles.offlineSub}>Connect to the internet to use Matebeto.</Text>
-          </>
-        ) : null}
       </View>
-      <View style={styles.spin}>
-        {offline ? null : <CitrusSpinner />}
-        {message ? <Text style={styles.msg}>{message}</Text> : null}
-      </View>
+    );
+  }
+
+  return (
+    <View style={styles.white}>
+      <Image
+        source={require("../assets/logo-white-splash.png")}
+        style={{ width: 300, height: 120 }}
+        resizeMode="contain"
+      />
+      {offline ? (
+        <>
+          <Text style={styles.offlineTitle}>No internet connection</Text>
+          <Text style={styles.offlineSub}>Connect to the internet to use Matebeto.</Text>
+        </>
+      ) : (
+        <View style={styles.spin}>
+          <CitrusSpinner />
+        </View>
+      )}
+      {message ? <Text style={styles.msg}>{message}</Text> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
+  brand: {
     flex: 1,
-    backgroundColor: "#0B0B0B",
+    backgroundColor: "#000000",
     alignItems: "center",
     justifyContent: "center",
   },
-  center: { alignItems: "center" },
-  tag: { color: colors.gold, fontFamily: fonts.title, marginTop: 8, letterSpacing: 1 },
-  spin: { position: "absolute", bottom: 72, alignItems: "center" },
-  offlineTitle: { fontFamily: fonts.title, color: "#fff", fontSize: 18, marginTop: 16 },
-  offlineSub: { fontFamily: fonts.body, color: "#ccc", marginTop: 6 },
-  msg: { fontFamily: fonts.body, color: "#ccc", marginTop: 12 },
+  white: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  spin: { marginTop: 36 },
+  offlineTitle: { fontFamily: fonts.title, color: "#1C1B26", fontSize: 18, marginTop: 16 },
+  offlineSub: { fontFamily: fonts.body, color: "#6B6A78", marginTop: 6 },
+  msg: { fontFamily: fonts.body, color: "#6B6A78", marginTop: 12 },
 });

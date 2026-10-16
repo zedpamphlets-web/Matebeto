@@ -15,6 +15,7 @@ import { SpinPressable } from "@/components/spin-pressable";
 export default function Welcome() {
   const [ready, setReady] = useState(false);
   const [offline, setOffline] = useState(false);
+  const [going, setGoing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,6 +104,8 @@ export default function Welcome() {
     );
   }
 
+  if (going) return <BrandSplash whiteOnly />;
+
   return (
     <View style={styles.root}>
       <Image source={require("../assets/welcome-bg-full.jpg")} style={StyleSheet.absoluteFillObject} contentFit="cover" />
@@ -128,14 +131,14 @@ export default function Welcome() {
             textColor={colors.brandGreen}
             icon="person"
             label="I'm a Customer"
-            onPress={() => router.push({ pathname: "/auth/phone", params: { mode: "customer" } })}
+            onPress={() => { setGoing(true); setTimeout(() => router.push({ pathname: "/auth/phone", params: { mode: "customer" } }), 700); }}
           />
           <RoleButton
             color={colors.rider}
             textColor="#fff"
             icon="bicycle"
             label="I'm a Rider"
-            onPress={() => router.push({ pathname: "/auth/phone", params: { mode: "rider" } })}
+            onPress={() => { setGoing(true); setTimeout(() => router.push({ pathname: "/auth/phone", params: { mode: "rider" } }), 700); }}
           />
         </View>
       </SafeAreaView>

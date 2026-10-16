@@ -15,7 +15,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0B2B1A"
+      "backgroundColor": "#FFFFFF"
     },
     "androidStatusBar": {
       "backgroundColor": "#000000",
@@ -40,7 +40,7 @@
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#F4A300"
+        "backgroundColor": "#000000"
       }
     },
     "plugins": [
