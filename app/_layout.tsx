@@ -8,6 +8,7 @@ import { Pacifico_400Regular } from "@expo-google-fonts/pacifico";
 import { PlayfairDisplay_400Regular_Italic } from "@expo-google-fonts/playfair-display";
 import * as SplashScreen from "expo-splash-screen";
 import { BrandSplash } from "@/components/brand-splash";
+import { startPush } from "@/lib/push";
 import { colors } from "@/lib/theme";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -25,6 +26,8 @@ export default function Root() {
   useEffect(() => {
     if (loaded || error) SplashScreen.hideAsync().catch(() => {});
   }, [loaded, error]);
+
+  useEffect(() => startPush(), []);
 
   if (!loaded && !error) {
     return <BrandSplash useImage message="Opening Matebeto" />;
