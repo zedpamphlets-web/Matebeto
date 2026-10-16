@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "331589918168",
+    "project_id": "matebeto-cf767",
+    "storage_bucket": "matebeto-cf767.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:331589918168:android:7c367da6936e0c7a4fe6ad",
+        "android_client_info": {
+          "package_name": "com.siximages.matebeto"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_K_2EQo0sbH0cMKzIN_YDaefPeRnkfak"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

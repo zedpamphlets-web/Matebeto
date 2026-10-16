@@ -32,6 +32,7 @@
     "android": {
       "package": "com.siximages.matebeto",
       "versionCode": 6,
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE",
@@ -44,6 +45,7 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/withGoogleServicesGradle.js",
       "expo-secure-store",
       [
         "expo-build-properties",

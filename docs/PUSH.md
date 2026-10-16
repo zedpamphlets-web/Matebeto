@@ -27,14 +27,8 @@ Deploy `send-push`. Turn **Verify JWT** off. It checks `x-cron-secret` itself, t
 
 No new secret name. It uses `CRON_SECRET`, which is already on the functions.
 
-## 3. Android closed-app delivery
+The Android app is already linked to Firebase project `matebeto-cf767`. `google-services.json` is in the repo, and the Google Services Gradle plugin is pinned to **4.5.0** (the version from the Firebase instructions). Expo writes that as `classpath 'com.google.gms:google-services:4.5.0'` because its build file is not the new `plugins { id(...) }` style. Putting that `id(...)` line in directly would fail the build.
 
-Expo needs a Firebase Cloud Messaging key or the phone will not show anything after the app is closed.
-
-1. Firebase console, same Android package `com.siximages.matebeto`.
-2. Download the FCM V1 service account JSON.
-3. `eas credentials` → Android → Push Notifications → upload that JSON.
-4. Build again: `eas build --platform android --profile internal`.
-5. Install that APK, sign in, and allow notifications.
+You still upload the FCM V1 service-account JSON in `eas credentials` (Android → Push Notifications). `google-services.json` is only the phone-side file. Then build again: `eas build --platform android --profile internal`.
 
 The server address the database calls is `https://lmyvvwulabezlglxjzvl.supabase.co/functions/v1/send-push`.
