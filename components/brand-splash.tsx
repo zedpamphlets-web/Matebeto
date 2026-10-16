@@ -2,16 +2,17 @@ import { Image, StyleSheet, Text, View } from "react-native";
 import { CitrusSpinner } from "@/components/citrus-spinner";
 import { colors, fonts } from "@/lib/theme";
 
-/** Full-screen splash: official logo + citrus spinner. Optional offline message. */
+/** Splash like the reference: logo centered, spinner at the bottom. */
 export function BrandSplash({ message, offline }: { message?: string; offline?: boolean }) {
   return (
     <View style={styles.root}>
       <View style={styles.center}>
         <Image
-          source={require("../assets/splash-wordmark-new.png")}
-          style={{ width: 280, height: 100 }}
+          source={require("../assets/logo-wordmark-clear.png")}
+          style={{ width: 300, height: 110 }}
           resizeMode="contain"
         />
+        <Text style={styles.tag}>Let's Eat.</Text>
         {offline ? (
           <>
             <Text style={styles.offlineTitle}>No internet connection</Text>
@@ -30,39 +31,14 @@ export function BrandSplash({ message, offline }: { message?: string; offline?: 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#0B2B1A",
+    backgroundColor: "#0B0B0B",
     alignItems: "center",
     justifyContent: "center",
   },
-  center: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 48,
-    paddingHorizontal: 28,
-  },
-  offlineTitle: {
-    marginTop: 28,
-    color: "#fff",
-    fontFamily: fonts.title,
-    fontSize: 20,
-    textAlign: "center",
-  },
-  offlineSub: {
-    marginTop: 8,
-    color: "#B0B0B0",
-    fontFamily: fonts.body,
-    fontSize: 14,
-    textAlign: "center",
-  },
-  spin: {
-    position: "absolute",
-    bottom: 56,
-    alignItems: "center",
-  },
-  msg: {
-    marginTop: 12,
-    color: colors.onGreenMuted,
-    fontFamily: fonts.bodySemi,
-    fontSize: 14,
-  },
+  center: { alignItems: "center" },
+  tag: { color: colors.gold, fontFamily: fonts.title, marginTop: 8, letterSpacing: 1 },
+  spin: { position: "absolute", bottom: 72, alignItems: "center" },
+  offlineTitle: { fontFamily: fonts.title, color: "#fff", fontSize: 18, marginTop: 16 },
+  offlineSub: { fontFamily: fonts.body, color: "#ccc", marginTop: 6 },
+  msg: { fontFamily: fonts.body, color: "#ccc", marginTop: 12 },
 });

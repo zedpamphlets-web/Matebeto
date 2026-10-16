@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, Text, View, ScrollView } from "react-native";
+import { Alert, Pressable, Text, View, ScrollView } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
@@ -136,6 +136,15 @@ export default function OrderTrack() {
         : "This order was cancelled.";
   }
 
+  async function tryAgain() {
+    try {
+      await supabase.rpc("retry_vendor_search", { p_order_id: order.id });
+      Alert.alert("Searching", "We are looking again.");
+    } catch {
+      Alert.alert("Try again", "We will keep looking. Please check back in a moment.");
+    }
+  }
+
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
       {delivered ? (
@@ -178,6 +187,11 @@ export default function OrderTrack() {
       {notice && (
         <View style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: colors.line }}>
           <Text style={{ fontFamily: fonts.body, color: colors.ink }}>{notice}</Text>
+          {(order.status === "NO_VENDOR_FOUND" || order.status === "NO_RIDER_AVAILABLE") && (
+            <Pressable onPress={tryAgain} style={{ marginTop: 12, backgroundColor: colors.gold, paddingVertical: 12, borderRadius: 12, alignItems: "center" }}>
+              <Text style={{ fontFamily: fonts.title, color: colors.ink }}>Try again</Text>
+            </Pressable>
+          )}
         </View>
       )}
 

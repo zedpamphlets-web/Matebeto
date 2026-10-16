@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Animated,
   Dimensions,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -40,6 +41,31 @@ const DEFAULT_BANNER = {
 
 export default function Home() {
   const [bannerIndex, setBannerIndex] = useState(0);
+  const priceAnim = useRef(new Animated.Value(0)).current;
+  const titleAnim = useRef(new Animated.Value(0)).current;
+  const locAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(priceAnim, { toValue: -8, duration: 900, useNativeDriver: true }),
+        Animated.timing(priceAnim, { toValue: 0, duration: 900, useNativeDriver: true }),
+      ])
+    ).start();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(titleAnim, { toValue: 6, duration: 900, useNativeDriver: true }),
+        Animated.timing(titleAnim, { toValue: 0, duration: 900, useNativeDriver: true }),
+      ])
+    ).start();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(locAnim, { toValue: 1, duration: 180, useNativeDriver: true }),
+        Animated.timing(locAnim, { toValue: -1, duration: 180, useNativeDriver: true }),
+        Animated.timing(locAnim, { toValue: 0, duration: 180, useNativeDriver: true }),
+      ])
+    ).start();
+  }, [priceAnim, titleAnim, locAnim]);
   const bannerRef = useRef<ScrollView>(null);
 
   // Each list keeps a saved copy on the phone, so with no internet the menu still shows.
@@ -102,24 +128,17 @@ export default function Home() {
 
   return (
     <MkScreen>
-      <ScrollView contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 96 }} showsVerticalScrollIndicator={false}>
         {/* Header: logo + tagline, bell */}
         <View style={styles.top}>
-          <View>
-            <Image
-              source={require("../../assets/logo-matebeto.png")}
-              style={styles.logo}
-              contentFit="contain"
-              accessibilityLabel="Matebeto"
-            />
-            <Text style={styles.tagline}>{tagline}</Text>
-          </View>
+          <Text style={styles.word}>Matebeto</Text>
           <Pressable
-            onPress={() => router.push("/(customer)/orders")}
+            onPress={() => router.push("/(customer)/notifications")}
             hitSlop={12}
-            accessibilityLabel="Your orders"
+            accessibilityLabel="Notifications"
+            style={styles.bell}
           >
-            <Ionicons name="notifications" size={24} color={ui.amber} />
+            <Ionicons name="notifications" size={22} color={ui.ink} />
           </Pressable>
         </View>
 
@@ -150,8 +169,12 @@ export default function Home() {
                   </>
                 ) : null}
                 <View style={styles.bannerCopy}>
-                  {sl.title ? <Text style={styles.bannerTitle}>{sl.title}</Text> : null}
-                  {sl.amount != null ? <Text style={styles.bannerAmount}>{formatKw(Number(sl.amount))}</Text> : null}
+                  {sl.title ? (
+                    <Animated.Text style={[styles.bannerTitle, { transform: [{ translateY: titleAnim }] }]}>{sl.title}</Animated.Text>
+                  ) : null}
+                  {sl.amount != null ? (
+                    <Animated.Text style={[styles.bannerAmount, { transform: [{ translateY: priceAnim }] }]}>{formatKw(Number(sl.amount))}</Animated.Text>
+                  ) : null}
                   {sl.subtitle ? <Text style={styles.bannerSub}>{sl.subtitle}</Text> : null}
                   <View style={styles.bannerRule} />
                 </View>
@@ -171,7 +194,9 @@ export default function Home() {
         <View style={{ paddingHorizontal: PAD }}>
           <Text style={styles.section}>{marketsTitle}</Text>
           <View style={styles.where}>
-            <Ionicons name="location-sharp" size={15} color={ui.amber} />
+            <Animated.View style={{ transform: [{ translateX: locAnim }] }}>
+              <Ionicons name="location-sharp" size={15} color={ui.amber} />
+            </Animated.View>
             <Text style={styles.whereText}>{city}</Text>
           </View>
 
@@ -192,22 +217,15 @@ export default function Home() {
                       onPress={() => router.push(`/(customer)/market/${m.id}`)}
                       style={styles.card}
                     >
-                      <Photo
-                        uri={m.image_url}
-                        name={m.name}
-                        height={Math.round(CARD_W * 0.5)}
-                      />
-                      <View style={styles.cardBody}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.cardName} numberOfLines={1}>
-                            {m.name}
-                          </Text>
-                          <Text style={styles.cardMeta}>Food Market</Text>
-                          {m.distance_km != null ? (
-                            <Text style={styles.cardMeta}>{Number(m.distance_km).toFixed(1)} km</Text>
-                          ) : null}
+                      <View style={{ height: Math.round(CARD_W * 0.72), overflow: "hidden" }}>
+                        <Photo uri={m.image_url} name={m.name} height={Math.round(CARD_W * 0.72)} />
+                        <LinearGradient
+                          colors={["transparent", "rgba(0,0,0,0.65)"]}
+                          style={StyleSheet.absoluteFill}
+                        />
+                        <View style={styles.onImage}>
+                          <Text style={styles.onImageName} numberOfLines={1}>{m.name}</Text>
                         </View>
-                        <Ionicons name="chevron-forward" size={14} color={ui.ink} />
                       </View>
                     </Pressable>
                   ))}
@@ -234,15 +252,28 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   top: {
-    paddingHorizontal: PAD,
-    paddingTop: 6,
-    paddingBottom: 12,
+    marginHorizontal: PAD,
+    marginTop: 6,
+    marginBottom: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.95)",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.8)",
   },
-  logo: { width: 118, height: 52 },
-  tagline: { fontFamily: fonts.body, fontSize: 10.5, color: ui.sub, marginTop: 1 },
+  word: { fontFamily: fonts.display, fontSize: 26, color: ui.ink, letterSpacing: 0.3 },
+  bell: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   banner: { height: 140, borderRadius: 14, overflow: "hidden" },
   bannerFood: { position: "absolute", top: 0, right: 0, bottom: 0, width: "56%" },
   bannerFade: { position: "absolute", top: 0, bottom: 0, left: "40%", width: 60 },
@@ -260,17 +291,11 @@ const styles = StyleSheet.create({
   grid: { flexDirection: "row", flexWrap: "wrap", gap: GAP },
   card: {
     width: CARD_W,
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: ui.line,
-    shadowColor: "#1C1B26",
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
   },
+  onImage: { position: "absolute", left: 10, right: 10, bottom: 10 },
+  onImageName: { fontFamily: fonts.title, fontSize: 14, color: "#fff" },
   cardBody: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 9 },
   cardName: { fontFamily: fonts.title, fontSize: 12.5, color: ui.ink },
   cardMeta: { fontFamily: fonts.body, fontSize: 10.5, color: ui.sub, marginTop: 1 },

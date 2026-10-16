@@ -56,7 +56,7 @@ export default function RiderHome() {
       <DarkScreen>
         <AppHeader title="Rider mode" />
         <View style={{ padding: 24 }}>
-          <Text style={{ fontSize: 22, fontFamily: fonts.display, color: "#fff" }}>Apply first</Text>
+          <Text style={{ fontSize: 22, fontFamily: fonts.display, color: "#1C1B26" }}>Apply first</Text>
           <Text style={{ color: colors.onGreenMuted, marginTop: 8, fontFamily: fonts.body }}>
             Fill the rider application after OTP. Jobs open only after admin approval.
           </Text>
@@ -72,7 +72,7 @@ export default function RiderHome() {
       <DarkScreen>
         <AppHeader title="Rider mode" />
         <View style={{ padding: 24 }}>
-          <Text style={{ fontSize: 22, fontFamily: fonts.display, color: "#fff" }}>Status: {rider.status}</Text>
+          <Text style={{ fontSize: 22, fontFamily: fonts.display, color: "#1C1B26" }}>Status: {rider.status}</Text>
           <Text style={{ color: colors.onGreenMuted, marginTop: 8, fontFamily: fonts.body }}>
             Only approved riders receive jobs. You can keep ordering food as a customer.
           </Text>
@@ -87,7 +87,7 @@ export default function RiderHome() {
     <DarkScreen>
       <AppHeader title="Jobs" />
       <ScrollView contentContainerStyle={{ padding: 20 }}>
-        <Text style={{ fontSize: 22, fontFamily: fonts.display, color: "#fff" }}>{rider.full_name}</Text>
+        <Text style={{ fontSize: 22, fontFamily: fonts.display, color: "#1C1B26" }}>{rider.full_name}</Text>
         <Text style={{ color: colors.onGreenMuted, textTransform: "capitalize", fontFamily: fonts.body }}>{rider.vehicle_type}</Text>
         <View style={{ height: 14 }} />
         <GoldButton label={rider.is_online ? "Go offline" : "Go online"} onPress={toggleOnline} />
@@ -97,14 +97,14 @@ export default function RiderHome() {
             <GoldButton label="Open current job" onPress={() => router.push(`/(rider)/job/${rider.current_order_id}`)} />
           </>
         )}
-        <Text style={{ marginTop: 22, fontFamily: fonts.title, color: "#fff" }}>Delivery requests</Text>
+        <Text style={{ marginTop: 22, fontFamily: fonts.title, color: "#1C1B26" }}>Delivery requests</Text>
         {offers.length === 0 && <Text style={{ color: colors.onGreenMuted, marginTop: 8, fontFamily: fonts.body }}>No jobs right now.</Text>}
         {offers.map((off) => (
           <Pressable
             key={off.id}
             onPress={() => router.push(`/(rider)/job/${off.orders.id}`)}
             style={{
-              backgroundColor: colors.surface,
+              backgroundColor: "#FFFFFF",
               borderRadius: radius.md,
               padding: 16,
               marginTop: 10,
@@ -112,7 +112,7 @@ export default function RiderHome() {
               borderColor: "rgba(255,255,255,0.08)",
             }}
           >
-            <Text style={{ fontFamily: fonts.title, color: "#fff" }}>Order #{off.orders.order_number}</Text>
+            <Text style={{ fontFamily: fonts.title, color: "#1C1B26" }}>Order #{off.orders.order_number}</Text>
             <Text style={{ color: colors.onGreenMuted, fontFamily: fonts.body }}>
               {off.orders.delivery_type} · {off.orders.delivery_address?.text}
             </Text>

@@ -3,7 +3,7 @@ export const colors = {
   goldDeep: "#E0B400",
   goldSoft: "#FFEE9A",
   ink: "#111111",
-  cream: "#F7F4EE",
+  cream: "#FFF0E6",
   card: "#FFFFFF",
   muted: "#6F6A60",
   line: "#E8DFD2",
@@ -18,8 +18,8 @@ export const colors = {
   field: "#123A24",
   glass: "rgba(255,255,255,0.08)",
   glassLine: "rgba(255,255,255,0.18)",
-  wash: "#F4F6F3",
-  adminBg: "#FFFFFF",
+  wash: "#FFF0E6",
+  adminBg: "#FFF0E6",
   adminCard: "#F8F8F9",
   adminCardBorder: "#EEEDF0",
   adminMuted: "#6B6A78",
@@ -48,7 +48,7 @@ export const radius = { sm: 12, md: 18, lg: 28, pill: 999 };
 
 /** White + red palette from the approved app-flow mockups (customer screens). */
 export const ui = {
-  bg: "#FFFFFF",
+  bg: "#FFF0E6",
   ink: "#1C1B26",
   sub: "#6B6A78",
   hint: "#8E8D99",

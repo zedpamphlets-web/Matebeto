@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ListSkeleton } from "@/components/skeleton";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { colors, fonts, radius, ui } from "@/lib/theme";
@@ -10,6 +11,7 @@ const label = { fontFamily: fonts.bodySemi, color: colors.adminMuted, fontSize: 
 
 export default function AdminMarkets() {
   const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [distance, setDistance] = useState("");
   const [image, setImage] = useState<string | null>(null);
@@ -17,6 +19,7 @@ export default function AdminMarkets() {
   async function load() {
     const { data } = await supabase.from("markets").select("*").order("sort_order");
     setRows(data || []);
+    setLoading(false);
   }
   useEffect(() => {
     load();
@@ -90,6 +93,8 @@ export default function AdminMarkets() {
       },
     ]);
   }
+
+  if (loading && rows.length === 0) return <View style={{ flex: 1, backgroundColor: colors.adminBg, padding: 16 }}><ListSkeleton /></View>;
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.adminBg }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>

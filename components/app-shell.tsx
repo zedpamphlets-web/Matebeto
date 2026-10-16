@@ -39,11 +39,11 @@ export function AppHeader({
     <View style={styles.header}>
       {back ? (
         <Pressable onPress={() => router.back()} style={styles.round} hitSlop={10}>
-          <Ionicons name="chevron-back" size={22} color="#fff" />
+          <Ionicons name="chevron-back" size={22} color="#1C1B26" />
         </Pressable>
       ) : onMenu ? (
         <Pressable onPress={onMenu} style={styles.round} hitSlop={10}>
-          <Ionicons name="menu" size={22} color="#fff" />
+          <Ionicons name="menu" size={22} color="#1C1B26" />
         </Pressable>
       ) : (
         <View style={styles.roundGhost} />
@@ -100,7 +100,7 @@ export function DarkField({
       value={value}
       onChangeText={onChangeText}
       placeholder={placeholder}
-      placeholderTextColor={colors.onGreenMuted}
+      placeholderTextColor="#8E8D99"
       keyboardType={keyboardType}
       style={styles.field}
     />
@@ -108,7 +108,7 @@ export function DarkField({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.night },
+  root: { flex: 1, backgroundColor: "#FFF0E6" },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     flex: 1,
-    color: "#fff",
+    color: "#1C1B26",
     fontFamily: fonts.title,
     fontSize: 18,
     textAlign: "center",
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "rgba(0,0,0,0.06)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -149,11 +149,11 @@ const styles = StyleSheet.create({
   field: {
     height: 54,
     borderRadius: radius.md,
-    backgroundColor: colors.field,
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: "#E8DFD2",
     paddingHorizontal: 16,
-    color: "#fff",
+    color: "#1C1B26",
     fontFamily: fonts.body,
     fontSize: 16,
     marginBottom: 10,

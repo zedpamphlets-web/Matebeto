@@ -34,11 +34,11 @@ export default function Markets() {
       <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.iconBtn}>
-            <Ionicons name="arrow-back" size={22} color="#fff" />
+            <Ionicons name="arrow-back" size={22} color="#1C1B26" />
           </Pressable>
           <Text style={styles.title}>Choose Your Market</Text>
           <Pressable onPress={() => router.push("/(customer)/menu")} style={styles.iconBtn}>
-            <Ionicons name="person" size={20} color="#fff" />
+            <Ionicons name="person" size={20} color="#1C1B26" />
           </Pressable>
         </View>
 
@@ -79,7 +79,7 @@ export default function Markets() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.brandGreen },
+  root: { flex: 1, backgroundColor: "#FFF0E6" },
   dim: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.28)" },
   header: {
     flexDirection: "row",
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  title: { color: "#fff", fontFamily: fonts.title, fontSize: 18 },
+  title: { color: "#1C1B26", fontFamily: fonts.title, fontSize: 18 },
   row: {
     flexDirection: "row",
     alignItems: "center",

@@ -2,8 +2,7 @@ import { Image, Text, View } from "react-native";
 import { colors, fonts } from "@/lib/theme";
 
 /**
- * The real Matebeto wordmark (fork in the O) from the approved logo file, with the tagline under it.
- * The logo is never redrawn in another font. It is made for dark green backgrounds.
+ * Matebeto wordmark (yellow, transparent background) for light pages.
  */
 export function BrandMark({
   size = 52,
@@ -12,12 +11,11 @@ export function BrandMark({
   align = "center",
 }: {
   size?: number;
-  color?: string; // kept so existing screens still compile; the logo colour is fixed
+  color?: string;
   tagColor?: string;
   showTag?: boolean;
   align?: "center" | "left";
 }) {
-  // Logo file is 688 x 264; keep that ratio exactly
   const width = size * 3.1;
   const height = width * (264 / 688);
   return (

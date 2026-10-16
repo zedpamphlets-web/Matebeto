@@ -27,11 +27,6 @@ export default function PhoneAuth() {
       return;
     }
     setInvalid(false);
-    if (!human) {
-      setHumanError(true);
-      return;
-    }
-    setHumanError(false);
     setSendError("");
     setLoading(true);
 
@@ -72,7 +67,7 @@ export default function PhoneAuth() {
     <View style={styles.root}>
       <SafeAreaView style={{ flex: 1 }}>
         <Pressable onPress={() => router.back()} style={styles.back} hitSlop={12}>
-          <Ionicons name="chevron-back" size={22} color="#fff" />
+          <Ionicons name="chevron-back" size={22} color="#1C1B26" />
         </Pressable>
 
         <View style={styles.body}>
@@ -123,27 +118,6 @@ export default function PhoneAuth() {
             <Text style={styles.live}>We will text you a 6-digit code.</Text>
           )}
 
-          <Pressable
-            onPress={() => {
-              setHuman((v) => !v);
-              setHumanError(false);
-            }}
-            style={[styles.human, humanError && styles.humanBad]}
-          >
-            <View style={styles.humanLeft}>
-              <View style={[styles.box, human && styles.boxOn]}>
-                {human ? <Ionicons name="checkmark" size={16} color={colors.ink} /> : null}
-              </View>
-              <Text style={styles.humanText}>I am human</Text>
-            </View>
-            <View style={styles.badge}>
-              <View style={styles.badgeMark}>
-                <Text style={styles.badgeM}>M</Text>
-              </View>
-              <Text style={styles.badgeName}>Matebeto</Text>
-            </View>
-          </Pressable>
-
           <SpinPressable onPress={next} loading={loading} spinnerColor={colors.ink} style={styles.next}>
             <Text style={styles.nextText}>Next</Text>
           </SpinPressable>
@@ -154,7 +128,7 @@ export default function PhoneAuth() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.brandGreen },
+  root: { flex: 1, backgroundColor: "#FFF0E6" },
   back: {
     width: 40,
     height: 40,
@@ -166,9 +140,9 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   body: { paddingHorizontal: 22, paddingTop: 28 },
-  kicker: { color: colors.onGreenMuted, fontFamily: fonts.body, fontSize: 14, marginBottom: 10 },
+  kicker: { color: "#6B6A78", fontFamily: fonts.body, fontSize: 14, marginBottom: 10 },
   heading: {
-    color: "#fff",
+    color: "#1C1B26",
     fontFamily: fonts.display,
     fontSize: 28,
     letterSpacing: 0.4,

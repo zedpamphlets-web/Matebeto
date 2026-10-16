@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Photo } from "@/components/photo";
+import { LinearGradient } from "expo-linear-gradient";
 import { BackStrip, HeartButton, MkHeader, MkScreen } from "@/components/mk";
 import { supabase } from "@/lib/supabase";
 import { useCachedLoad } from "@/lib/offline-cache";
@@ -20,6 +21,7 @@ const TILE_W = (W - PAD * 2 - GAP) / 2;
 
 export default function Market() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const [opening, setOpening] = useState(false);
   const [active, setActive] = useState<string | null>(null);
   const scroller = useRef<ScrollView>(null);
   const listY = useRef(0);
@@ -51,10 +53,14 @@ export default function Market() {
   const shown = active ? meals.filter((m) => m.category_id === active) : [];
 
   function openMeal(mealId: string) {
-    router.push({
-      pathname: "/(customer)/meal/[id]",
-      params: { id: mealId, marketId: String(id), marketName: market?.name },
-    });
+    setOpening(true);
+    setTimeout(() => {
+      router.push({
+        pathname: "/(customer)/meal/[id]",
+        params: { id: mealId, marketId: String(id), marketName: market?.name },
+      });
+      setTimeout(() => setOpening(false), 400);
+    }, 250);
   }
 
   // A category with a single meal opens that meal straight away; otherwise its meals are listed below.
@@ -108,12 +114,12 @@ export default function Market() {
                 onPress={() => pickCategory(c.id)}
                 style={[styles.tile, active === c.id && { borderColor: ui.red }]}
               >
-                <Photo uri={c.image_url} name={c.name} height={Math.round(TILE_W * 0.62)} />
-                <View style={styles.tileBody}>
-                  <Text style={styles.tileName} numberOfLines={1}>
-                    {c.name}
-                  </Text>
-                  <Ionicons name="chevron-forward" size={14} color={ui.ink} />
+                <View style={{ height: Math.round(TILE_W * 0.78), overflow: "hidden" }}>
+                  <Photo uri={c.image_url} name={c.name} height={Math.round(TILE_W * 0.78)} />
+                  <LinearGradient colors={["transparent", "rgba(0,0,0,0.65)"]} style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "50%" }} />
+                  <View style={{ position: "absolute", left: 8, right: 8, bottom: 8 }}>
+                    <Text style={{ fontFamily: fonts.title, fontSize: 13, color: "#fff" }} numberOfLines={1}>{c.name}</Text>
+                  </View>
                 </View>
               </Pressable>
             ))}
@@ -124,24 +130,16 @@ export default function Market() {
             <View onLayout={(e) => (listY.current = e.nativeEvent.layout.y)} style={{ marginTop: 20 }}>
               {shown.map((meal) => (
                 <Pressable key={meal.id} onPress={() => openMeal(meal.id)} style={styles.meal}>
-                  <View style={styles.mealPhoto}>
-                    <Photo
-                      uri={meal.image_url}
-                      name={meal.name}
-                      height={84}
-                      width={84}
-                    />
-                  </View>
-                  <View style={{ flex: 1, paddingLeft: 12 }}>
+                  <View style={{ flex: 1, paddingRight: 10 }}>
                     <Text style={styles.mealName}>{meal.name}</Text>
                     {meal.description ? (
-                      <Text numberOfLines={2} style={styles.mealDesc}>
-                        {meal.description}
-                      </Text>
+                      <Text numberOfLines={2} style={styles.mealDesc}>{meal.description}</Text>
                     ) : null}
                     <Text style={styles.mealPrice}>{kw(meal.price)}</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color={ui.ink} />
+                  <View style={styles.mealPhoto}>
+                    <Photo uri={meal.image_url} name={meal.name} height={78} width={78} />
+                  </View>
                 </Pressable>
               ))}
             </View>
@@ -149,6 +147,13 @@ export default function Market() {
         </ScrollView>
       )}
       <BackStrip label="Back to Markets" onPress={() => router.back()} />
+    
+      {opening ? (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(255,240,230,0.85)", alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color="#D6263A" />
+          <Text style={{ marginTop: 10, fontFamily: fonts.bodySemi, color: ui.ink }}>Loading meal...</Text>
+        </View>
+      ) : null}
     </MkScreen>
   );
 }
@@ -178,10 +183,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: ui.line,
-    padding: 10,
+    borderColor: "#E8DFD2",
+    padding: 12,
     marginBottom: 10,
   },
   mealPhoto: { borderRadius: 10, overflow: "hidden" },

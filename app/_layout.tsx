@@ -39,7 +39,7 @@ export default function Root() {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: colors.brandGreen },
+          contentStyle: { backgroundColor: "#FFF0E6" },
           animation: "fade",
         }}
       >
@@ -47,11 +47,11 @@ export default function Root() {
         <Stack.Screen name="finding" options={{ gestureEnabled: false, animation: "fade" }} />
         <Stack.Screen name="auth/phone" />
         <Stack.Screen name="auth/otp" />
-        <Stack.Screen name="auth/rider-apply" options={{ headerShown: false, contentStyle: { backgroundColor: colors.brandGreen } }} />
+        <Stack.Screen name="auth/rider-apply" options={{ headerShown: false, contentStyle: { backgroundColor: "#FFF0E6" } }} />
         <Stack.Screen name="(customer)" options={{ contentStyle: { backgroundColor: "#FFFFFF" } }} />
         <Stack.Screen name="(rider)" />
         <Stack.Screen name="admin" options={{ contentStyle: { backgroundColor: "#FFFFFF" } }} />
-        <Stack.Screen name="payment/[id]" options={{ headerShown: false, gestureEnabled: false, contentStyle: { backgroundColor: colors.brandGreen } }} />
+        <Stack.Screen name="payment/[id]" options={{ headerShown: false, gestureEnabled: false, contentStyle: { backgroundColor: "#FFF0E6" } }} />
         <Stack.Screen
           name="order/[id]"
           options={{

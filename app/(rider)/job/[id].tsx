@@ -117,7 +117,7 @@ export default function Job() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-      <View style={{ backgroundColor: colors.brandGreen, borderRadius: 18, padding: 16, marginBottom: 14 }}>
+      <View style={{ backgroundColor: "#FFF0E6", borderRadius: 18, padding: 16, marginBottom: 14 }}>
         <Text style={{ color: colors.gold, fontFamily: fonts.bodySemi }}>Order number</Text>
         <Text style={{ color: "#fff", fontFamily: fonts.display, fontSize: 34 }}>#{order.order_number}</Text>
       </View>

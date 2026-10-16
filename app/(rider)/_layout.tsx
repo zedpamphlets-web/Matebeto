@@ -11,7 +11,7 @@ export default function RiderTabs() {
         tabBarInactiveTintColor: colors.onGreenMuted,
         tabBarLabelStyle: { fontFamily: fonts.bodySemi, fontSize: 11 },
         tabBarStyle: {
-          backgroundColor: colors.brandGreen,
+          backgroundColor: "#FFF0E6",
           borderTopColor: "rgba(255,255,255,0.08)",
           height: 64,
           paddingTop: 6,

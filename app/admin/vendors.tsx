@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ListSkeleton } from "@/components/skeleton";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { colors, fonts, radius } from "@/lib/theme";
@@ -7,6 +8,7 @@ import { AdminButton as PrimaryButton } from "@/components/admin-ui";
 
 export default function Vendors() {
   const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [markets, setMarkets] = useState<any[]>([]);
   const [meals, setMeals] = useState<any[]>([]);
   const [links, setLinks] = useState<any[]>([]);
@@ -27,6 +29,7 @@ export default function Vendors() {
     setMeals(mealsRows || []);
     setLinks(vm || []);
     if (!marketId && m?.[0]) setMarketId(m[0].id);
+    setLoading(false);
   }
   useEffect(() => {
     load();
@@ -68,6 +71,8 @@ export default function Vendors() {
     }
     load();
   }
+
+  if (loading && rows.length === 0) return <View style={{ flex: 1, backgroundColor: colors.adminBg, padding: 16 }}><ListSkeleton /></View>;
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.adminBg }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>

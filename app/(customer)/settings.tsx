@@ -54,19 +54,24 @@ export default function Settings() {
     }
   }
 
-  async function logout() {
-    await signOutApp();
-    router.replace(LOGIN_ROUTE);
+  function logout() {
+    Alert.alert("Log out", "Are you sure you want to log out?", [
+      { text: "No", style: "cancel" },
+      { text: "Yes", style: "destructive", onPress: async () => {
+        await signOutApp();
+        router.replace(LOGIN_ROUTE);
+      }},
+    ]);
   }
 
   return (
-    <DarkScreen>
+    <View style={{ flex: 1, backgroundColor: '#FFF0E6' }}>
       <AppHeader title="Account" onMenu={() => router.push("/(customer)/menu")} />
       {loading ? (
         <FormSkeleton />
       ) : (
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
-          <Text style={{ color: "#fff", fontFamily: fonts.display, fontSize: 28 }}>Your account</Text>
+          <Text style={{ color: "#1C1B26", fontFamily: fonts.display, fontSize: 28 }}>Your account</Text>
           {loginPhone ? (
             <Text style={{ color: colors.onGreenMuted, fontFamily: fonts.body, marginTop: 4, marginBottom: 18 }}>
               Logged in with {loginPhone}
@@ -107,7 +112,7 @@ export default function Settings() {
                     borderColor: on ? colors.gold : "rgba(255,255,255,0.14)",
                   }}
                 >
-                  <Text style={{ fontFamily: fonts.bodySemi, color: on ? colors.ink : "#fff" }}>{p.label}</Text>
+                  <Text style={{ fontFamily: fonts.bodySemi, color: "#1C1B26" }}>{p.label}</Text>
                 </Pressable>
               );
             })}
@@ -122,9 +127,9 @@ export default function Settings() {
           <View style={{ height: 6 }} />
           <GoldButton label={dirty ? "Save changes" : "Save"} onPress={save} />
           {savedNote ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10, justifyContent: "center" }}>
-              <Ionicons name="checkmark-circle" size={18} color={colors.customer} />
-              <Text style={{ color: colors.onGreenMuted, fontFamily: fonts.bodySemi }}>{savedNote}</Text>
+            <View style={{ backgroundColor: "#fff", borderRadius: 14, padding: 14, marginTop: 12, borderWidth: 1, borderColor: "#E8DFD2", flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Ionicons name="checkmark-circle" size={20} color={colors.customer} />
+              <Text style={{ color: "#1C1B26", fontFamily: fonts.bodySemi }}>{savedNote}</Text>
             </View>
           ) : null}
 
@@ -165,11 +170,11 @@ export default function Settings() {
               borderColor: "rgba(255,255,255,0.35)",
             }}
           >
-            <Text style={{ color: "#fff", fontFamily: fonts.title, fontSize: 16 }}>Log out</Text>
+            <Text style={{ color: "#1C1B26", fontFamily: fonts.title, fontSize: 16 }}>Log out</Text>
           </SpinPressable>
         </ScrollView>
       )}
-    </DarkScreen>
+    </View>
   );
 }
 

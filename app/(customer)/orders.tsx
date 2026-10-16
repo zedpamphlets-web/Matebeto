@@ -24,7 +24,7 @@ export default function Orders() {
   const offline = q.failed; // nothing saved and no internet
   const load = q.reload;
 
-  const current = rows.filter((o) => o.status !== "COMPLETED" && o.status !== "CANCELLED");
+  const current = rows.filter((o) => !["COMPLETED","CANCELLED","NO_VENDOR_FOUND","NO_RIDER_AVAILABLE"].includes(o.status) && o.payment_status !== "unpaid");
   const past = rows.filter((o) => o.status === "COMPLETED" || o.status === "CANCELLED");
   const list = tab === "current" ? current : past;
 
@@ -99,7 +99,7 @@ function friendlyStatus(status: string) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.brandGreen },
+  root: { flex: 1, backgroundColor: "#FFF0E6" },
   dim: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.35)" },
   tabs: {
     flexDirection: "row",

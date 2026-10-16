@@ -114,8 +114,8 @@ export default function Welcome() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.copy}>
           <Image
-            source={require("../assets/logo-wordmark.png")}
-            style={{ width: 280, height: 100 }}
+            source={require("../assets/logo-wordmark-clear.png")}
+            style={{ width: 340, height: 130 }}
             contentFit="contain"
           />
           <Text style={styles.tag}>Let's Eat.</Text>
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.title,
     fontSize: 15,
   },
-  root: { flex: 1, backgroundColor: colors.brandGreen },
+  root: { flex: 1, backgroundColor: "#FFF0E6" },
   safe: { flex: 1, justifyContent: "space-between", paddingHorizontal: 22, paddingBottom: 28 },
   copy: { paddingTop: 40, alignItems: "center" },
   tag: {

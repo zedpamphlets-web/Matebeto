@@ -85,7 +85,7 @@ export default function Checkout() {
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <View
           style={{
-            backgroundColor: colors.surface,
+            backgroundColor: "#FFFFFF",
             borderRadius: radius.md,
             padding: 16,
             marginBottom: 16,
@@ -105,7 +105,7 @@ export default function Checkout() {
           <Text style={{ color: colors.onGreenMuted, fontFamily: fonts.body }}>Secure payment. Your payment is protected.</Text>
         </View>
 
-        <Text style={{ fontFamily: fonts.title, color: "#fff" }}>Pay with mobile money</Text>
+        <Text style={{ fontFamily: fonts.title, color: "#1C1B26" }}>Pay with mobile money</Text>
         <View style={{ flexDirection: "row", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
           {LIPILA_PROVIDERS.map((p) => (
             <Pressable
@@ -115,12 +115,12 @@ export default function Checkout() {
                 paddingHorizontal: 12,
                 paddingVertical: 10,
                 borderRadius: 12,
-                backgroundColor: colors.surface,
+                backgroundColor: "#FFFFFF",
                 borderWidth: 2,
                 borderColor: provider === p.id ? colors.gold : "rgba(255,255,255,0.12)",
               }}
             >
-              <Text style={{ fontFamily: fonts.bodySemi, color: "#fff" }}>{p.label}</Text>
+              <Text style={{ fontFamily: fonts.bodySemi, color: "#1C1B26" }}>{p.label}</Text>
             </Pressable>
           ))}
         </View>

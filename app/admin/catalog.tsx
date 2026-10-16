@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ListSkeleton } from "@/components/skeleton";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { colors, fonts, radius, ui } from "@/lib/theme";
@@ -9,6 +10,7 @@ import { formatKw } from "@/lib/lipila";
 
 export default function Catalog() {
   const [meals, setMeals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<any[]>([]);
   const [sides, setSides] = useState<any[]>([]);
   const [name, setName] = useState("");
@@ -28,6 +30,7 @@ export default function Catalog() {
       supabase.from("meal_sides").select("*"),
     ]);
     setMeals(m || []);
+    setLoading(false);
     setCategories(c || []);
     setSides(s || []);
     if (!categoryId && c?.[0]) setCategoryId(c[0].id);
@@ -124,11 +127,18 @@ export default function Catalog() {
     load();
   }
 
-  async function deleteMeal(id: string) {
-    const { error } = await supabase.from("meals").delete().eq("id", id);
-    if (error) Alert.alert("Meal", error.message);
-    load();
+  function deleteMeal(id: string) {
+    Alert.alert("Delete meal", "🗑️ Are you sure you want to delete this meal?", [
+      { text: "No", style: "cancel" },
+      { text: "Yes, delete", style: "destructive", onPress: async () => {
+        const { error } = await supabase.from("meals").delete().eq("id", id);
+        if (error) Alert.alert("Meal", error.message);
+        load();
+      }},
+    ]);
   }
+
+  if (loading) return <View style={{ flex: 1, backgroundColor: colors.adminBg, padding: 16 }}><ListSkeleton /></View>;
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.adminBg }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
@@ -158,20 +168,17 @@ export default function Catalog() {
       <Text style={{ color: colors.adminMuted, fontFamily: fonts.body, marginBottom: 10 }}>
         Real meal name, Kwacha price, and a photo from your phone. Sides are included in the price.
       </Text>
-      <Text style={{ fontFamily: fonts.bodySemi, marginBottom: 6, color: colors.adminText }}>Category</Text>
-      {categories.map((c) => (
-        <Pressable key={c.id} onPress={() => setCategoryId(c.id)}>
-          <Text
-            style={{
-              fontFamily: categoryId === c.id ? fonts.title : fonts.body,
-              marginBottom: 4,
-              color: categoryId === c.id ? ui.red : colors.ink,
-            }}
-          >
-            {c.name}
-          </Text>
-        </Pressable>
-      ))}
+      <Text style={{ fontFamily: fonts.bodySemi, marginBottom: 8, color: colors.adminText }}>Choose category</Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+        {categories.map((c) => {
+          const on = categoryId === c.id;
+          return (
+            <Pressable key={c.id} onPress={() => setCategoryId(c.id)} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: on ? "#FFF8E1" : "#fff", borderWidth: 2, borderColor: on ? "#F4B400" : "#E8DFD2" }}>
+              <Text style={{ fontFamily: on ? fonts.title : fonts.body, color: "#1C1B26" }}>{c.name}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
       <View style={{ height: 8 }} />
       <Field value={name} onChangeText={setName} placeholder="Meal name" />
       <View style={{ height: 8 }} />

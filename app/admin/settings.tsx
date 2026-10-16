@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { FormSkeleton } from "@/components/skeleton";
 import { Alert, Switch, Text, TextInput, View, ScrollView, Pressable } from "react-native";
 import { router } from "expo-router";
 import { supabase } from "@/lib/supabase";
@@ -21,6 +22,7 @@ const note = { color: colors.adminMuted, fontFamily: fonts.body, lineHeight: 20,
 export default function HomeAdmin() {
   // Home screen text
   const [tagline, setTagline] = useState("");
+  const [loading, setLoading] = useState(true);
   const [city, setCity] = useState("");
   const [marketsTitle, setMarketsTitle] = useState("");
   const [promoOn, setPromoOn] = useState(true);
@@ -51,7 +53,7 @@ export default function HomeAdmin() {
   }
 
   useEffect(() => {
-    load();
+    load().finally(() => setLoading(false));
   }, []);
 
   async function saveHomeText() {
@@ -129,6 +131,8 @@ export default function HomeAdmin() {
     await Promise.all(next.map((b, i) => supabase.from("banners").update({ sort_order: i + 1 }).eq("id", b.id)));
     load();
   }
+
+  if (loading) return <View style={{ flex: 1, backgroundColor: colors.adminBg, padding: 16 }}><FormSkeleton /></View>;
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.adminBg }} contentContainerStyle={{ padding: 20, paddingBottom: 48 }}>

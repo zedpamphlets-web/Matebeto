@@ -118,7 +118,7 @@ export default function Otp() {
     <View style={styles.root}>
       <SafeAreaView style={{ flex: 1 }}>
         <Pressable onPress={() => router.back()} style={styles.back} hitSlop={12}>
-          <Ionicons name="chevron-back" size={22} color="#fff" />
+          <Ionicons name="chevron-back" size={22} color="#1C1B26" />
         </Pressable>
         <View style={styles.body}>
           <Text style={styles.kicker}>We sent you a code</Text>
@@ -177,7 +177,7 @@ export default function Otp() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.brandGreen },
+  root: { flex: 1, backgroundColor: "#FFF0E6" },
   back: {
     width: 40,
     height: 40,
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: 22, paddingTop: 28 },
   kicker: { color: colors.onGreenMuted, fontFamily: fonts.body, fontSize: 14, marginBottom: 10 },
   heading: {
-    color: "#fff",
+    color: "#1C1B26",
     fontFamily: fonts.display,
     fontSize: 28,
     letterSpacing: 0.4,
@@ -203,14 +203,14 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 54,
     borderRadius: 10,
-    backgroundColor: colors.surface,
+    backgroundColor: "#FFFFFF",
     borderWidth: 1.5,
     borderColor: "rgba(255,255,255,0.14)",
     alignItems: "center",
     justifyContent: "center",
   },
   boxOn: { borderColor: colors.gold },
-  digit: { color: "#fff", fontFamily: fonts.display, fontSize: 22 },
+  digit: { color: "#1C1B26", fontFamily: fonts.display, fontSize: 22 },
   hidden: { ...StyleSheet.absoluteFillObject, opacity: 0 },
   hint: { color: colors.gold, fontFamily: fonts.bodySemi, fontSize: 13, marginBottom: 12 },
   live: { color: colors.customer, fontFamily: fonts.bodySemi, fontSize: 13, marginBottom: 12 },
