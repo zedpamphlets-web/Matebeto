@@ -54,15 +54,16 @@ async function sendTemplate(phoneId: string, token: string, to: string, order: a
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (!requireServer(req)) return json({ error: "Unauthorized" }, 401);
+  if (!requireServer(req)) { console.error("notify-vendor: 401 requireServer failed (service key / CRON_SECRET mismatch)"); return json({ error: "Unauthorized" }, 401); }
 
   try {
     const { orderId } = await req.json().catch(() => ({}));
+    console.log("notify-vendor: called for order", orderId);
     if (!orderId) return json({ error: "Missing orderId" }, 400);
 
     const token = Deno.env.get("WHATSAPP_TOKEN");
     const phoneId = Deno.env.get("WHATSAPP_PHONE_ID");
-    if (!token || !phoneId) return json({ ok: false, configured: false, reason: "WhatsApp is not configured." });
+    if (!token || !phoneId) { console.error("notify-vendor: MISSING SECRETS token=" + !!token + " phoneId=" + !!phoneId); return json({ ok: false, configured: false, reason: "WhatsApp is not configured." }); }
 
     const db = serviceClient();
 
@@ -72,7 +73,7 @@ Deno.serve(async (req) => {
         .select("id,order_number,food_total,status,vendor_id")
         .eq("id", orderId)
         .maybeSingle();
-      if (!order || order.status !== "VENDOR_OFFERED" || !order.vendor_id) return json({ ok: false, reason: "NOT_OFFERED" });
+      if (!order || order.status !== "VENDOR_OFFERED" || !order.vendor_id) { console.error("notify-vendor: order not offered", JSON.stringify(order)); return json({ ok: false, reason: "NOT_OFFERED" }); }
 
       const { data: attempt } = await db
         .from("vendor_attempts")
@@ -83,7 +84,7 @@ Deno.serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (!attempt) return json({ ok: false, reason: "NOT_OFFERED" });
+      if (!attempt) { console.error("notify-vendor: no OFFERED attempt for vendor", order.vendor_id); return json({ ok: false, reason: "NOT_OFFERED" }); }
       if (attempt.notified_at) return json({ ok: true, already: true });
 
       // Claim the message first, so two callers can never message the same vendor twice.
@@ -103,6 +104,7 @@ Deno.serve(async (req) => {
       const sidesLine = sides.length ? sides.join(", ").slice(0, 200) : "None";
 
       const to = toWhatsApp(vendor?.whatsapp || vendor?.phone || "");
+      console.log("notify-vendor: sending to", to, "vendor", vendor?.name);
       let sent = false;
       let detail: unknown = "vendor has no number";
       if (to) {

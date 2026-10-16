@@ -11,6 +11,7 @@ import { formatKw } from "@/lib/lipila";
 import { createOrder } from "@/lib/orders";
 import { LIPILA_PROVIDERS, type LipilaProvider } from "@/lib/lipila";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { loadAccount } from "@/lib/profile";
 
 export default function Checkout() {
   const [delivery, setDelivery] = useState<"bicycle" | "motorbike">("bicycle");
@@ -28,7 +29,13 @@ export default function Checkout() {
       setFood(foodTotal(b.items));
     });
     supabase.from("settings").select("*").eq("id", 1).single().then(({ data }) => data && setFees(data));
-    supabase.auth.getUser().then(({ data }) => setPhone(data.user?.phone || ""));
+    // use the payment method saved on the account; fall back to the login number
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      const { details } = await loadAccount();
+      setPhone(details.payment_number || data.user?.phone || "");
+      if (details.payment_provider) setProvider(details.payment_provider);
+    })();
     AsyncStorage.getItem("matebeto.delivery").then((v) => {
       if (v === "bicycle" || v === "motorbike") setDelivery(v);
     });
@@ -78,7 +85,7 @@ export default function Checkout() {
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <View
           style={{
-            backgroundColor: "#141414",
+            backgroundColor: colors.surface,
             borderRadius: radius.md,
             padding: 16,
             marginBottom: 16,
@@ -95,10 +102,10 @@ export default function Checkout() {
 
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 18 }}>
           <Ionicons name="shield-checkmark" size={18} color={colors.customer} />
-          <Text style={{ color: "#8A8A8A", fontFamily: fonts.body }}>Secure payment. Your payment is protected.</Text>
+          <Text style={{ color: colors.onGreenMuted, fontFamily: fonts.body }}>Secure payment. Your payment is protected.</Text>
         </View>
 
-        <Text style={{ fontFamily: fonts.title, color: "#fff" }}>Pay with Lipila</Text>
+        <Text style={{ fontFamily: fonts.title, color: "#fff" }}>Pay with mobile money</Text>
         <View style={{ flexDirection: "row", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
           {LIPILA_PROVIDERS.map((p) => (
             <Pressable
@@ -108,7 +115,7 @@ export default function Checkout() {
                 paddingHorizontal: 12,
                 paddingVertical: 10,
                 borderRadius: 12,
-                backgroundColor: "#141414",
+                backgroundColor: colors.surface,
                 borderWidth: 2,
                 borderColor: provider === p.id ? colors.gold : "rgba(255,255,255,0.12)",
               }}
@@ -120,7 +127,7 @@ export default function Checkout() {
         <View style={{ height: 10 }} />
         <DarkField value={phone} onChangeText={setPhone} placeholder="Mobile money number" keyboardType="phone-pad" />
         <View style={{ height: 8 }} />
-        <GoldButton label={loading ? "Please wait…" : `Pay Now · ${formatKw(total)}`} onPress={pay} disabled={loading} />
+        <GoldButton label={`Pay now · ${formatKw(total)}`} onPress={pay} loading={loading} />
       </ScrollView>
     </DarkScreen>
   );

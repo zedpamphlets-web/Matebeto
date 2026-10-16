@@ -1,7 +1,7 @@
 export const colors = {
-  gold: "#F4A300",
-  goldDeep: "#D98A00",
-  goldSoft: "#FFE08A",
+  gold: "#FCCC00", // Matebeto Yellow, taken from the approved logo file
+  goldDeep: "#E0B400",
+  goldSoft: "#FFEE9A",
   ink: "#111111",
   cream: "#F7F4EE",
   card: "#FFFFFF",
@@ -13,26 +13,29 @@ export const colors = {
   danger: "#E53935",
   good: "#1F9D55",
   track: "#111111",
-  night: "#000000",
-  night2: "#0E0E0E",
-  field: "#1A1A1A",
+  night: "#0B2B1A", // Matebeto Deep Green
+  night2: "#08210F",
+  field: "#123A24",
   glass: "rgba(255,255,255,0.08)",
   glassLine: "rgba(255,255,255,0.18)",
   wash: "#F4F6F3",
-  adminBg: "#2A2A2A",
-  adminCard: "rgba(255,255,255,0.08)",
-  adminCardBorder: "rgba(255,255,255,0.14)",
-  adminMuted: "#A8A8A8",
-  adminText: "#F5F5F5",
+  adminBg: "#FFFFFF",
+  adminCard: "#F8F8F9",
+  adminCardBorder: "#EEEDF0",
+  adminMuted: "#6B6A78",
+  adminText: "#1C1B26",
   brandGreen: "#0B2B1A",
+  surface: "#123A24",
+  surface2: "#1A4A30",
+  onGreenMuted: "#A9C2B1",
 };
 
-export const marketAccents = ["#1FAF4A", "#E53935", "#C2185B", "#F4A300", "#1565C0", "#6A1B9A"];
+export const marketAccents = ["#1FAF4A", "#E53935", "#C2185B", "#FCCC00", "#1565C0", "#6A1B9A"];
 
 
 export const fonts = {
-  script: "Pacifico_400Regular",
-  italic: "PlayfairDisplay_400Regular_Italic",
+  script: "Sora_800ExtraBold",
+  italic: "Sora_700Bold",
   display: "Sora_800ExtraBold",
   title: "Sora_700Bold",
   body: "Inter_400Regular",
@@ -42,3 +45,21 @@ export const fonts = {
 export const space = { xs: 6, sm: 10, md: 16, lg: 24, xl: 32 };
 
 export const radius = { sm: 12, md: 18, lg: 28, pill: 999 };
+
+/** White + red palette from the approved app-flow mockups (customer screens). */
+export const ui = {
+  bg: "#FFFFFF",
+  ink: "#1C1B26",
+  sub: "#6B6A78",
+  hint: "#8E8D99",
+  red: "#D6263A",
+  redDeep: "#B81F31",
+  redSoft: "#FBF0EC",
+  redLine: "#F4D9D6",
+  line: "#EEEDF0",
+  field: "#F6F6F8",
+  banner: "#40142B",
+  promo: "#FCF1E5",
+  amber: "#F4B400",
+  checkOff: "#E3E2E8",
+};

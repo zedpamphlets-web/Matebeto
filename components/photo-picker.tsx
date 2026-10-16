@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
 import { Photo } from "@/components/photo";
-import { colors, fonts, radius } from "@/lib/theme";
+import { colors, fonts, radius, ui } from "@/lib/theme";
 import { uploadCatalogImage } from "@/lib/upload";
 
 export function PhotoPicker({
@@ -33,7 +33,7 @@ export function PhotoPicker({
 
   return (
     <View style={{ marginBottom: 10 }}>
-      <View style={{ borderRadius: radius.md, overflow: "hidden", backgroundColor: colors.ink }}>
+      <View style={{ borderRadius: radius.md, overflow: "hidden", backgroundColor: ui.field }}>
         <Photo uri={uri} name={name} height={height} />
         {busy ? (
           <View
@@ -66,15 +66,15 @@ function Mini({ label, onPress, dim }: { label: string; onPress: () => void; dim
     <Pressable
       onPress={onPress}
       style={{
-        backgroundColor: dim ? "#fff" : colors.gold,
+        backgroundColor: dim ? "#fff" : ui.red,
         borderWidth: 1,
-        borderColor: dim ? colors.line : colors.gold,
+        borderColor: dim ? colors.line : ui.red,
         borderRadius: 999,
         paddingHorizontal: 12,
         paddingVertical: 8,
       }}
     >
-      <Text style={{ fontFamily: fonts.bodySemi, color: colors.ink, fontSize: 12 }}>{label}</Text>
+      <Text style={{ fontFamily: fonts.bodySemi, color: dim ? colors.ink : "#fff", fontSize: 12 }}>{label}</Text>
     </Pressable>
   );
 }

@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts, radius, space } from "@/lib/theme";
+import { SpinPressable } from "@/components/spin-pressable";
 
 export function Screen({ children, style }: { children: ReactNode; style?: ViewStyle }) {
   return <View style={[styles.screen, style]}>{children}</View>;
@@ -37,24 +38,22 @@ export function PrimaryButton({
   loading,
 }: {
   label: string;
-  onPress: () => void;
+  onPress: () => void | Promise<unknown>;
   color?: string;
   textColor?: string;
   disabled?: boolean;
   loading?: boolean;
 }) {
   return (
-    <Pressable
+    <SpinPressable
       onPress={onPress}
-      disabled={disabled || loading}
-      style={[styles.btn, { backgroundColor: color, opacity: disabled ? 0.5 : 1 }]}
+      disabled={disabled}
+      loading={loading}
+      spinnerColor={textColor}
+      style={[styles.btn, { backgroundColor: color }]}
     >
-      {loading ? (
-        <ActivityIndicator color={textColor} />
-      ) : (
-        <Text style={[styles.btnText, { color: textColor }]}>{label}</Text>
-      )}
-    </Pressable>
+      <Text style={[styles.btnText, { color: textColor }]}>{label}</Text>
+    </SpinPressable>
   );
 }
 

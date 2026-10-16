@@ -1,4 +1,4 @@
-import { View, Text, StyleProp, ViewStyle } from "react-native";
+import { View, Text, StyleProp, ViewStyle, ImageSourcePropType } from "react-native";
 import { Image } from "expo-image";
 import { colors, fonts } from "@/lib/theme";
 
@@ -11,6 +11,7 @@ export function Photo({
   style,
   dark = true,
   overlay,
+  fallback,
 }: {
   uri?: string | null;
   name?: string;
@@ -19,11 +20,15 @@ export function Photo({
   style?: StyleProp<ViewStyle>;
   dark?: boolean;
   overlay?: boolean;
+  /** Bundled picture used only when no photo has been uploaded for this item. */
+  fallback?: ImageSourcePropType;
 }) {
   return (
     <View style={[{ height, width, overflow: "hidden" }, style]}>
       {uri ? (
-        <Image source={{ uri }} style={{ height: "100%", width: "100%" }} contentFit="cover" />
+        <Image source={{ uri }} style={{ height: "100%", width: "100%" }} contentFit="cover" cachePolicy="memory-disk" transition={150} />
+      ) : fallback ? (
+        <Image source={fallback} style={{ height: "100%", width: "100%" }} contentFit="cover" transition={150} />
       ) : (
         <View
           style={{

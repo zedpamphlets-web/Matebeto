@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { View } from "react-native";
-import { Tabs, router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { colors, fonts } from "@/lib/theme";
+import { Stack, router } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { fonts, ui } from "@/lib/theme";
 import { currentProfile } from "@/lib/session";
 
-export default function AdminTabs() {
+/** Admin has no bottom bar. The dashboard lists every section as a card; each section has a back arrow. */
+export default function AdminLayout() {
   const [ok, setOk] = useState(false);
 
   useEffect(() => {
@@ -18,30 +19,29 @@ export default function AdminTabs() {
     });
   }, []);
 
-  if (!ok) return <View style={{ flex: 1, backgroundColor: colors.adminBg }} />;
+  if (!ok) return <View style={{ flex: 1, backgroundColor: ui.bg }} />;
 
   return (
-    <Tabs
-      screenOptions={{
-        headerStyle: { backgroundColor: "#111" },
-        headerTintColor: colors.gold,
-        headerShadowVisible: false,
-        headerTitleStyle: { fontFamily: fonts.title },
-        tabBarStyle: {
-          backgroundColor: "#111",
-          borderTopColor: "rgba(255,255,255,0.08)",
-        },
-        tabBarActiveTintColor: colors.gold,
-        tabBarInactiveTintColor: "#888",
-        tabBarLabelStyle: { fontFamily: fonts.bodySemi, fontSize: 10 },
-      }}
-    >
-      <Tabs.Screen name="index" options={{ title: "Orders", tabBarIcon: ({ color }) => <Ionicons name="list" size={22} color={color} /> }} />
-      <Tabs.Screen name="markets" options={{ title: "Markets", tabBarIcon: ({ color }) => <Ionicons name="map" size={22} color={color} /> }} />
-      <Tabs.Screen name="catalog" options={{ title: "Menu", tabBarIcon: ({ color }) => <Ionicons name="restaurant" size={22} color={color} /> }} />
-      <Tabs.Screen name="vendors" options={{ title: "Vendors", tabBarIcon: ({ color }) => <Ionicons name="storefront" size={22} color={color} /> }} />
-      <Tabs.Screen name="riders" options={{ title: "Riders", tabBarIcon: ({ color }) => <Ionicons name="bicycle" size={22} color={color} /> }} />
-      <Tabs.Screen name="settings" options={{ title: "Fees", tabBarIcon: ({ color }) => <Ionicons name="settings" size={22} color={color} /> }} />
-    </Tabs>
+    <>
+      <StatusBar style="dark" />
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: ui.bg },
+          headerTintColor: ui.ink,
+          headerShadowVisible: false,
+          headerTitleStyle: { fontFamily: fonts.title, fontSize: 17, color: ui.ink },
+          headerBackTitleVisible: false,
+          contentStyle: { backgroundColor: ui.bg },
+        }}
+      >
+        <Stack.Screen name="index" options={{ title: "Admin" }} />
+        <Stack.Screen name="orders" options={{ title: "Orders" }} />
+        <Stack.Screen name="settings" options={{ title: "Home screen & fees" }} />
+        <Stack.Screen name="markets" options={{ title: "Markets" }} />
+        <Stack.Screen name="catalog" options={{ title: "Menu" }} />
+        <Stack.Screen name="vendors" options={{ title: "Vendors" }} />
+        <Stack.Screen name="riders" options={{ title: "Riders" }} />
+      </Stack>
+    </>
   );
 }

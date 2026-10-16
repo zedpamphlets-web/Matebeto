@@ -10,39 +10,19 @@ import { supabase } from "@/lib/supabase";
 import { colors, fonts, radius } from "@/lib/theme";
 import { formatKw } from "@/lib/lipila";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { isOnline, withTimeout } from "@/lib/network";
+import { useCachedLoad } from "@/lib/offline-cache";
+import { OfflineBanner } from "@/components/offline-banner";
 
 export default function Orders() {
-  const [rows, setRows] = useState<any[]>([]);
   const [tab, setTab] = useState<"current" | "past">("current");
-  const [loading, setLoading] = useState(true);
-  const [offline, setOffline] = useState(false);
 
-  const load = useCallback(() => {
-    setLoading(true);
-    setOffline(false);
-    withTimeout(
-      supabase
-        .from("orders")
-        .select("*")
-        .order("created_at", { ascending: false })
-    )
-      .then(({ data }) => {
-        setRows(data || []);
-        setLoading(false);
-      })
-      .catch(async () => {
-        const online = await isOnline();
-        setOffline(!online);
-        setLoading(false);
-      });
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
+  const q = useCachedLoad<any[]>("orders.mine", () =>
+    supabase.from("orders").select("*").order("created_at", { ascending: false })
   );
+  const rows = q.data || [];
+  const loading = q.loading;
+  const offline = q.failed; // nothing saved and no internet
+  const load = q.reload;
 
   const current = rows.filter((o) => o.status !== "COMPLETED" && o.status !== "CANCELLED");
   const past = rows.filter((o) => o.status === "COMPLETED" || o.status === "CANCELLED");
@@ -73,6 +53,7 @@ export default function Orders() {
                 </Pressable>
               ))}
             </View>
+            {q.stale ? <OfflineBanner /> : null}
             {offline ? (
               <OfflineNotice onRetry={load} />
             ) : loading ? (
@@ -118,7 +99,7 @@ function friendlyStatus(status: string) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#000" },
+  root: { flex: 1, backgroundColor: colors.brandGreen },
   dim: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.35)" },
   tabs: {
     flexDirection: "row",

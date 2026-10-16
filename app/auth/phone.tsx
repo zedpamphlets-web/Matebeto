@@ -7,6 +7,7 @@ import { colors, fonts } from "@/lib/theme";
 import { friendlyAuthError, isSupabaseConfigured, pingSupabase, supabase } from "@/lib/supabase";
 import { toZambianMsisdn } from "@/lib/lipila";
 import { clearPreviewSession } from "@/lib/preview";
+import { SpinPressable } from "@/components/spin-pressable";
 
 export default function PhoneAuth() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
@@ -75,8 +76,8 @@ export default function PhoneAuth() {
         </Pressable>
 
         <View style={styles.body}>
-          <Text style={styles.kicker}>Log in or Sign up</Text>
-          <Text style={styles.heading}>YOUR MOBILE{"\n"}NUMBER</Text>
+          <Text style={styles.kicker}>Log in or sign up</Text>
+          <Text style={styles.heading}>What is your{"\n"}mobile number?</Text>
 
           <View style={[styles.inputRow, invalid && styles.inputBad]}>
             <View style={styles.flagChip}>
@@ -102,7 +103,7 @@ export default function PhoneAuth() {
           {invalid ? (
             <View style={styles.error}>
               <Text style={styles.errorText}>
-                Enter a valid mobile number, example: 0970000000
+                Enter a valid mobile number, for example 0970000000
               </Text>
             </View>
           ) : null}
@@ -119,7 +120,7 @@ export default function PhoneAuth() {
               EXPO_PUBLIC_SUPABASE_ANON_KEY, then run a new production build and install it.
             </Text>
           ) : (
-            <Text style={styles.live}>Live login — SMS code via Africa&apos;s Talking</Text>
+            <Text style={styles.live}>We will text you a 6-digit code.</Text>
           )}
 
           <Pressable
@@ -143,9 +144,9 @@ export default function PhoneAuth() {
             </View>
           </Pressable>
 
-          <Pressable onPress={next} disabled={loading} style={styles.next}>
-            <Text style={styles.nextText}>{loading ? "PLEASE WAIT" : "NEXT"}</Text>
-          </Pressable>
+          <SpinPressable onPress={next} loading={loading} spinnerColor={colors.ink} style={styles.next}>
+            <Text style={styles.nextText}>Next</Text>
+          </SpinPressable>
         </View>
       </SafeAreaView>
     </View>
@@ -153,7 +154,7 @@ export default function PhoneAuth() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#121212" },
+  root: { flex: 1, backgroundColor: colors.brandGreen },
   back: {
     width: 40,
     height: 40,
@@ -165,7 +166,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   body: { paddingHorizontal: 22, paddingTop: 28 },
-  kicker: { color: "#9A9A9A", fontFamily: fonts.body, fontSize: 14, marginBottom: 10 },
+  kicker: { color: colors.onGreenMuted, fontFamily: fonts.body, fontSize: 14, marginBottom: 10 },
   heading: {
     color: "#fff",
     fontFamily: fonts.display,
@@ -177,7 +178,7 @@ const styles = StyleSheet.create({
   inputRow: {
     height: 54,
     borderRadius: 10,
-    backgroundColor: "#1C1C1C",
+    backgroundColor: colors.surface,
     borderWidth: 1.5,
     borderColor: "#2A2A2A",
     flexDirection: "row",

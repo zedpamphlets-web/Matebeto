@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { colors, fonts, radius } from "@/lib/theme";
 import { formatKw } from "@/lib/lipila";
 import { PrimaryButton } from "@/components/ui";
+import { JobSkeleton } from "@/components/skeleton";
 import { startRiderSearch, TRACK_STEPS, stepDone } from "@/lib/orders";
 import { verifyLipilaPayment } from "@/lib/payments";
 
@@ -105,7 +106,13 @@ export default function OrderTrack() {
     refresh();
   }
 
-  if (!order) return <View style={{ flex: 1, backgroundColor: colors.cream }} />;
+  if (!order) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.cream }}>
+        <JobSkeleton />
+      </View>
+    );
+  }
 
   const delivered = order.status === "COMPLETED";
   const failed = PROBLEM_STATUSES.includes(order.status);

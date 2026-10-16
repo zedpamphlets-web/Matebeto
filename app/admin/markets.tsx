@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { supabase } from "@/lib/supabase";
-import { colors, fonts, radius } from "@/lib/theme";
-import { Field, PrimaryButton } from "@/components/ui";
+import { colors, fonts, radius, ui } from "@/lib/theme";
+import { Field } from "@/components/ui";
+import { AdminButton as PrimaryButton } from "@/components/admin-ui";
 import { PhotoPicker } from "@/components/photo-picker";
+
+const label = { fontFamily: fonts.bodySemi, color: colors.adminMuted, fontSize: 12, marginBottom: 6, marginTop: 4 } as const;
 
 export default function AdminMarkets() {
   const [rows, setRows] = useState<any[]>([]);
   const [name, setName] = useState("");
+  const [distance, setDistance] = useState("");
   const [image, setImage] = useState<string | null>(null);
 
   async function load() {
@@ -18,19 +22,36 @@ export default function AdminMarkets() {
     load();
   }, []);
 
+  const km = (v: string) => (v.trim() ? Number(v) : null);
+
   async function add() {
     if (!name.trim()) return Alert.alert("Market", "Name is required.");
+    if (distance.trim() && Number.isNaN(Number(distance))) return Alert.alert("Market", "Distance must be a number.");
     const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
     const { error } = await supabase.from("markets").insert({
       name: name.trim(),
       slug,
       image_url: image,
+      distance_km: km(distance),
       is_active: true,
       sort_order: rows.length + 1,
     });
     if (error) return Alert.alert("Market", error.message);
     setName("");
+    setDistance("");
     setImage(null);
+    load();
+  }
+
+  async function saveDetails(m: any, newName: string, newDistance: string) {
+    if (!newName.trim()) return Alert.alert("Market", "Name is required.");
+    if (newDistance.trim() && Number.isNaN(Number(newDistance))) return Alert.alert("Market", "Distance must be a number.");
+    const { error } = await supabase
+      .from("markets")
+      .update({ name: newName.trim(), distance_km: km(newDistance) })
+      .eq("id", m.id);
+    if (error) Alert.alert("Market", error.message);
+    else Alert.alert("Saved");
     load();
   }
 
@@ -46,37 +67,111 @@ export default function AdminMarkets() {
     load();
   }
 
-  async function deleteMarket(id: string) {
-    const { error } = await supabase.from("markets").delete().eq("id", id);
-    if (error) Alert.alert("Market", error.message);
+  async function move(idx: number, dir: -1 | 1) {
+    const j = idx + dir;
+    if (j < 0 || j >= rows.length) return;
+    const next = [...rows];
+    [next[idx], next[j]] = [next[j], next[idx]];
+    await Promise.all(next.map((m, i) => supabase.from("markets").update({ sort_order: i + 1 }).eq("id", m.id)));
     load();
+  }
+
+  function deleteMarket(id: string) {
+    Alert.alert("Delete market", "Remove this market from the app?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          const { error } = await supabase.from("markets").delete().eq("id", id);
+          if (error) Alert.alert("Market", error.message);
+          load();
+        },
+      },
+    ]);
   }
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.adminBg }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      <Text style={{ fontFamily: fonts.title, fontSize: 18, marginBottom: 8 }}>Add market</Text>
-      <Field value={name} onChangeText={setName} placeholder="Market name" />
-      <View style={{ height: 10 }} />
+      <Text style={{ fontFamily: fonts.title, fontSize: 18, marginBottom: 4, color: colors.adminText }}>Add market</Text>
+      <Text style={{ color: colors.adminMuted, fontFamily: fonts.body, marginBottom: 10 }}>
+        Shows as a card on Home, in this order.
+      </Text>
+      <Field value={name} onChangeText={setName} placeholder="Market name (e.g. Longacres)" />
+      <Field value={distance} onChangeText={setDistance} placeholder="Distance in km (optional, e.g. 2.1)" keyboardType="decimal-pad" />
       <PhotoPicker folder="markets" uri={image} name={name || "Market"} onChange={setImage} />
       <PrimaryButton label="Save market" onPress={add} />
       <View style={{ height: 18 }} />
-      {rows.map((m) => (
-        <View key={m.id} style={{ backgroundColor: colors.adminCard, borderWidth: 1, borderColor: colors.adminCardBorder, borderRadius: radius.md, padding: 12, marginBottom: 10 }}>
-          <Text style={{ fontFamily: fonts.title, color: colors.adminText }}>{m.name}</Text>
-          <Text style={{ color: colors.adminMuted, fontFamily: fonts.body, marginBottom: 8 }}>
-            {m.is_active ? "Active" : "Hidden"}
-          </Text>
-          <PhotoPicker folder={`markets/${m.id}`} uri={m.image_url} name={m.name} onChange={(url) => saveImage(m, url)} />
-          <Pressable onPress={() => toggle(m)}>
-            <Text style={{ fontFamily: fonts.bodySemi, color: colors.customerDeep }}>
-              {m.is_active ? "Hide market" : "Show market"}
-            </Text>
-          </Pressable>
-          <Pressable onPress={() => deleteMarket(m.id)} style={{ marginTop: 6 }}>
-            <Text style={{ fontFamily: fonts.bodySemi, color: "#c00" }}>Delete market</Text>
-          </Pressable>
-        </View>
+      {rows.map((m, i) => (
+        <MarketCard
+          key={m.id + String(m.sort_order)}
+          m={m}
+          onSave={(n, d) => saveDetails(m, n, d)}
+          onImage={(u) => saveImage(m, u)}
+          onToggle={() => toggle(m)}
+          onDelete={() => deleteMarket(m.id)}
+          onUp={i > 0 ? () => move(i, -1) : undefined}
+          onDown={i < rows.length - 1 ? () => move(i, 1) : undefined}
+        />
       ))}
     </ScrollView>
+  );
+}
+
+function MarketCard({
+  m,
+  onSave,
+  onImage,
+  onToggle,
+  onDelete,
+  onUp,
+  onDown,
+}: {
+  m: any;
+  onSave: (name: string, distance: string) => void;
+  onImage: (url: string | null) => void;
+  onToggle: () => void;
+  onDelete: () => void;
+  onUp?: () => void;
+  onDown?: () => void;
+}) {
+  const [name, setName] = useState(m.name || "");
+  const [distance, setDistance] = useState(m.distance_km != null ? String(m.distance_km) : "");
+  return (
+    <View
+      style={{
+        backgroundColor: colors.adminCard,
+        borderWidth: 1,
+        borderColor: colors.adminCardBorder,
+        borderRadius: radius.md,
+        padding: 12,
+        marginBottom: 10,
+      }}
+    >
+      <Text style={{ color: m.is_active ? ui.red : colors.adminMuted, fontFamily: fonts.bodySemi, marginBottom: 8 }}>
+        {m.is_active ? "Showing on Home" : "Hidden"}
+      </Text>
+      <Text style={label}>Name</Text>
+      <Field value={name} onChangeText={setName} placeholder="Market name" />
+      <Text style={label}>Distance in km</Text>
+      <Field value={distance} onChangeText={setDistance} placeholder="e.g. 2.1" keyboardType="decimal-pad" />
+      <PhotoPicker folder={`markets/${m.id}`} uri={m.image_url} name={m.name} onChange={onImage} />
+      <PrimaryButton label="Save details" onPress={() => onSave(name, distance)} />
+      <View style={{ flexDirection: "row", gap: 18, marginTop: 12 }}>
+        {onUp ? <Link text="Move up" onPress={onUp} /> : null}
+        {onDown ? <Link text="Move down" onPress={onDown} /> : null}
+        <Link text={m.is_active ? "Hide" : "Show"} onPress={onToggle} />
+        <View style={{ flex: 1 }} />
+        <Link text="Delete" danger onPress={onDelete} />
+      </View>
+    </View>
+  );
+}
+
+function Link({ text, onPress, danger }: { text: string; onPress: () => void; danger?: boolean }) {
+  return (
+    <Pressable onPress={onPress} hitSlop={8}>
+      <Text style={{ fontFamily: fonts.bodySemi, color: danger ? "#FF6B6B" : ui.red }}>{text}</Text>
+    </Pressable>
   );
 }

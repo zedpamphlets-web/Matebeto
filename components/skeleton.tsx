@@ -140,6 +140,99 @@ export function AdminOrdersSkeleton() {
   );
 }
 
+/** Account / form screens on the dark green background. */
+export function FormSkeleton() {
+  return (
+    <View style={{ padding: 20 }}>
+      <SkeletonBlock dark width={160} height={26} radius={8} style={{ marginBottom: 10 }} />
+      <SkeletonBlock dark width={200} height={12} style={{ marginBottom: 24 }} />
+      {[0, 1, 2, 3, 4, 5].map((i) => (
+        <SkeletonBlock key={i} dark width="100%" height={54} radius={18} style={{ marginBottom: 10 }} />
+      ))}
+      <SkeletonBlock dark width="100%" height={54} radius={999} style={{ marginTop: 10 }} />
+    </View>
+  );
+}
+
+/** Market list rows (dark). */
+export function ListSkeleton({ rows = 4, dark = true }: { rows?: number; dark?: boolean }) {
+  return (
+    <View style={{ padding: 16 }}>
+      {Array.from({ length: rows }).map((_, i) => (
+        <View
+          key={i}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            padding: 12,
+            marginBottom: 10,
+            borderRadius: 18,
+            backgroundColor: dark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.8)",
+          }}
+        >
+          <SkeletonBlock dark={dark} width={56} height={56} radius={16} />
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <SkeletonBlock dark={dark} width="60%" height={14} style={{ marginBottom: 8 }} />
+            <SkeletonBlock dark={dark} width="35%" height={11} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/** Category tiles + a heading (market page). */
+export function CategoriesSkeleton() {
+  return (
+    <View style={{ padding: 16 }}>
+      <SkeletonBlock dark width={120} height={12} style={{ marginBottom: 10 }} />
+      <SkeletonBlock dark width={200} height={24} style={{ marginBottom: 16 }} />
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+        {[0, 1, 2, 3].map((i) => (
+          <SkeletonBlock key={i} dark width="47%" height={118} radius={18} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** Big photo, title, price, a few lines (meal page). */
+export function DetailSkeleton() {
+  return (
+    <View>
+      <SkeletonBlock dark width="100%" height={240} radius={0} />
+      <View style={{ padding: 20 }}>
+        <SkeletonBlock dark width="65%" height={26} style={{ marginBottom: 12 }} />
+        <SkeletonBlock dark width={90} height={22} style={{ marginBottom: 18 }} />
+        <SkeletonBlock dark width="100%" height={12} style={{ marginBottom: 8 }} />
+        <SkeletonBlock dark width="80%" height={12} style={{ marginBottom: 24 }} />
+        {[0, 1, 2].map((i) => (
+          <SkeletonBlock key={i} dark width="55%" height={16} style={{ marginBottom: 14 }} />
+        ))}
+        <SkeletonBlock dark width="100%" height={56} radius={999} style={{ marginTop: 10 }} />
+      </View>
+    </View>
+  );
+}
+
+/** Rider job / order tracking cards on a light background. */
+export function JobSkeleton() {
+  return (
+    <View style={{ padding: 20 }}>
+      <SkeletonBlock width="100%" height={84} radius={18} style={{ marginBottom: 14 }} />
+      <View style={{ backgroundColor: "#fff", borderRadius: 18, padding: 14, marginBottom: 16 }}>
+        {[0, 1, 2].map((i) => (
+          <View key={i} style={{ marginBottom: 14 }}>
+            <SkeletonBlock width={90} height={13} style={{ marginBottom: 8 }} />
+            <SkeletonBlock width="75%" height={11} />
+          </View>
+        ))}
+      </View>
+      <SkeletonBlock width="100%" height={56} radius={999} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   sectionHead: { marginBottom: 14 },
   chipRow: { flexDirection: "row", gap: 12 },

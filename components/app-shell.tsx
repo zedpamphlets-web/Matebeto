@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, fonts, radius } from "@/lib/theme";
+import { SpinPressable } from "@/components/spin-pressable";
 
 export function DarkScreen({
   children,
@@ -63,15 +64,23 @@ export function GoldButton({
   label,
   onPress,
   disabled,
+  loading,
 }: {
   label: string;
-  onPress: () => void;
+  onPress: () => void | Promise<unknown>;
   disabled?: boolean;
+  loading?: boolean;
 }) {
   return (
-    <Pressable onPress={onPress} disabled={disabled} style={[styles.goldBtn, disabled && { opacity: 0.5 }]}>
+    <SpinPressable
+      onPress={onPress}
+      disabled={disabled}
+      loading={loading}
+      spinnerColor={colors.ink}
+      style={styles.goldBtn}
+    >
       <Text style={styles.goldBtnText}>{label}</Text>
-    </Pressable>
+    </SpinPressable>
   );
 }
 
@@ -91,7 +100,7 @@ export function DarkField({
       value={value}
       onChangeText={onChangeText}
       placeholder={placeholder}
-      placeholderTextColor="#8A8A8A"
+      placeholderTextColor={colors.onGreenMuted}
       keyboardType={keyboardType}
       style={styles.field}
     />
@@ -140,7 +149,7 @@ const styles = StyleSheet.create({
   field: {
     height: 54,
     borderRadius: radius.md,
-    backgroundColor: "#161616",
+    backgroundColor: colors.field,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.12)",
     paddingHorizontal: 16,

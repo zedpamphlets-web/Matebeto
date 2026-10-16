@@ -65,16 +65,22 @@ if (Platform.OS !== "web" && isSupabaseConfigured) {
 export function friendlyAuthError(raw?: string | null) {
   const message = String(raw || "").trim();
   const lower = message.toLowerCase();
-  if (!message || lower.includes("network request failed") || lower.includes("failed to fetch")) {
-    return "Cannot reach the Matebeto server. Check mobile data / Wi‑Fi, confirm the Supabase project is running (not paused), then try again.";
+  if (!message || lower.includes("network request failed") || lower.includes("failed to fetch") || lower.includes("timeout")) {
+    return "No internet connection. Check your data or Wi-Fi and try again.";
   }
   if (lower.includes("unsupported phone") || lower.includes("phone signups are disabled")) {
-    return "Phone login is not enabled on the Supabase project yet. Turn on Authentication → Providers → Phone.";
+    return "Phone login is not available right now. Please try again later.";
   }
-  if (lower.includes("error sending") || lower.includes("sms") || lower.includes("hook")) {
-    return message + " Check Africa's Talking secrets and the Send SMS hook.";
+  if (lower.includes("error sending") || lower.includes("sms") || lower.includes("hook") || lower.includes("502")) {
+    return "We could not send your code. Check the number and try again.";
   }
-  return message;
+  if (lower.includes("expired") || lower.includes("invalid") || lower.includes("token")) {
+    return "That code is not right or has expired. Request a new one.";
+  }
+  if (lower.includes("rate limit") || lower.includes("too many")) {
+    return "Too many tries. Wait a minute and try again.";
+  }
+  return "Something went wrong. Please try again.";
 }
 
 export async function pingSupabase() {

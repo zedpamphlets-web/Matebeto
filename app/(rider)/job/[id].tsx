@@ -1,25 +1,37 @@
-import { useEffect, useState } from "react";
-import { Alert, Text, View, ScrollView } from "react-native";
-import { useLocalSearchParams, router } from "expo-router";
+import { useCallback, useState } from "react";
+import { Alert, Linking, ScrollView, Text, View } from "react-native";
+import { useLocalSearchParams, router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { colors, fonts, radius } from "@/lib/theme";
 import { Field, PrimaryButton } from "@/components/ui";
+import { JobSkeleton } from "@/components/skeleton";
+import { OfflineNotice } from "@/components/offline-notice";
 import { formatKw } from "@/lib/lipila";
 import { startRiderSearch } from "@/lib/orders";
 
-const ACTIVE = ["RIDER_ASSIGNED", "PICKED_UP", "OUT_FOR_DELIVERY", "CUSTOMER_NOT_HOME"];
-
+/**
+ * Rider delivery, exactly as the client described it:
+ *   1. Compare the order number with the vendor's order, then tap "Collected".
+ *   2. Call the customer.
+ *   3. When the food is handed over, enter the customer's OTP. That completes the delivery.
+ * No other steps and no other buttons.
+ */
 export default function Job() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [order, setOrder] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [vendor, setVendor] = useState<any>(null);
   const [otp, setOtp] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
 
-  async function load() {
-    const { data: o } = await supabase.from("orders").select("*").eq("id", id).single();
+  const load = useCallback(async () => {
+    setFailed(false);
+    const { data: o, error } = await supabase.from("orders").select("*").eq("id", id).single();
+    if (error || !o) {
+      setFailed(true);
+      return;
+    }
     setOrder(o);
     const { data: its } = await supabase.from("order_items").select("*").eq("order_id", id);
     setItems(its || []);
@@ -27,102 +39,96 @@ export default function Job() {
       const { data: name } = await supabase.rpc("order_vendor_name", { p_order: id });
       setVendor({ name: name || "Vendor" });
     }
-  }
-
-  useEffect(() => {
-    load();
   }, [id]);
 
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
+
   async function accept(yes: boolean) {
-    setBusy(true);
     const { error } = await supabase.rpc("rider_respond", { p_order: id, p_accept: yes });
-    setBusy(false);
     if (error) return Alert.alert("Could not respond", error.message);
     if (!yes) {
       await startRiderSearch(String(id)).catch(() => null);
       router.back();
       return;
     }
-    load();
+    await load();
   }
 
-  async function pickup() {
-    setBusy(true);
+  async function collected() {
     const { error } = await supabase.rpc("confirm_pickup", { p_order: id });
-    setBusy(false);
-    if (error) return Alert.alert("Pickup", error.message);
-    load();
+    if (error) return Alert.alert("Could not mark collected", error.message);
+    await load();
+  }
+
+  async function callCustomer() {
+    const { data, error } = await supabase.rpc("rider_customer_phone", { p_order: id });
+    const number = String(data || "").trim();
+    if (error || !number) {
+      return Alert.alert("No number found", "We could not get the customer's number. Check your connection and try again.");
+    }
+    const url = `tel:${number.replace(/[^\d+]/g, "")}`;
+    const ok = await Linking.canOpenURL(url).catch(() => false);
+    if (!ok) return Alert.alert("Call the customer", number);
+    await Linking.openURL(url);
   }
 
   async function complete() {
-    setBusy(true);
-    const { data, error } = await supabase.rpc("verify_delivery_otp", { p_order: id, p_code: otp });
-    setBusy(false);
-    if (error) return Alert.alert("OTP", error.message);
+    const code = otp.replace(/\D/g, "");
+    if (code.length < 4) {
+      return Alert.alert("Enter the code", "Ask the customer for their delivery code.");
+    }
+    const { data, error } = await supabase.rpc("verify_delivery_otp", { p_order: id, p_code: code });
+    if (error) return Alert.alert("Could not check the code", error.message);
     if (!data?.ok) {
       if (data?.reason === "LOCKED_AFTER_5" || data?.reason === "LOCKED") {
-        Alert.alert("Too many wrong codes", "This delivery is locked. Matebeto support has been notified and will contact you.");
-        load();
+        Alert.alert("Too many wrong codes", "This delivery is locked. Matebeto support has been told and will contact you.");
+        await load();
         return;
       }
       const left = typeof data?.attempts_left === "number" ? ` You have ${data.attempts_left} tries left.` : "";
-      return Alert.alert("Wrong OTP", `Delivery is not completed. Ask the customer again.${left}`);
+      return Alert.alert("Wrong code", `Ask the customer again.${left}`);
     }
-    Alert.alert("Delivered", `Order #${order.order_number} completed.`);
+    Alert.alert("Delivered", `Order #${order.order_number} is complete.`);
     router.replace("/(rider)");
   }
 
-  async function notHome() {
-    setBusy(true);
-    const { data, error } = await supabase.rpc("customer_not_home", { p_order: id });
-    setBusy(false);
-    if (error) return Alert.alert("Customer not home", error.message);
-    Alert.alert(
-      "Wait for the customer",
-      `Call or message the customer and wait about ${data?.wait_minutes ?? 10} minutes. If they arrive, enter their code. If not, Matebeto support takes over. You cannot complete this order without the code.`
+  if (failed) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.cream, justifyContent: "center" }}>
+        <OfflineNotice onRetry={load} />
+      </View>
     );
-    load();
+  }
+  if (!order) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.cream }}>
+        <JobSkeleton />
+      </View>
+    );
   }
 
-  function reportProblem() {
-    Alert.alert("Can't complete this delivery?", "Matebeto support will be told and may give the order to another rider.", [
-      { text: "Go back", style: "cancel" },
-      {
-        text: "Report problem",
-        style: "destructive",
-        onPress: async () => {
-          setBusy(true);
-          const { error } = await supabase.rpc("rider_report_problem", {
-            p_order: id,
-            p_reason: "Rider could not complete the delivery",
-          });
-          setBusy(false);
-          if (error) return Alert.alert("Could not report", error.message);
-          load();
-        },
-      },
-    ]);
-  }
-
-  if (!order) return <View style={{ flex: 1, backgroundColor: colors.cream }} />;
-
-  const offered = ["SEARCHING_RIDER"].includes(order.status) && !order.rider_id;
-  const canEnterOtp = ["PICKED_UP", "OUT_FOR_DELIVERY", "CUSTOMER_NOT_HOME"].includes(order.status);
+  const offered = order.status === "SEARCHING_RIDER" && !order.rider_id;
+  const toCollect = order.status === "RIDER_ASSIGNED";
+  const delivering = ["PICKED_UP", "OUT_FOR_DELIVERY", "CUSTOMER_NOT_HOME"].includes(order.status);
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-      <View style={{ backgroundColor: colors.customer, borderRadius: 18, padding: 16, marginBottom: 14 }}>
-        <Text style={{ color: "#fff", fontFamily: fonts.bodySemi }}>New Delivery</Text>
-        <Text style={{ color: "#fff", fontFamily: fonts.display, fontSize: 26 }}>Order #{order.order_number}</Text>
+      <View style={{ backgroundColor: colors.brandGreen, borderRadius: 18, padding: 16, marginBottom: 14 }}>
+        <Text style={{ color: colors.gold, fontFamily: fonts.bodySemi }}>Order number</Text>
+        <Text style={{ color: "#fff", fontFamily: fonts.display, fontSize: 34 }}>#{order.order_number}</Text>
       </View>
 
       <View style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 14 }}>
-        <Row icon="storefront" title="Pickup" value={`${vendor?.name || "Vendor"} · confirm #${order.order_number}`} />
-        <Row icon="location" title="Drop-off" value={order.delivery_address?.text || "Customer address"} />
-        <Row icon="bicycle" title="Type" value={order.delivery_type} />
-        <Text style={{ marginTop: 10, fontFamily: fonts.title }}>Items</Text>
+        <Row icon="storefront" title="Collect from" value={vendor?.name || "Vendor"} />
+        <Row icon="location" title="Deliver to" value={order.delivery_address?.text || "Customer address"} />
+        <Row icon="bicycle" title="Delivery" value={order.delivery_type} />
+        <Text style={{ marginTop: 6, fontFamily: fonts.title }}>Items</Text>
         {items.map((it) => (
-          <Text key={it.id} style={{ fontFamily: fonts.body }}>
+          <Text key={it.id} style={{ fontFamily: fonts.body, marginTop: 2 }}>
             {it.quantity} × {it.meal_name}
           </Text>
         ))}
@@ -132,51 +138,41 @@ export default function Job() {
 
       {offered && (
         <>
-          <PrimaryButton label="Accept" color={colors.customer} textColor="#fff" onPress={() => accept(true)} loading={busy} />
+          <PrimaryButton label="Accept" color={colors.rider} textColor="#fff" onPress={() => accept(true)} />
           <View style={{ height: 10 }} />
           <PrimaryButton label="Decline" color="#fff" onPress={() => accept(false)} />
         </>
       )}
 
-      {order.status === "RIDER_ASSIGNED" && (
-        <PrimaryButton label={`Marked Picked Up · #${order.order_number}`} onPress={pickup} loading={busy} />
-      )}
-
-      {canEnterOtp && (
+      {toCollect && (
         <>
-          <Text style={{ fontFamily: fonts.title, marginBottom: 8 }}>Customer OTP</Text>
-          <Field value={otp} onChangeText={setOtp} placeholder="Enter customer OTP" keyboardType="number-pad" />
-          <View style={{ height: 12 }} />
-          <PrimaryButton label="Verify OTP" color={colors.ink} textColor="#fff" onPress={complete} loading={busy} />
-          <Text style={{ color: colors.muted, marginTop: 10, fontFamily: fonts.body }}>
-            There is no force-complete button. The OTP is the only way this order can finish.
+          <Text style={{ fontFamily: fonts.body, color: colors.muted, marginBottom: 10 }}>
+            At the vendor, check that their order number is #{order.order_number}. Then tap Collected.
           </Text>
+          <PrimaryButton label={`Collected · #${order.order_number}`} color={colors.rider} textColor="#fff" onPress={collected} />
         </>
       )}
 
-      {order.status === "OUT_FOR_DELIVERY" && (
-        <View style={{ marginTop: 14 }}>
-          <PrimaryButton label="Customer not home" color="#fff" onPress={notHome} loading={busy} />
-        </View>
-      )}
+      {delivering && (
+        <>
+          <Text style={{ fontFamily: fonts.title, fontSize: 16, marginBottom: 8 }}>1. Call the customer</Text>
+          <PrimaryButton label="Call customer" color={colors.brandGreen} textColor="#fff" onPress={callCustomer} />
 
-      {order.status === "CUSTOMER_NOT_HOME" && (
-        <Text style={{ color: colors.muted, marginTop: 14, fontFamily: fonts.body }}>
-          Waiting for the customer. If they do not arrive, Matebeto support will take over.
-        </Text>
+          <Text style={{ fontFamily: fonts.title, fontSize: 16, marginTop: 22, marginBottom: 4 }}>2. Enter the customer's code</Text>
+          <Text style={{ fontFamily: fonts.body, color: colors.muted, marginBottom: 10 }}>
+            When you hand over the food, the customer gives you their code.
+          </Text>
+          <Field value={otp} onChangeText={(t) => setOtp(t.replace(/\D/g, ""))} placeholder="Customer code" keyboardType="number-pad" />
+          <View style={{ height: 12 }} />
+          <PrimaryButton label="Complete delivery" color={colors.gold} onPress={complete} />
+        </>
       )}
 
       {order.status === "SUPPORT_REQUIRED" && (
         <View style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 14, marginTop: 8 }}>
           <Text style={{ fontFamily: fonts.body }}>
-            Matebeto support is looking at this delivery. Wait for their instructions.
+            Matebeto support is looking at this delivery. Wait for their call.
           </Text>
-        </View>
-      )}
-
-      {ACTIVE.includes(order.status) && (
-        <View style={{ marginTop: 14 }}>
-          <PrimaryButton label="I can't complete this delivery" color="#fff" onPress={reportProblem} loading={busy} />
         </View>
       )}
     </ScrollView>
@@ -186,7 +182,7 @@ export default function Job() {
 function Row({ icon, title, value }: { icon: keyof typeof Ionicons.glyphMap; title: string; value: string }) {
   return (
     <View style={{ flexDirection: "row", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
-      <Ionicons name={icon} size={18} color={colors.customer} style={{ marginTop: 2 }} />
+      <Ionicons name={icon} size={18} color={colors.brandGreen} style={{ marginTop: 2 }} />
       <View style={{ flex: 1 }}>
         <Text style={{ fontFamily: fonts.title }}>{title}</Text>
         <Text style={{ fontFamily: fonts.body, color: colors.muted, textTransform: "capitalize" }}>{value}</Text>

@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   box: {
     borderRadius: 28,
     overflow: "hidden",
-    backgroundColor: "#111",
+    backgroundColor: colors.surface,
     borderWidth: 3,
     borderColor: colors.gold,
   },

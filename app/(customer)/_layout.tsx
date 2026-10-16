@@ -1,57 +1,28 @@
 import { useCallback, useState } from "react";
-import { View } from "react-native";
 import { Tabs, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, fonts } from "@/lib/theme";
+import { fonts, ui } from "@/lib/theme";
 import { loadBasket } from "@/lib/basket";
 
 const TAB_BAR_STYLE = {
-  position: "absolute" as const,
-  left: 12,
-  right: 12,
-  bottom: 10,
-  height: 72,
-  paddingTop: 8,
-  paddingBottom: 8,
-  borderRadius: 24,
-  backgroundColor: "rgba(255,255,255,0.92)",
-  borderTopWidth: 0,
-  borderWidth: 1,
-  borderColor: "rgba(255,255,255,0.75)",
-  shadowColor: "#000",
-  shadowOpacity: 0.15,
-  shadowRadius: 16,
-  shadowOffset: { width: 0, height: 6 },
-  elevation: 12,
+  backgroundColor: "#FFFFFF",
+  borderTopWidth: 1,
+  borderTopColor: ui.line,
+  paddingTop: 6,
+  elevation: 0,
+  shadowOpacity: 0,
 };
 
 const HIDDEN_TAB_BAR = { display: "none" as const };
 
 function TabIcon({
   name,
-  focused,
   color,
 }: {
   name: keyof typeof Ionicons.glyphMap;
-  focused: boolean;
   color: string;
 }) {
-  return (
-    <View
-      style={{
-        width: 46,
-        height: 46,
-        borderRadius: 16,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: focused ? "rgba(244,163,0,0.18)" : "rgba(255,255,255,0.55)",
-        borderWidth: 1,
-        borderColor: focused ? "rgba(244,163,0,0.45)" : "rgba(255,255,255,0.7)",
-      }}
-    >
-      <Ionicons name={name} size={22} color={color} />
-    </View>
-  );
+  return <Ionicons name={name} size={24} color={color} />;
 }
 
 export default function CustomerTabs() {
@@ -67,20 +38,31 @@ export default function CustomerTabs() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.gold,
-        tabBarInactiveTintColor: "#6B6B6B",
+        tabBarActiveTintColor: ui.red,
+        tabBarInactiveTintColor: ui.sub,
         tabBarLabelStyle: { fontFamily: fonts.bodySemi, fontSize: 11, marginTop: 2 },
         tabBarStyle: TAB_BAR_STYLE,
+        sceneStyle: { backgroundColor: ui.bg },
       }}
     >
-      {/* Only these three appear in the bottom bar */}
+      {/* Bottom bar: Home, Orders, Basket, Profile */}
       <Tabs.Screen
         name="index"
         options={{
           title: "Home",
           tabBarLabel: "Home",
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon name={focused ? "home" : "home-outline"} focused={focused} color={color} />
+            <TabIcon name={focused ? "home" : "home-outline"} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="orders"
+        options={{
+          title: "Orders",
+          tabBarLabel: "Orders",
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name={focused ? "clipboard" : "clipboard-outline"} color={color} />
           ),
         }}
       />
@@ -91,28 +73,29 @@ export default function CustomerTabs() {
           tabBarLabel: "Basket",
           tabBarBadge: count || undefined,
           tabBarBadgeStyle: {
-            backgroundColor: colors.gold,
-            color: colors.ink,
+            backgroundColor: ui.red,
+            color: "#fff",
             fontFamily: fonts.bodySemi,
           },
+          // the basket screen has its own back arrow, as in the approved layout
+          tabBarStyle: HIDDEN_TAB_BAR,
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon name={focused ? "basket" : "basket-outline"} focused={focused} color={color} />
+            <TabIcon name={focused ? "bag-handle" : "bag-handle-outline"} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="orders"
+        name="menu"
         options={{
-          title: "Orders",
-          tabBarLabel: "Orders",
+          title: "Profile",
+          tabBarLabel: "Profile",
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon name={focused ? "receipt" : "receipt-outline"} focused={focused} color={color} />
+            <TabIcon name={focused ? "person" : "person-outline"} color={color} />
           ),
         }}
       />
 
       {/* Secondary screens: no tab icon + hide bottom bar */}
-      <Tabs.Screen name="menu" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
       <Tabs.Screen name="markets" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
       <Tabs.Screen name="settings" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
       <Tabs.Screen name="market/[id]" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />

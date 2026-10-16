@@ -8,6 +8,7 @@ import { Pacifico_400Regular } from "@expo-google-fonts/pacifico";
 import { PlayfairDisplay_400Regular_Italic } from "@expo-google-fonts/playfair-display";
 import * as SplashScreen from "expo-splash-screen";
 import { BrandSplash } from "@/components/brand-splash";
+import { colors } from "@/lib/theme";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -35,18 +36,19 @@ export default function Root() {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: "#000" },
+          contentStyle: { backgroundColor: colors.brandGreen },
           animation: "fade",
         }}
       >
         <Stack.Screen name="index" />
+        <Stack.Screen name="finding" options={{ gestureEnabled: false, animation: "fade" }} />
         <Stack.Screen name="auth/phone" />
         <Stack.Screen name="auth/otp" />
-        <Stack.Screen name="auth/rider-apply" options={{ headerShown: false, contentStyle: { backgroundColor: "#000" } }} />
-        <Stack.Screen name="(customer)" />
+        <Stack.Screen name="auth/rider-apply" options={{ headerShown: false, contentStyle: { backgroundColor: colors.brandGreen } }} />
+        <Stack.Screen name="(customer)" options={{ contentStyle: { backgroundColor: "#FFFFFF" } }} />
         <Stack.Screen name="(rider)" />
-        <Stack.Screen name="admin" />
-        <Stack.Screen name="payment/[id]" options={{ headerShown: false, gestureEnabled: false, contentStyle: { backgroundColor: "#000" } }} />
+        <Stack.Screen name="admin" options={{ contentStyle: { backgroundColor: "#FFFFFF" } }} />
+        <Stack.Screen name="payment/[id]" options={{ headerShown: false, gestureEnabled: false, contentStyle: { backgroundColor: colors.brandGreen } }} />
         <Stack.Screen
           name="order/[id]"
           options={{

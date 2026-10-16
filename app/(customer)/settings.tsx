@@ -1,78 +1,182 @@
-import { useEffect, useState } from "react";
-import { Alert, Text, View } from "react-native";
-import { router } from "expo-router";
+import { useCallback, useState } from "react";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { router, useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { AppHeader, DarkField, DarkScreen, GoldButton } from "@/components/app-shell";
-import { supabase } from "@/lib/supabase";
-import { currentProfile, signOutApp } from "@/lib/session";
-import { colors, fonts } from "@/lib/theme";
+import { FormSkeleton } from "@/components/skeleton";
+import { SpinPressable } from "@/components/spin-pressable";
+import { LOGIN_ROUTE, currentProfile, signOutApp } from "@/lib/session";
+import { EMPTY_ACCOUNT, loadAccount, saveAccount, type AccountDetails } from "@/lib/profile";
+import { LIPILA_PROVIDERS } from "@/lib/lipila";
+import { colors, fonts, radius } from "@/lib/theme";
 
 export default function Settings() {
-  const [name, setName] = useState("");
-  const [address, setAddress] = useState("");
-  const [phone, setPhone] = useState("");
+  const [form, setForm] = useState<AccountDetails>(EMPTY_ACCOUNT);
+  const [loginPhone, setLoginPhone] = useState("");
   const [rider, setRider] = useState<any>(null);
   const [admin, setAdmin] = useState(false);
-  const [preview, setPreview] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [dirty, setDirty] = useState(false);
+  const [savedNote, setSavedNote] = useState("");
 
-  useEffect(() => {
-    currentProfile().then(({ user, profile, rider, admin, preview }) => {
-      setName(profile?.full_name || "");
-      setAddress(profile?.address_text || "");
-      setPhone(String(user?.phone || profile?.phone || ""));
-      setRider(rider);
-      setAdmin(!!admin);
-      setPreview(!!preview);
-    });
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      (async () => {
+        const [{ details }, session] = await Promise.all([loadAccount(), currentProfile()]);
+        if (!alive) return;
+        setForm(details);
+        setLoginPhone(String(session.user?.phone || session.profile?.phone || ""));
+        setRider(session.rider);
+        setAdmin(!!session.admin);
+        setLoading(false);
+      })();
+      return () => {
+        alive = false;
+      };
+    }, [])
+  );
+
+  function set<K extends keyof AccountDetails>(key: K, value: AccountDetails[K]) {
+    setForm((f) => ({ ...f, [key]: value }));
+    setDirty(true);
+    setSavedNote("");
+  }
 
   async function save() {
-    if (preview) {
-      Alert.alert("Saved", "Name and address kept on this device for preview.");
-      return;
+    try {
+      const { savedOnServer } = await saveAccount(form);
+      setDirty(false);
+      setSavedNote(savedOnServer ? "Saved to your account" : "Saved on this phone");
+    } catch {
+      setSavedNote("");
+      Alert.alert("Not saved yet", "Your details are kept on this phone. Connect to the internet and tap Save again.");
     }
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) return;
-    const { error } = await supabase.from("profiles").update({ full_name: name, address_text: address }).eq("user_id", data.user.id);
-    if (error) Alert.alert("Save failed", error.message);
-    else Alert.alert("Saved");
+  }
+
+  async function logout() {
+    await signOutApp();
+    router.replace(LOGIN_ROUTE);
   }
 
   return (
     <DarkScreen>
       <AppHeader title="Account" onMenu={() => router.push("/(customer)/menu")} />
-      <View style={{ padding: 20 }}>
-        <Text style={{ color: "#fff", fontFamily: fonts.display, fontSize: 28 }}>Account</Text>
-        {phone ? (
-          <Text style={{ color: "#8A8A8A", fontFamily: fonts.body, marginTop: 6, marginBottom: 16 }}>{phone}</Text>
-        ) : (
-          <View style={{ height: 16 }} />
-        )}
-        <DarkField value={name} onChangeText={setName} placeholder="Full name" />
-        <DarkField value={address} onChangeText={setAddress} placeholder="Default address" />
-        <GoldButton label="Save" onPress={save} />
-        <View style={{ height: 20 }} />
-        {rider?.status === "APPROVED" && (
-          <GoldButton label="Open rider mode" onPress={() => router.push("/(rider)")} />
-        )}
-        {rider?.status === "PENDING" && (
-          <Text style={{ color: colors.gold, fontFamily: fonts.body, marginBottom: 12 }}>
-            Rider application is pending review.
-          </Text>
-        )}
-        {!rider && (
-          <GoldButton label="Apply to become a rider" onPress={() => router.push("/auth/rider-apply")} />
-        )}
-        <View style={{ height: 12 }} />
-        {admin && <GoldButton label="Admin" onPress={() => router.push("/admin")} />}
-        <View style={{ height: 12 }} />
-        <GoldButton
-          label="Log out"
-          onPress={async () => {
-            await signOutApp();
-            router.replace("/");
-          }}
-        />
-      </View>
+      {loading ? (
+        <FormSkeleton />
+      ) : (
+        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
+          <Text style={{ color: "#fff", fontFamily: fonts.display, fontSize: 28 }}>Your account</Text>
+          {loginPhone ? (
+            <Text style={{ color: colors.onGreenMuted, fontFamily: fonts.body, marginTop: 4, marginBottom: 18 }}>
+              Logged in with {loginPhone}
+            </Text>
+          ) : (
+            <View style={{ height: 18 }} />
+          )}
+
+          <Section title="About you" />
+          <DarkField value={form.full_name} onChangeText={(t) => set("full_name", t)} placeholder="Your name" />
+          <DarkField
+            value={form.contact_phone}
+            onChangeText={(t) => set("contact_phone", t)}
+            placeholder="Phone number the rider can call"
+            keyboardType="phone-pad"
+          />
+
+          <Section title="Delivery location" />
+          <DarkField value={form.location_area} onChangeText={(t) => set("location_area", t)} placeholder="Area, for example Chelston" />
+          <DarkField value={form.plot_number} onChangeText={(t) => set("plot_number", t)} placeholder="Plot number" />
+          <DarkField value={form.address_text} onChangeText={(t) => set("address_text", t)} placeholder="Street or landmark" />
+          <DarkField value={form.address_notes} onChangeText={(t) => set("address_notes", t)} placeholder="Notes for the rider (optional)" />
+
+          <Section title="Payment method" />
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
+            {LIPILA_PROVIDERS.map((p) => {
+              const on = form.payment_provider === p.id;
+              return (
+                <Pressable
+                  key={p.id}
+                  onPress={() => set("payment_provider", p.id)}
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 11,
+                    borderRadius: radius.sm,
+                    backgroundColor: on ? colors.gold : colors.surface,
+                    borderWidth: 1.5,
+                    borderColor: on ? colors.gold : "rgba(255,255,255,0.14)",
+                  }}
+                >
+                  <Text style={{ fontFamily: fonts.bodySemi, color: on ? colors.ink : "#fff" }}>{p.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <DarkField
+            value={form.payment_number}
+            onChangeText={(t) => set("payment_number", t)}
+            placeholder="Mobile money number"
+            keyboardType="phone-pad"
+          />
+
+          <View style={{ height: 6 }} />
+          <GoldButton label={dirty ? "Save changes" : "Save"} onPress={save} />
+          {savedNote ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10, justifyContent: "center" }}>
+              <Ionicons name="checkmark-circle" size={18} color={colors.customer} />
+              <Text style={{ color: colors.onGreenMuted, fontFamily: fonts.bodySemi }}>{savedNote}</Text>
+            </View>
+          ) : null}
+
+          <View style={{ height: 26 }} />
+          {rider?.status === "APPROVED" && (
+            <>
+              <GoldButton label="Open rider mode" onPress={() => router.push("/(rider)")} />
+              <View style={{ height: 12 }} />
+            </>
+          )}
+          {rider?.status === "PENDING" && (
+            <Text style={{ color: colors.gold, fontFamily: fonts.body, marginBottom: 12 }}>
+              Your rider application is being reviewed.
+            </Text>
+          )}
+          {!rider && (
+            <>
+              <GoldButton label="Apply to become a rider" onPress={() => router.push("/auth/rider-apply")} />
+              <View style={{ height: 12 }} />
+            </>
+          )}
+          {admin && (
+            <>
+              <GoldButton label="Admin" onPress={() => router.push("/admin")} />
+              <View style={{ height: 12 }} />
+            </>
+          )}
+
+          <SpinPressable
+            onPress={logout}
+            spinnerColor="#fff"
+            style={{
+              height: 54,
+              borderRadius: radius.pill,
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1.5,
+              borderColor: "rgba(255,255,255,0.35)",
+            }}
+          >
+            <Text style={{ color: "#fff", fontFamily: fonts.title, fontSize: 16 }}>Log out</Text>
+          </SpinPressable>
+        </ScrollView>
+      )}
     </DarkScreen>
+  );
+}
+
+function Section({ title }: { title: string }) {
+  return (
+    <Text style={{ color: colors.gold, fontFamily: fonts.title, fontSize: 15, marginTop: 8, marginBottom: 10 }}>
+      {title}
+    </Text>
   );
 }

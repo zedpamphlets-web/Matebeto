@@ -14,12 +14,15 @@ export async function notifyVendor(orderId: string) {
   const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/notify-vendor`;
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
   try {
-    await fetch(url, {
+    const r = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}`, apikey: key },
       body: JSON.stringify({ orderId }),
     });
+    const body = await r.text().catch(() => "");
+    console.log("notifyVendor ->", r.status, body.slice(0, 300));
   } catch (_e) {
+    console.error("notifyVendor fetch failed", String(_e));
     // retried by run-timeouts
   }
 }

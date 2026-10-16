@@ -171,7 +171,7 @@ export default function RiderApply() {
                 padding: 14,
                 borderWidth: 2,
                 borderColor: vehicle === v ? colors.gold : "rgba(255,255,255,0.14)",
-                backgroundColor: vehicle === v ? "rgba(244,163,0,0.12)" : "#161616",
+                backgroundColor: vehicle === v ? "rgba(244,163,0,0.12)" : colors.surface,
               }}
             >
               <Text
@@ -221,11 +221,7 @@ export default function RiderApply() {
         />
 
         <View style={{ height: 12 }} />
-        <GoldButton
-          label={loading ? "Submitting…" : "Submit for review"}
-          onPress={submit}
-          disabled={loading}
-        />
+        <GoldButton label="Submit for review" onPress={submit} loading={loading} />
       </ScrollView>
     </DarkScreen>
   );

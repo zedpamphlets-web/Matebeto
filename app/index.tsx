@@ -8,7 +8,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandSplash } from "@/components/brand-splash";
 import { colors, fonts } from "@/lib/theme";
 import { currentProfile } from "@/lib/session";
+import { supabase } from "@/lib/supabase";
 import { isOnline, withTimeout } from "@/lib/network";
+import { SpinPressable } from "@/components/spin-pressable";
 
 export default function Welcome() {
   const [ready, setReady] = useState(false);
@@ -21,6 +23,13 @@ export default function Welcome() {
       const online = await isOnline();
       if (cancelled) return;
       if (!online) {
+        // Someone who is already logged in can still open the app and see the menu saved on the phone
+        const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+        if (cancelled) return;
+        if (data?.session) {
+          router.replace({ pathname: "/finding", params: { next: "/(customer)" } });
+          return;
+        }
         setOffline(true);
         setReady(true);
         return;
@@ -31,7 +40,7 @@ export default function Welcome() {
           if (cancelled) return;
           if (admin) router.replace("/admin");
           else if (rider?.status === "APPROVED") router.replace("/(rider)");
-          else if (preview || user) router.replace("/(customer)");
+          else if (preview || user) router.replace({ pathname: "/finding", params: { next: "/(customer)" } });
           else setReady(true);
         })
         .catch(async () => {
@@ -60,7 +69,8 @@ export default function Welcome() {
       <View style={{ flex: 1 }}>
         <BrandSplash offline />
         <View style={styles.retryWrap}>
-          <Pressable
+          <SpinPressable
+            spinnerColor={colors.ink}
             onPress={async () => {
               setReady(false);
               setOffline(false);
@@ -74,7 +84,7 @@ export default function Welcome() {
                 const { user, admin, rider, preview } = await withTimeout(currentProfile());
                 if (admin) router.replace("/admin");
                 else if (rider?.status === "APPROVED") router.replace("/(rider)");
-                else if (preview || user) router.replace("/(customer)");
+                else if (preview || user) router.replace({ pathname: "/finding", params: { next: "/(customer)" } });
                 else setReady(true);
               } catch {
                 const stillOnline = await isOnline();
@@ -87,7 +97,7 @@ export default function Welcome() {
             style={styles.retry}
           >
             <Text style={styles.retryText}>Try again</Text>
-          </Pressable>
+          </SpinPressable>
         </View>
       </View>
     );
@@ -110,17 +120,19 @@ export default function Welcome() {
           />
           <Text style={styles.tag}>Let's Eat.</Text>
           <Text style={styles.one}>One App.</Text>
-          <Text style={styles.two}>Two Ways to Serve You.</Text>
+          <Text style={styles.two}>Two ways to use it.</Text>
         </View>
         <View style={styles.actions}>
           <RoleButton
-            color="#22C55E"
+            color={colors.gold}
+            textColor={colors.brandGreen}
             icon="person"
             label="I'm a Customer"
             onPress={() => router.push({ pathname: "/auth/phone", params: { mode: "customer" } })}
           />
           <RoleButton
-            color="#F97316"
+            color={colors.rider}
+            textColor="#fff"
             icon="bicycle"
             label="I'm a Rider"
             onPress={() => router.push({ pathname: "/auth/phone", params: { mode: "rider" } })}
@@ -133,22 +145,24 @@ export default function Welcome() {
 
 function RoleButton({
   color,
+  textColor,
   icon,
   label,
   onPress,
 }: {
   color: string;
+  textColor: string;
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
 }) {
   return (
-    <Pressable onPress={onPress} style={[styles.role, { backgroundColor: color }]}>
+    <SpinPressable onPress={onPress} spinnerColor={textColor} style={[styles.role, { backgroundColor: color }]}>
       <View style={styles.roleIcon}>
-        <Ionicons name={icon} size={26} color="#fff" />
+        <Ionicons name={icon} size={26} color={textColor} />
       </View>
-      <Text style={styles.roleLabel}>{label}</Text>
-    </Pressable>
+      <Text style={[styles.roleLabel, { color: textColor }]}>{label}</Text>
+    </SpinPressable>
   );
 }
 
@@ -162,8 +176,11 @@ const styles = StyleSheet.create({
   },
   retry: {
     backgroundColor: colors.gold,
+    minWidth: 150,
+    height: 52,
+    alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: 28,
-    paddingVertical: 14,
     borderRadius: 28,
   },
   retryText: {
@@ -171,18 +188,18 @@ const styles = StyleSheet.create({
     fontFamily: fonts.title,
     fontSize: 15,
   },
-  root: { flex: 1, backgroundColor: "#000" },
+  root: { flex: 1, backgroundColor: colors.brandGreen },
   safe: { flex: 1, justifyContent: "space-between", paddingHorizontal: 22, paddingBottom: 28 },
   copy: { paddingTop: 40, alignItems: "center" },
   tag: {
     marginTop: 8,
-    color: "#F4A300",
-    fontFamily: fonts.italic,
-    fontSize: 22,
+    color: colors.gold,
+    fontFamily: fonts.title,
+    fontSize: 20,
   },
   one: {
     marginTop: 2,
-    color: "#F4A300",
+    color: colors.gold,
     fontFamily: fonts.display,
     fontSize: 40,
     letterSpacing: -0.5,

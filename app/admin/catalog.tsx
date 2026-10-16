@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { supabase } from "@/lib/supabase";
-import { colors, fonts, radius } from "@/lib/theme";
-import { Field, PrimaryButton } from "@/components/ui";
+import { colors, fonts, radius, ui } from "@/lib/theme";
+import { Field } from "@/components/ui";
+import { AdminButton as PrimaryButton } from "@/components/admin-ui";
 import { PhotoPicker } from "@/components/photo-picker";
 import { formatKw } from "@/lib/lipila";
 
@@ -15,6 +16,7 @@ export default function Catalog() {
   const [desc, setDesc] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const [sideList, setSideList] = useState("");
+  const [prep, setPrep] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [catName, setCatName] = useState("");
   const [catImage, setCatImage] = useState<string | null>(null);
@@ -53,6 +55,30 @@ export default function Catalog() {
     load();
   }
 
+  async function moveCategory(idx: number, dir: -1 | 1) {
+    const j = idx + dir;
+    if (j < 0 || j >= categories.length) return;
+    const next = [...categories];
+    [next[idx], next[j]] = [next[j], next[idx]];
+    await Promise.all(next.map((c, i) => supabase.from("categories").update({ sort_order: i + 1 }).eq("id", c.id)));
+    load();
+  }
+
+  function deleteCategory(c: any) {
+    Alert.alert("Delete category", `Remove ${c.name}? Its meals stay but lose their category.`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          const { error } = await supabase.from("categories").delete().eq("id", c.id);
+          if (error) Alert.alert("Category", error.message);
+          load();
+        },
+      },
+    ]);
+  }
+
   async function add() {
     if (!name.trim() || !price) return Alert.alert("Meal", "Name and price are required.");
     const { data, error } = await supabase
@@ -65,6 +91,7 @@ export default function Catalog() {
         category_id: categoryId || null,
         is_available: true,
         is_featured: false,
+        ...(prep.trim() ? { prep_time: prep.trim() } : {}),
       })
       .select("*")
       .single();
@@ -81,6 +108,7 @@ export default function Catalog() {
     setDesc("");
     setImage(null);
     setSideList("");
+    setPrep("");
     load();
   }
 
@@ -110,25 +138,34 @@ export default function Catalog() {
       <PhotoPicker folder="categories" uri={catImage} name={catName || "Category"} onChange={setCatImage} height={110} />
       <PrimaryButton label="Save category" onPress={addCategory} />
       <View style={{ height: 12 }} />
-      {categories.map((c) => (
+      <Text style={{ color: colors.adminMuted, fontFamily: fonts.body, marginTop: 4, marginBottom: 8 }}>
+        These are the food tiles customers see in each market, in this order.
+      </Text>
+      {categories.map((c, i) => (
         <View key={c.id} style={{ backgroundColor: colors.adminCard, borderWidth: 1, borderColor: colors.adminCardBorder, borderRadius: radius.md, padding: 12, marginBottom: 8 }}>
-          <Text style={{ fontFamily: fonts.title, marginBottom: 8 }}>{c.name}</Text>
+          <Text style={{ fontFamily: fonts.title, marginBottom: 8, color: colors.adminText }}>{c.name}</Text>
           <PhotoPicker folder={`categories/${c.id}`} uri={c.image_url} name={c.name} onChange={(url) => saveCategoryPhoto(c, url)} height={110} />
+          <View style={{ flexDirection: "row", gap: 18 }}>
+            {i > 0 ? <Pressable onPress={() => moveCategory(i, -1)}><Text style={{ fontFamily: fonts.bodySemi, color: ui.red }}>Move up</Text></Pressable> : null}
+            {i < categories.length - 1 ? <Pressable onPress={() => moveCategory(i, 1)}><Text style={{ fontFamily: fonts.bodySemi, color: ui.red }}>Move down</Text></Pressable> : null}
+            <View style={{ flex: 1 }} />
+            <Pressable onPress={() => deleteCategory(c)}><Text style={{ fontFamily: fonts.bodySemi, color: "#D32F2F" }}>Delete</Text></Pressable>
+          </View>
         </View>
       ))}
 
-      <Text style={{ fontFamily: fonts.title, fontSize: 18, marginTop: 10 }}>Add meal</Text>
+      <Text style={{ fontFamily: fonts.title, fontSize: 18, marginTop: 10, color: colors.adminText }}>Add meal</Text>
       <Text style={{ color: colors.adminMuted, fontFamily: fonts.body, marginBottom: 10 }}>
         Real meal name, Kwacha price, and a photo from your phone. Sides are included in the price.
       </Text>
-      <Text style={{ fontFamily: fonts.bodySemi, marginBottom: 6 }}>Category</Text>
+      <Text style={{ fontFamily: fonts.bodySemi, marginBottom: 6, color: colors.adminText }}>Category</Text>
       {categories.map((c) => (
         <Pressable key={c.id} onPress={() => setCategoryId(c.id)}>
           <Text
             style={{
               fontFamily: categoryId === c.id ? fonts.title : fonts.body,
               marginBottom: 4,
-              color: categoryId === c.id ? colors.customerDeep : colors.ink,
+              color: categoryId === c.id ? ui.red : colors.ink,
             }}
           >
             {c.name}
@@ -144,6 +181,8 @@ export default function Catalog() {
       <View style={{ height: 8 }} />
       <PhotoPicker folder="meals" uri={image} name={name || "Meal"} onChange={setImage} />
       <Field value={sideList} onChangeText={setSideList} placeholder="Included sides, comma separated" />
+      <View style={{ height: 8 }} />
+      <Field value={prep} onChangeText={setPrep} placeholder="Preparation time (optional, e.g. 15 – 20 minutes)" />
       <View style={{ height: 10 }} />
       <PrimaryButton label="Save meal" onPress={add} />
       <View style={{ height: 16 }} />
@@ -158,7 +197,7 @@ export default function Catalog() {
           </Text>
           <PhotoPicker folder={`meals/${m.id}`} uri={m.image_url} name={m.name} onChange={(url) => saveMealPhoto(m, url)} height={110} />
           <Pressable onPress={() => toggle(m, "is_featured")} style={{ marginTop: 4 }}>
-            <Text style={{ fontFamily: fonts.bodySemi, color: colors.goldDeep }}>
+            <Text style={{ fontFamily: fonts.bodySemi, color: ui.red }}>
               {m.is_featured ? "Featured on home" : "Not featured"}
             </Text>
           </Pressable>

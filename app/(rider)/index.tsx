@@ -2,18 +2,23 @@ import { useCallback, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { supabase } from "@/lib/supabase";
-import { currentProfile } from "@/lib/session";
+import { LOGIN_ROUTE, currentProfile, signOutApp } from "@/lib/session";
+import { ListSkeleton } from "@/components/skeleton";
 import { colors, fonts, radius } from "@/lib/theme";
 import { AppHeader, DarkScreen, GoldButton } from "@/components/app-shell";
 
 export default function RiderHome() {
   const [rider, setRider] = useState<any>(null);
   const [offers, setOffers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   async function load() {
     const { rider } = await currentProfile();
     setRider(rider);
-    if (!rider || rider.status !== "APPROVED") return;
+    if (!rider || rider.status !== "APPROVED") {
+      setLoading(false);
+      return;
+    }
     const { data } = await supabase
       .from("rider_offers")
       .select("*, orders(*)")
@@ -21,6 +26,7 @@ export default function RiderHome() {
       .eq("status", "OFFERED")
       .order("created_at", { ascending: false });
     setOffers(data || []);
+    setLoading(false);
   }
 
   useFocusEffect(
@@ -36,13 +42,22 @@ export default function RiderHome() {
     load();
   }
 
+  if (loading) {
+    return (
+      <DarkScreen>
+        <AppHeader title="Jobs" />
+        <ListSkeleton rows={3} />
+      </DarkScreen>
+    );
+  }
+
   if (!rider) {
     return (
       <DarkScreen>
         <AppHeader title="Rider mode" />
         <View style={{ padding: 24 }}>
           <Text style={{ fontSize: 22, fontFamily: fonts.display, color: "#fff" }}>Apply first</Text>
-          <Text style={{ color: "#8A8A8A", marginTop: 8, fontFamily: fonts.body }}>
+          <Text style={{ color: colors.onGreenMuted, marginTop: 8, fontFamily: fonts.body }}>
             Fill the rider application after OTP. Jobs open only after admin approval.
           </Text>
           <View style={{ height: 16 }} />
@@ -58,7 +73,7 @@ export default function RiderHome() {
         <AppHeader title="Rider mode" />
         <View style={{ padding: 24 }}>
           <Text style={{ fontSize: 22, fontFamily: fonts.display, color: "#fff" }}>Status: {rider.status}</Text>
-          <Text style={{ color: "#8A8A8A", marginTop: 8, fontFamily: fonts.body }}>
+          <Text style={{ color: colors.onGreenMuted, marginTop: 8, fontFamily: fonts.body }}>
             Only approved riders receive jobs. You can keep ordering food as a customer.
           </Text>
           <View style={{ height: 16 }} />
@@ -73,7 +88,7 @@ export default function RiderHome() {
       <AppHeader title="Jobs" />
       <ScrollView contentContainerStyle={{ padding: 20 }}>
         <Text style={{ fontSize: 22, fontFamily: fonts.display, color: "#fff" }}>{rider.full_name}</Text>
-        <Text style={{ color: "#8A8A8A", textTransform: "capitalize", fontFamily: fonts.body }}>{rider.vehicle_type}</Text>
+        <Text style={{ color: colors.onGreenMuted, textTransform: "capitalize", fontFamily: fonts.body }}>{rider.vehicle_type}</Text>
         <View style={{ height: 14 }} />
         <GoldButton label={rider.is_online ? "Go offline" : "Go online"} onPress={toggleOnline} />
         {rider.current_order_id && (
@@ -83,13 +98,13 @@ export default function RiderHome() {
           </>
         )}
         <Text style={{ marginTop: 22, fontFamily: fonts.title, color: "#fff" }}>Delivery requests</Text>
-        {offers.length === 0 && <Text style={{ color: "#8A8A8A", marginTop: 8, fontFamily: fonts.body }}>No jobs right now.</Text>}
+        {offers.length === 0 && <Text style={{ color: colors.onGreenMuted, marginTop: 8, fontFamily: fonts.body }}>No jobs right now.</Text>}
         {offers.map((off) => (
           <Pressable
             key={off.id}
             onPress={() => router.push(`/(rider)/job/${off.orders.id}`)}
             style={{
-              backgroundColor: "#141414",
+              backgroundColor: colors.surface,
               borderRadius: radius.md,
               padding: 16,
               marginTop: 10,
@@ -98,13 +113,21 @@ export default function RiderHome() {
             }}
           >
             <Text style={{ fontFamily: fonts.title, color: "#fff" }}>Order #{off.orders.order_number}</Text>
-            <Text style={{ color: "#8A8A8A", fontFamily: fonts.body }}>
+            <Text style={{ color: colors.onGreenMuted, fontFamily: fonts.body }}>
               {off.orders.delivery_type} · {off.orders.delivery_address?.text}
             </Text>
           </Pressable>
         ))}
         <View style={{ height: 20 }} />
         <GoldButton label="Order food as customer" onPress={() => router.push("/(customer)")} />
+        <View style={{ height: 12 }} />
+        <GoldButton
+          label="Log out"
+          onPress={async () => {
+            await signOutApp();
+            router.replace(LOGIN_ROUTE);
+          }}
+        />
       </ScrollView>
     </DarkScreen>
   );

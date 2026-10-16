@@ -9,104 +9,84 @@ import {
   Text,
   View,
 } from "react-native";
-import { router, useFocusEffect } from "expo-router";
+import { router } from "expo-router";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { BrandMark } from "@/components/brand";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Photo } from "@/components/photo";
 import { EmptyState } from "@/components/empty-state";
 import { HomeSkeleton } from "@/components/skeleton";
 import { OfflineNotice } from "@/components/offline-notice";
+import { OfflineBanner } from "@/components/offline-banner";
+import { MkScreen } from "@/components/mk";
 import { supabase } from "@/lib/supabase";
-import { colors, fonts } from "@/lib/theme";
+import { fonts, ui } from "@/lib/theme";
 import { formatKw } from "@/lib/lipila";
-import { loadBasket } from "@/lib/basket";
-import { isOnline, withTimeout } from "@/lib/network";
+import { useCachedLoad } from "@/lib/offline-cache";
+import { homeBannerFood, marketFallback } from "@/lib/mockup-images";
 
 const W = Dimensions.get("window").width;
-const BANNER_W = W - 28;
+const PAD = 16;
+const GAP = 12;
+const BANNER_W = W - PAD * 2;
+const CARD_W = (W - PAD * 2 - GAP) / 2;
+const DEFAULT_TAGLINE = "Good Food. Closer to You.";
+const DEFAULT_CITY = "Lusaka";
+const DEFAULT_MARKETS_TITLE = "Food Markets Near You";
+const DEFAULT_PROMO_TITLE = "Great food. Great places.";
+const DEFAULT_BANNER = {
+  title: "Delicious\nMeals from\nYour Favourite\nFood Markets",
+  subtitle: "Fresh. Tasty. Local.",
+};
 
 export default function Home() {
-  const [markets, setMarkets] = useState<any[]>([]);
-  const [featured, setFeatured] = useState<any[]>([]);
-  const [banners, setBanners] = useState<any[]>([]);
-  const [count, setCount] = useState(0);
   const [bannerIndex, setBannerIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [offline, setOffline] = useState(false);
   const bannerRef = useRef<ScrollView>(null);
 
-  const load = useCallback(() => {
-    setLoading(true);
-    setOffline(false);
-    withTimeout(
-      Promise.all([
-        supabase
-          .from("markets")
-          .select("*")
-          .eq("is_active", true)
-          .order("sort_order")
-          .then(({ data }) => setMarkets(data || [])),
-        supabase
-          .from("meals")
-          .select("*")
-          .eq("is_featured", true)
-          .eq("is_available", true)
-          .then(({ data }) => setFeatured(data || [])),
-        supabase
-          .from("banners")
-          .select("*")
-          .eq("is_active", true)
-          .order("sort_order")
-          .then(({ data }) => setBanners(data || [])),
-      ])
-    )
-      .then(() => {
-        setLoading(false);
-        setOffline(false);
-      })
-      .catch(async () => {
-        const online = await isOnline();
-        if (!online) {
-          // Keep skeleton forever until internet returns
-          setOffline(true);
-          setLoading(true);
-          setTimeout(load, 3000);
-        } else {
-          setLoading(false);
-        }
-      });
-    loadBasket().then((b) => setCount(b.items.reduce((n, i) => n + i.quantity, 0)));
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
+  // Each list keeps a saved copy on the phone, so with no internet the menu still shows.
+  const marketsQ = useCachedLoad<any[]>("home.markets", () =>
+    supabase.from("markets").select("*").eq("is_active", true).order("sort_order")
+  );
+  const bannersQ = useCachedLoad<any[]>("home.banners", () =>
+    supabase.from("banners").select("*").eq("is_active", true).order("sort_order")
   );
 
-  // Banners from admin (text + amount), auto-swap every 10s
-  const slides = banners.length
+  const settingsQ = useCachedLoad<any>("home.settings", () =>
+    supabase.from("settings").select("*").eq("id", 1).maybeSingle()
+  );
+
+  const markets = marketsQ.data || [];
+  const banners = bannersQ.data || [];
+  const cfg = settingsQ.data || {};
+  const tagline: string = cfg.home_tagline || DEFAULT_TAGLINE;
+  const city: string = cfg.home_city || DEFAULT_CITY;
+  const marketsTitle: string = cfg.home_markets_title || DEFAULT_MARKETS_TITLE;
+  const promoOn = cfg.promo_enabled !== false;
+  const promoTitle: string = cfg.promo_title || DEFAULT_PROMO_TITLE;
+  const promoSub: string = cfg.promo_subtitle || `Your favourite food markets in ${city}.`;
+  const loading = marketsQ.loading;
+  const offline = marketsQ.stale; // showing the saved copy
+  const failed = marketsQ.failed; // nothing saved and no internet
+
+  const retry = useCallback(() => {
+    marketsQ.reload();
+    bannersQ.reload();
+    settingsQ.reload();
+  }, [marketsQ.reload, bannersQ.reload, settingsQ.reload]);
+
+  // Banners are managed in Admin (Home tab). With none set, the approved Matebeto banner shows.
+  const slides: { key: string; uri: string | null; title: string; subtitle: string; amount: any }[] = banners.length
     ? banners.map((b) => ({
         key: b.id,
         uri: b.image_url,
         title: b.title || "",
+        subtitle: b.subtitle || "",
         amount: b.amount,
       }))
-    : [
-        {
-          key: "fallback",
-          uri: null,
-          title: "Real Meals. Real Flavours.",
-          amount: null,
-          fallback: require("../../assets/welcome-food.jpg"),
-        },
-      ];
+    : [{ key: "default", uri: null, title: DEFAULT_BANNER.title, subtitle: DEFAULT_BANNER.subtitle, amount: null }];
 
   useEffect(() => {
-    if (slides.length < 2 || offline || loading) return;
+    if (slides.length < 2 || loading) return;
     const t = setInterval(() => {
       setBannerIndex((i) => {
         const next = (i + 1) % slides.length;
@@ -115,27 +95,37 @@ export default function Home() {
       });
     }, 10000);
     return () => clearInterval(t);
-  }, [slides.length, offline, loading]);
+  }, [slides.length, loading]);
 
   function onBannerScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
-    const x = e.nativeEvent.contentOffset.x;
-    setBannerIndex(Math.round(x / BANNER_W));
+    setBannerIndex(Math.round(e.nativeEvent.contentOffset.x / BANNER_W));
   }
 
   return (
-    <View style={styles.root}>
-      <SafeAreaView edges={["top"]}>
+    <MkScreen>
+      <ScrollView contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+        {/* Header: logo + tagline, bell */}
         <View style={styles.top}>
-          <BrandMark size={36} align="left" />
-          <Pressable onPress={() => router.push("/(customer)/menu")} style={styles.avatar}>
-            <Ionicons name="person" size={18} color="#fff" />
+          <View>
+            <Image
+              source={require("../../assets/logo-matebeto.png")}
+              style={styles.logo}
+              contentFit="contain"
+              accessibilityLabel="Matebeto"
+            />
+            <Text style={styles.tagline}>{tagline}</Text>
+          </View>
+          <Pressable
+            onPress={() => router.push("/(customer)/orders")}
+            hitSlop={12}
+            accessibilityLabel="Your orders"
+          >
+            <Ionicons name="notifications" size={24} color={ui.amber} />
           </Pressable>
         </View>
-      </SafeAreaView>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 96 }} showsVerticalScrollIndicator={false}>
-        {/* Video-style multi banner */}
-        <View style={styles.bannerWrap}>
+        {/* Banner */}
+        <View>
           <ScrollView
             ref={bannerRef}
             horizontal
@@ -145,24 +135,22 @@ export default function Home() {
             scrollEventThrottle={16}
             decelerationRate="fast"
             snapToInterval={BANNER_W}
-            contentContainerStyle={{ paddingHorizontal: 14 }}
+            contentContainerStyle={{ paddingHorizontal: PAD }}
           >
-            {slides.map((s) => (
-              <View key={s.key} style={[styles.banner, { width: BANNER_W - 4, marginRight: 4 }]}>
-                <Image
-                  source={s.uri ? { uri: s.uri } : s.fallback || require("../../assets/welcome-food.jpg")}
-                  style={StyleSheet.absoluteFillObject}
-                  contentFit="cover"
-                />
+            {slides.map((sl) => (
+              <View key={sl.key} style={[styles.banner, { width: BANNER_W, backgroundColor: ui.banner }]}>
+                <Image source={sl.uri ? { uri: sl.uri } : homeBannerFood} style={styles.bannerFood} contentFit="cover" />
                 <LinearGradient
-                  colors={["transparent", "rgba(0,0,0,0.55)"]}
-                  style={StyleSheet.absoluteFill}
+                  colors={[ui.banner, "rgba(64,20,43,0)"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.bannerFade}
                 />
                 <View style={styles.bannerCopy}>
-                  {s.title ? <Text style={styles.bannerText}>{s.title}</Text> : null}
-                  {s.amount != null ? (
-                    <Text style={styles.bannerMeal}>{formatKw(Number(s.amount))}</Text>
-                  ) : null}
+                  {sl.title ? <Text style={styles.bannerTitle}>{sl.title}</Text> : null}
+                  {sl.amount != null ? <Text style={styles.bannerAmount}>{formatKw(Number(sl.amount))}</Text> : null}
+                  {sl.subtitle ? <Text style={styles.bannerSub}>{sl.subtitle}</Text> : null}
+                  <View style={styles.bannerRule} />
                 </View>
               </View>
             ))}
@@ -176,301 +164,123 @@ export default function Home() {
           ) : null}
         </View>
 
-        {/* White sheet over dark — sits on banners */}
-        <View style={styles.sheet}>
-          {loading || offline ? (
+        {/* Markets */}
+        <View style={{ paddingHorizontal: PAD }}>
+          <Text style={styles.section}>{marketsTitle}</Text>
+          <View style={styles.where}>
+            <Ionicons name="location-sharp" size={15} color={ui.amber} />
+            <Text style={styles.whereText}>{city}</Text>
+          </View>
+
+          {failed ? (
+            <OfflineNotice onRetry={retry} />
+          ) : loading ? (
             <HomeSkeleton />
           ) : (
             <>
-          {/* Market logo chips — horizontal like Hungry Lion / KFC row */}
-          <View style={styles.sectionHead}>
-            <Text style={styles.section}>Markets</Text>
-            <Pressable onPress={() => router.push("/(customer)/markets")}>
-              <Text style={styles.see}>See all</Text>
-            </Pressable>
-          </View>
-
-          {markets.length === 0 ? (
-            <EmptyState icon="storefront" color={colors.customer} title="No markets yet" />
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.chipRow}
-            >
-              {markets.map((m) => (
-                <Pressable
-                  key={m.id}
-                  onPress={() => router.push(`/(customer)/market/${m.id}`)}
-                  style={styles.chip}
-                >
-                  <View style={styles.chipLogo}>
-                    {m.image_url ? (
-                      <Image
-                        source={{ uri: m.image_url }}
-                        style={StyleSheet.absoluteFillObject}
-                        contentFit="cover"
+              {offline ? <OfflineBanner /> : null}
+              {markets.length === 0 ? (
+                <EmptyState icon="storefront" color={ui.red} title="No markets yet" />
+              ) : (
+                <View style={styles.grid}>
+                  {markets.map((m) => (
+                    <Pressable
+                      key={m.id}
+                      onPress={() => router.push(`/(customer)/market/${m.id}`)}
+                      style={styles.card}
+                    >
+                      <Photo
+                        uri={m.image_url}
+                        name={m.name}
+                        height={Math.round(CARD_W * 0.5)}
+                        fallback={marketFallback(m.name)}
                       />
-                    ) : (
-                      <Ionicons name="storefront" size={28} color={colors.customerDeep} />
-                    )}
-                  </View>
-                  <Text style={styles.chipName} numberOfLines={2}>
-                    {m.name}
-                  </Text>
-                  {m.area ? (
-                    <Text style={styles.chipMeta} numberOfLines={1}>
-                      {m.area}
-                    </Text>
-                  ) : null}
-                </Pressable>
-              ))}
-            </ScrollView>
-          )}
-
-          {/* Featured — large hero + 2-column grid like the reel */}
-          <View style={[styles.sectionHead, { marginTop: 22 }]}>
-            <View style={styles.sectionTitleRow}>
-              <View style={styles.chefBadge}>
-                <Ionicons name="restaurant" size={16} color="#fff" />
-              </View>
-              <Text style={styles.section}>Featured Meals</Text>
-            </View>
-          </View>
-
-          {featured.length === 0 ? (
-            <EmptyState icon="restaurant" color={colors.gold} title="No featured meals" />
-          ) : (
-            <View>
-              {/* Big featured hero */}
-              <Pressable
-                onPress={() =>
-                  router.push({
-                    pathname: "/(customer)/meal/[id]",
-                    params: { id: featured[0].id },
-                  })
-                }
-                style={styles.heroMeal}
-              >
-                <Photo uri={featured[0].image_url} name={featured[0].name} height={180} />
-                <LinearGradient
-                  colors={["transparent", "rgba(0,0,0,0.7)"]}
-                  style={styles.heroWash}
-                />
-                <View style={styles.heroCopy}>
-                  <Text style={styles.heroName} numberOfLines={1}>
-                    {featured[0].name}
-                  </Text>
-                  <Text style={styles.heroPrice}>{formatKw(featured[0].price)}</Text>
+                      <View style={styles.cardBody}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.cardName} numberOfLines={1}>
+                            {m.name}
+                          </Text>
+                          <Text style={styles.cardMeta}>Food Market</Text>
+                          {m.distance_km != null ? (
+                            <Text style={styles.cardMeta}>{Number(m.distance_km).toFixed(1)} km</Text>
+                          ) : null}
+                        </View>
+                        <Ionicons name="chevron-forward" size={14} color={ui.ink} />
+                      </View>
+                    </Pressable>
+                  ))}
                 </View>
-              </Pressable>
+              )}
 
-              {/* 2-column food cards */}
-              <View style={styles.grid}>
-                {featured.slice(1).map((meal) => (
-                  <Pressable
-                    key={meal.id}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/(customer)/meal/[id]",
-                        params: { id: meal.id },
-                      })
-                    }
-                    style={styles.gridCard}
-                  >
-                    <Photo uri={meal.image_url} name={meal.name} height={110} />
-                    <View style={styles.gridBody}>
-                      <Text style={styles.gridName} numberOfLines={2}>
-                        {meal.name}
-                      </Text>
-                      <Text style={styles.gridPrice}>{formatKw(meal.price)}</Text>
-                    </View>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {count > 0 && (
-            <Pressable onPress={() => router.push("/(customer)/basket")} style={styles.basketBar}>
-              <Text style={{ color: "#fff", fontFamily: fonts.title }}>View basket</Text>
-              <Text style={{ color: colors.gold, fontFamily: fonts.title }}>
-                {count} item{count === 1 ? "" : "s"}
-              </Text>
-            </Pressable>
-          )}
+              {promoOn ? (
+                <Pressable onPress={() => router.push("/(customer)/markets")} style={styles.promo}>
+                  <MaterialCommunityIcons name="chef-hat" size={34} color={ui.amber} />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.promoTitle}>{promoTitle}</Text>
+                    <Text style={styles.promoSub}>{promoSub}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={ui.amber} />
+                </Pressable>
+              ) : null}
             </>
           )}
         </View>
       </ScrollView>
-    </View>
+    </MkScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#000" },
   top: {
-    paddingHorizontal: 18,
-    paddingBottom: 8,
+    paddingHorizontal: PAD,
+    paddingTop: 6,
+    paddingBottom: 12,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.14)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  bannerWrap: { marginBottom: 4 },
-  banner: {
-    height: 220,
-    borderRadius: 24,
-    overflow: "hidden",
-    backgroundColor: "#111",
-  },
-  bannerCopy: {
-    flex: 1,
-    justifyContent: "flex-end",
-    padding: 18,
-    maxWidth: "85%",
-  },
-  bannerKicker: {
-    color: colors.gold,
-    fontFamily: fonts.italic,
-    fontSize: 16,
-    marginBottom: 6,
-  },
-  bannerText: {
-    color: "#fff",
-    fontFamily: fonts.display,
-    fontSize: 26,
-    lineHeight: 32,
-  },
-  bannerMeal: {
-    color: "#fff",
-    fontFamily: fonts.display,
-    fontSize: 22,
-  },
-  dots: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 6,
-    marginTop: 10,
-  },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: "rgba(255,255,255,0.35)",
-  },
-  dotOn: { backgroundColor: colors.gold, width: 18 },
-  sheet: {
-    marginTop: 12,
-    backgroundColor: "rgba(255,255,255,0.88)",
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingHorizontal: 16,
-    paddingTop: 22,
-    paddingBottom: 100,
-    minHeight: 520,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.55)",
-    shadowColor: "#000",
-    shadowOpacity: 0.22,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: -6 },
-    elevation: 10,
-  },
-  sectionHead: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  chefBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 10,
-    backgroundColor: colors.gold,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  section: { fontFamily: fonts.title, fontSize: 17, color: colors.ink },
-  see: { color: colors.customerDeep, fontFamily: fonts.bodySemi, fontSize: 14 },
-  chipRow: { gap: 12, paddingRight: 8, paddingBottom: 4 },
-  chip: {
-    width: 96,
-    alignItems: "center",
-  },
-  chipLogo: {
-    width: 72,
-    height: 72,
-    borderRadius: 18,
-    backgroundColor: "#F4F6F3",
-    borderWidth: 1,
-    borderColor: colors.line,
-    overflow: "hidden",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
-  },
-  chipName: {
-    fontFamily: fonts.bodySemi,
-    fontSize: 12,
-    color: colors.ink,
-    textAlign: "center",
-  },
-  chipMeta: {
-    fontFamily: fonts.body,
-    fontSize: 10,
-    color: colors.muted,
-    textAlign: "center",
-    marginTop: 2,
-  },
-  heroMeal: {
-    borderRadius: 22,
-    overflow: "hidden",
-    marginBottom: 12,
-    backgroundColor: "#111",
-  },
-  heroWash: {
-    ...StyleSheet.absoluteFillObject,
-    top: 60,
-  },
-  heroCopy: {
-    position: "absolute",
-    left: 14,
-    right: 14,
-    bottom: 14,
-  },
-  heroName: { color: "#fff", fontFamily: fonts.display, fontSize: 20 },
-  heroPrice: { color: colors.gold, fontFamily: fonts.title, marginTop: 4 },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  gridCard: {
-    width: (W - 32 - 12) / 2,
+  logo: { width: 118, height: 52 },
+  tagline: { fontFamily: fonts.body, fontSize: 10.5, color: ui.sub, marginTop: 1 },
+  banner: { height: 140, borderRadius: 14, overflow: "hidden" },
+  bannerFood: { position: "absolute", top: 0, right: 0, bottom: 0, width: "56%" },
+  bannerFade: { position: "absolute", top: 0, bottom: 0, left: "40%", width: 60 },
+  bannerCopy: { flex: 1, justifyContent: "center", paddingHorizontal: 16, maxWidth: "58%" },
+  bannerTitle: { color: "#fff", fontFamily: fonts.title, fontSize: 17, lineHeight: 21 },
+  bannerSub: { color: "#F3E7EC", fontFamily: fonts.body, fontSize: 10, marginTop: 10 },
+  bannerRule: { width: 38, height: 3, borderRadius: 2, backgroundColor: ui.amber, marginTop: 6 },
+  bannerAmount: { color: ui.amber, fontFamily: fonts.title, fontSize: 15, marginTop: 6 },
+  dots: { flexDirection: "row", justifyContent: "center", gap: 6, marginTop: 10 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: ui.checkOff },
+  dotOn: { backgroundColor: ui.red, width: 16 },
+  section: { fontFamily: fonts.title, fontSize: 17, color: ui.ink, marginTop: 18 },
+  where: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6, marginBottom: 14 },
+  whereText: { fontFamily: fonts.bodySemi, fontSize: 13, color: ui.ink },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: GAP },
+  card: {
+    width: CARD_W,
     backgroundColor: "#fff",
-    borderRadius: 18,
+    borderRadius: 12,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: ui.line,
+    shadowColor: "#1C1B26",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
-  gridBody: { padding: 10 },
-  gridName: { fontFamily: fonts.title, color: colors.ink, fontSize: 13, minHeight: 34 },
-  gridPrice: { color: colors.goldDeep, fontFamily: fonts.title, marginTop: 4, fontSize: 13 },
-  basketBar: {
-    marginTop: 24,
-    backgroundColor: colors.ink,
-    borderRadius: 18,
-    padding: 16,
+  cardBody: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 9 },
+  cardName: { fontFamily: fonts.title, fontSize: 12.5, color: ui.ink },
+  cardMeta: { fontFamily: fonts.body, fontSize: 10.5, color: ui.sub, marginTop: 1 },
+  promo: {
+    marginTop: 18,
+    backgroundColor: ui.promo,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
     flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "center",
   },
+  promoTitle: { fontFamily: fonts.title, fontSize: 13.5, color: ui.ink },
+  promoSub: { fontFamily: fonts.body, fontSize: 11, color: ui.sub, marginTop: 2 },
 });

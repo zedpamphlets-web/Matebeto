@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,6 +7,7 @@ import { colors, fonts } from "@/lib/theme";
 import { friendlyAuthError, isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { currentProfile } from "@/lib/session";
 import { PREVIEW_OTP, clearPreviewSession, setPreviewSession } from "@/lib/preview";
+import { SpinPressable } from "@/components/spin-pressable";
 
 const RESEND_SECONDS = 60;
 
@@ -70,7 +71,8 @@ export default function Otp() {
       if (rider?.status === "APPROVED") return router.replace("/(rider)");
       return router.replace("/auth/rider-apply");
     }
-    router.replace("/(customer)");
+    // plate loader ("Finding what to eat"), then Home
+    router.replace({ pathname: "/finding", params: { next: "/(customer)" } });
   }
 
   async function verify() {
@@ -93,7 +95,7 @@ export default function Otp() {
         return;
       }
       setLoading(false);
-      setError("Wrong code. This build has no Supabase keys.");
+      setError("Wrong code. Try again.");
       return;
     }
 
@@ -119,8 +121,8 @@ export default function Otp() {
           <Ionicons name="chevron-back" size={22} color="#fff" />
         </Pressable>
         <View style={styles.body}>
-          <Text style={styles.kicker}>We sent a code</Text>
-          <Text style={styles.heading}>ENTER OTP</Text>
+          <Text style={styles.kicker}>We sent you a code</Text>
+          <Text style={styles.heading}>Enter your code</Text>
           <Text style={styles.sub}>Code sent to {phone}</Text>
 
           <View style={styles.row}>
@@ -141,9 +143,9 @@ export default function Otp() {
           </View>
 
           {usePreview ? (
-            <Text style={styles.hint}>No Supabase in this build. Preview code: 123456</Text>
+            <Text style={styles.hint}>Test mode. Use code 123456.</Text>
           ) : (
-            <Text style={styles.live}>Enter the SMS code from Africa&apos;s Talking</Text>
+            <Text style={styles.live}>Enter the 6-digit code from your SMS.</Text>
           )}
 
           <View style={styles.resendRow}>
@@ -164,24 +166,18 @@ export default function Otp() {
             </View>
           ) : null}
 
-          <Pressable onPress={verify} disabled={loading} style={styles.next}>
-            <Text style={styles.nextText}>{loading ? "PLEASE WAIT" : "VERIFY"}</Text>
-          </Pressable>
+          <SpinPressable onPress={verify} loading={loading} spinnerColor={colors.ink} style={styles.next}>
+            <Text style={styles.nextText}>Verify</Text>
+          </SpinPressable>
         </View>
       </SafeAreaView>
 
-      {loading ? (
-        <View style={styles.overlay}>
-          <ActivityIndicator size="large" color={colors.gold} />
-          <Text style={styles.overlayText}>Opening Matebeto…</Text>
-        </View>
-      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#121212" },
+  root: { flex: 1, backgroundColor: colors.brandGreen },
   back: {
     width: 40,
     height: 40,
@@ -193,7 +189,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   body: { paddingHorizontal: 22, paddingTop: 28 },
-  kicker: { color: "#9A9A9A", fontFamily: fonts.body, fontSize: 14, marginBottom: 10 },
+  kicker: { color: colors.onGreenMuted, fontFamily: fonts.body, fontSize: 14, marginBottom: 10 },
   heading: {
     color: "#fff",
     fontFamily: fonts.display,
@@ -201,15 +197,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     marginBottom: 8,
   },
-  sub: { color: "#9A9A9A", fontFamily: fonts.body, marginBottom: 22 },
+  sub: { color: colors.onGreenMuted, fontFamily: fonts.body, marginBottom: 22 },
   row: { flexDirection: "row", gap: 8, marginBottom: 16, position: "relative" },
   box: {
     flex: 1,
     height: 54,
     borderRadius: 10,
-    backgroundColor: "#1C1C1C",
+    backgroundColor: colors.surface,
     borderWidth: 1.5,
-    borderColor: "#2A2A2A",
+    borderColor: "rgba(255,255,255,0.14)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -219,7 +215,7 @@ const styles = StyleSheet.create({
   hint: { color: colors.gold, fontFamily: fonts.bodySemi, fontSize: 13, marginBottom: 12 },
   live: { color: colors.customer, fontFamily: fonts.bodySemi, fontSize: 13, marginBottom: 12 },
   resendRow: { marginBottom: 12 },
-  resendWait: { color: "#9A9A9A", fontFamily: fonts.bodySemi, fontSize: 13 },
+  resendWait: { color: colors.onGreenMuted, fontFamily: fonts.bodySemi, fontSize: 13 },
   resendLink: { color: colors.gold, fontFamily: fonts.bodySemi, fontSize: 13 },
   error: {
     backgroundColor: colors.danger,

@@ -7,11 +7,11 @@ export default function RiderTabs() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.gold,
-        tabBarInactiveTintColor: "#8A8A8A",
+        tabBarActiveTintColor: colors.rider,
+        tabBarInactiveTintColor: colors.onGreenMuted,
         tabBarLabelStyle: { fontFamily: fonts.bodySemi, fontSize: 11 },
         tabBarStyle: {
-          backgroundColor: "#0B0B0B",
+          backgroundColor: colors.brandGreen,
           borderTopColor: "rgba(255,255,255,0.08)",
           height: 64,
           paddingTop: 6,

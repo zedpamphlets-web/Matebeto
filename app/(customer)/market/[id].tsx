@@ -1,91 +1,194 @@
-import { useEffect, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { Photo } from "@/components/photo";
-import { AppHeader, DarkScreen } from "@/components/app-shell";
+import { BackStrip, HeartButton, MkHeader, MkScreen } from "@/components/mk";
 import { supabase } from "@/lib/supabase";
-import { colors, fonts, radius } from "@/lib/theme";
-import { formatKw } from "@/lib/lipila";
+import { useCachedLoad } from "@/lib/offline-cache";
+import { CategoriesSkeleton } from "@/components/skeleton";
+import { OfflineNotice } from "@/components/offline-notice";
+import { OfflineBanner } from "@/components/offline-banner";
+import { fonts, ui } from "@/lib/theme";
+import { kw, marketShortName } from "@/lib/format";
+import { useFavourite } from "@/lib/favourites";
+import { foodFallback, marketBannerFallback } from "@/lib/mockup-images";
+
+const W = Dimensions.get("window").width;
+const PAD = 16;
+const GAP = 12;
+const TILE_W = (W - PAD * 2 - GAP) / 2;
 
 export default function Market() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [market, setMarket] = useState<any>(null);
-  const [categories, setCategories] = useState<any[]>([]);
   const [active, setActive] = useState<string | null>(null);
-  const [meals, setMeals] = useState<any[]>([]);
+  const scroller = useRef<ScrollView>(null);
+  const listY = useRef(0);
 
-  useEffect(() => {
-    supabase.from("markets").select("*").eq("id", id).single().then(({ data }) => setMarket(data));
-    supabase.from("categories").select("*").order("sort_order").then(({ data }) => setCategories(data || []));
-    supabase.from("meals").select("*").eq("is_available", true).then(({ data }) => setMeals(data || []));
-  }, [id]);
+  const marketQ = useCachedLoad<any>(`market.${id}`, () =>
+    supabase.from("markets").select("*").eq("id", id).maybeSingle()
+  );
+  const catsQ = useCachedLoad<any[]>("categories.all", () =>
+    supabase.from("categories").select("*").order("sort_order")
+  );
+  const mealsQ = useCachedLoad<any[]>("meals.available", () =>
+    supabase.from("meals").select("*").eq("is_available", true)
+  );
+  const market = marketQ.data;
+  const categories = catsQ.data || [];
+  const meals = mealsQ.data || [];
+  const loading = catsQ.loading || mealsQ.loading;
+  const failed = catsQ.failed && mealsQ.failed;
+  const stale = catsQ.stale || mealsQ.stale;
+  const fav = useFavourite("market", id);
+  const name = marketShortName(market?.name);
+
+  const retry = () => {
+    marketQ.reload();
+    catsQ.reload();
+    mealsQ.reload();
+  };
 
   const shown = active ? meals.filter((m) => m.category_id === active) : [];
 
+  function openMeal(mealId: string) {
+    router.push({
+      pathname: "/(customer)/meal/[id]",
+      params: { id: mealId, marketId: String(id), marketName: market?.name },
+    });
+  }
+
+  // A category with a single meal opens that meal straight away; otherwise its meals are listed below.
+  function pickCategory(catId: string) {
+    const inCat = meals.filter((m) => m.category_id === catId);
+    if (inCat.length === 1) {
+      openMeal(inCat[0].id);
+      return;
+    }
+    setActive(catId);
+  }
+
+  useEffect(() => {
+    if (active) setTimeout(() => scroller.current?.scrollTo({ y: Math.max(0, listY.current - 12), animated: true }), 80);
+  }, [active]);
+
   return (
-    <DarkScreen>
-      <AppHeader title="Categories" back />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-        <Text style={{ fontSize: 13, fontFamily: fonts.bodySemi, color: "#8A8A8A" }}>FOOD CATEGORIES</Text>
-        <Text style={{ fontSize: 24, fontFamily: fonts.display, marginBottom: 14, color: "#fff" }}>{market?.name}</Text>
-        {categories.length === 0 && (
-          <Text style={{ color: "#8A8A8A", fontFamily: fonts.body }}>No categories yet. Admin adds them.</Text>
-        )}
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
-          {categories.map((c) => (
-            <Pressable
-              key={c.id}
-              onPress={() => setActive(c.id)}
-              style={{
-                width: "47%",
-                borderRadius: radius.md,
-                overflow: "hidden",
-                backgroundColor: "#111",
-                borderWidth: active === c.id ? 2 : 1,
-                borderColor: active === c.id ? colors.gold : "rgba(255,255,255,0.1)",
-              }}
-            >
-              <Photo uri={c.image_url} name={c.name} height={118} overlay />
-            </Pressable>
-          ))}
-        </View>
-        {active && shown.length === 0 && (
-          <Text style={{ marginTop: 18, color: "#8A8A8A", fontFamily: fonts.body }}>No meals in this category yet.</Text>
-        )}
-        {active && (
-          <View style={{ marginTop: 18 }}>
-            {shown.map((meal) => (
+    <MkScreen>
+      <MkHeader
+        title={name || "Market"}
+        subtitle="Food Market"
+        right={<HeartButton on={fav.on} onPress={fav.toggle} />}
+      />
+      {failed ? (
+        <OfflineNotice onRetry={retry} />
+      ) : loading ? (
+        <CategoriesSkeleton />
+      ) : (
+        <ScrollView
+          ref={scroller}
+          contentContainerStyle={{ paddingHorizontal: PAD, paddingBottom: 20 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {stale ? <OfflineBanner /> : null}
+          <View style={styles.banner}>
+            <Photo
+              uri={market?.image_url}
+              name={market?.name}
+              height={104}
+              fallback={marketBannerFallback(market?.name)}
+            />
+          </View>
+
+          <Text style={styles.h}>Our Menu</Text>
+          <Text style={styles.sub}>Freshly prepared meals from {name || "this market"}.</Text>
+
+          {categories.length === 0 ? <Text style={styles.empty}>No categories yet.</Text> : null}
+          <View style={styles.grid}>
+            {categories.map((c) => (
               <Pressable
-                key={meal.id}
-                onPress={() =>
-                  router.push({
-                    pathname: "/(customer)/meal/[id]",
-                    params: { id: meal.id, marketId: String(id), marketName: market?.name },
-                  })
-                }
-                style={{
-                  flexDirection: "row",
-                  backgroundColor: "#141414",
-                  borderRadius: radius.md,
-                  overflow: "hidden",
-                  marginBottom: 12,
-                  borderWidth: 1,
-                  borderColor: "rgba(255,255,255,0.08)",
-                }}
+                key={c.id}
+                onPress={() => pickCategory(c.id)}
+                style={[styles.tile, active === c.id && { borderColor: ui.red }]}
               >
-                <Photo uri={meal.image_url} name={meal.name} height={92} width={92} />
-                <View style={{ flex: 1, padding: 12 }}>
-                  <Text style={{ fontFamily: fonts.title, color: "#fff" }}>{meal.name}</Text>
-                  <Text numberOfLines={2} style={{ color: "#8A8A8A", marginTop: 4, fontFamily: fonts.body }}>
-                    {meal.description}
+                <Photo uri={c.image_url} name={c.name} height={Math.round(TILE_W * 0.62)} fallback={foodFallback(c.name)} />
+                <View style={styles.tileBody}>
+                  <Text style={styles.tileName} numberOfLines={1}>
+                    {c.name}
                   </Text>
-                  <Text style={{ marginTop: 6, fontFamily: fonts.title, color: colors.gold }}>{formatKw(meal.price)}</Text>
+                  <Ionicons name="chevron-forward" size={14} color={ui.ink} />
                 </View>
               </Pressable>
             ))}
           </View>
-        )}
-      </ScrollView>
-    </DarkScreen>
+
+          {active && shown.length === 0 ? <Text style={styles.empty}>No meals in this category yet.</Text> : null}
+          {active && shown.length > 0 ? (
+            <View onLayout={(e) => (listY.current = e.nativeEvent.layout.y)} style={{ marginTop: 20 }}>
+              {shown.map((meal) => (
+                <Pressable key={meal.id} onPress={() => openMeal(meal.id)} style={styles.meal}>
+                  <View style={styles.mealPhoto}>
+                    <Photo
+                      uri={meal.image_url}
+                      name={meal.name}
+                      height={84}
+                      width={84}
+                      fallback={foodFallback(meal.name)}
+                    />
+                  </View>
+                  <View style={{ flex: 1, paddingLeft: 12 }}>
+                    <Text style={styles.mealName}>{meal.name}</Text>
+                    {meal.description ? (
+                      <Text numberOfLines={2} style={styles.mealDesc}>
+                        {meal.description}
+                      </Text>
+                    ) : null}
+                    <Text style={styles.mealPrice}>{kw(meal.price)}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={ui.ink} />
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+        </ScrollView>
+      )}
+      <BackStrip label="Back to Markets" onPress={() => router.back()} />
+    </MkScreen>
   );
 }
+
+const styles = StyleSheet.create({
+  banner: { borderRadius: 12, overflow: "hidden" },
+  h: { fontFamily: fonts.title, fontSize: 18, color: ui.ink, marginTop: 18 },
+  sub: { fontFamily: fonts.body, fontSize: 12, color: ui.sub, marginTop: 3, marginBottom: 14 },
+  empty: { fontFamily: fonts.body, color: ui.sub, marginTop: 8 },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: GAP },
+  tile: {
+    width: TILE_W,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: ui.line,
+    shadowColor: "#1C1B26",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  tileBody: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 10, height: 38 },
+  tileName: { fontFamily: fonts.title, fontSize: 13, color: ui.ink, flex: 1 },
+  meal: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: ui.line,
+    padding: 10,
+    marginBottom: 10,
+  },
+  mealPhoto: { borderRadius: 10, overflow: "hidden" },
+  mealName: { fontFamily: fonts.title, fontSize: 14, color: ui.ink },
+  mealDesc: { fontFamily: fonts.body, fontSize: 11.5, color: ui.sub, marginTop: 3 },
+  mealPrice: { fontFamily: fonts.title, fontSize: 14, color: ui.red, marginTop: 5 },
+});

@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -6,26 +5,21 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { EmptyState } from "@/components/empty-state";
 import { GlassCard, GlassSheet } from "@/components/glass-sheet";
 import { supabase } from "@/lib/supabase";
+import { useCachedLoad } from "@/lib/offline-cache";
+import { ListSkeleton } from "@/components/skeleton";
+import { OfflineNotice } from "@/components/offline-notice";
+import { OfflineBanner } from "@/components/offline-banner";
 import { colors, fonts } from "@/lib/theme";
 
 export default function Markets() {
-  const [markets, setMarkets] = useState<any[]>([]);
-  const [banner, setBanner] = useState<string | null>(null);
-
-  useEffect(() => {
-    supabase
-      .from("markets")
-      .select("*")
-      .eq("is_active", true)
-      .order("sort_order")
-      .then(({ data }) => setMarkets(data || []));
-    supabase
-      .from("settings")
-      .select("home_banner_url")
-      .eq("id", 1)
-      .single()
-      .then(({ data }) => setBanner(data?.home_banner_url || null));
-  }, []);
+  const q = useCachedLoad<any[]>("home.markets", () =>
+    supabase.from("markets").select("*").eq("is_active", true).order("sort_order")
+  );
+  const bannerQ = useCachedLoad<any>("settings.banner", () =>
+    supabase.from("settings").select("home_banner_url").eq("id", 1).maybeSingle()
+  );
+  const markets = q.data || [];
+  const banner: string | null = bannerQ.data?.home_banner_url || null;
 
   return (
     <View style={styles.root}>
@@ -50,7 +44,12 @@ export default function Markets() {
 
         <GlassSheet style={{ marginTop: 8 }}>
           <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
-            {markets.length === 0 ? (
+            {q.stale ? <OfflineBanner /> : null}
+            {q.failed ? (
+              <OfflineNotice onRetry={q.reload} />
+            ) : q.loading ? (
+              <ListSkeleton dark={false} />
+            ) : markets.length === 0 ? (
               <EmptyState icon="storefront" color={colors.customer} title="No markets yet" />
             ) : (
               markets.map((m) => (
@@ -80,7 +79,7 @@ export default function Markets() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#000" },
+  root: { flex: 1, backgroundColor: colors.brandGreen },
   dim: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.28)" },
   header: {
     flexDirection: "row",

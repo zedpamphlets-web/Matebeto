@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { colors, fonts, radius } from "@/lib/theme";
-import { Field, PrimaryButton } from "@/components/ui";
+import { Field } from "@/components/ui";
+import { AdminButton as PrimaryButton } from "@/components/admin-ui";
 
 export default function Vendors() {
   const [rows, setRows] = useState<any[]>([]);

@@ -2,10 +2,10 @@ import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { DarkScreen } from "@/components/app-shell";
-import { BrandMark } from "@/components/brand";
-import { currentProfile, signOutApp } from "@/lib/session";
-import { colors, fonts } from "@/lib/theme";
+import { Image } from "expo-image";
+import { MkScreen } from "@/components/mk";
+import { LOGIN_ROUTE, currentProfile, signOutApp } from "@/lib/session";
+import { fonts, ui } from "@/lib/theme";
 
 type Row = {
   label: string;
@@ -69,16 +69,16 @@ export default function MenuDrawer() {
     icon: "log-out-outline",
     onPress: async () => {
       await signOutApp();
-      router.replace("/");
+      router.replace(LOGIN_ROUTE);
     },
   });
 
   return (
-    <DarkScreen>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        <View style={{ paddingHorizontal: 24, paddingTop: 12, paddingBottom: 28 }}>
-          <BrandMark size={36} align="left" />
-          <Text style={{ color: "#B3B3B3", fontFamily: fonts.body, marginTop: 10 }}>
+    <MkScreen>
+      <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+        <View style={{ paddingHorizontal: 24, paddingTop: 12, paddingBottom: 24 }}>
+          <Image source={require("../../assets/logo-matebeto.png")} style={{ width: 118, height: 52 }} contentFit="contain" />
+          <Text style={{ color: ui.sub, fontFamily: fonts.body, marginTop: 10 }}>
             {name || phone || "Signed in"}
           </Text>
         </View>
@@ -92,14 +92,14 @@ export default function MenuDrawer() {
               flexDirection: "row",
               alignItems: "center",
               borderTopWidth: 1,
-              borderTopColor: "rgba(255,255,255,0.06)",
+              borderTopColor: ui.line,
             }}
           >
-            <Ionicons name={row.icon} size={20} color={row.accent ? colors.gold : "#fff"} />
+            <Ionicons name={row.icon} size={20} color={row.accent ? ui.red : ui.ink} />
             <Text
               style={{
                 marginLeft: 14,
-                color: row.accent ? colors.gold : "#fff",
+                color: row.accent ? ui.red : ui.ink,
                 fontFamily: fonts.title,
                 fontSize: 16,
                 flex: 1,
@@ -107,10 +107,10 @@ export default function MenuDrawer() {
             >
               {row.label}
             </Text>
-            <Ionicons name="chevron-forward" size={16} color="#666" />
+            <Ionicons name="chevron-forward" size={16} color={ui.hint} />
           </Pressable>
         ))}
       </ScrollView>
-    </DarkScreen>
+    </MkScreen>
   );
 }

@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import {
   clearPreviewRiderApplication,
@@ -46,7 +47,12 @@ export async function currentProfile() {
   }
 }
 
+/** Where every log out goes: straight to the login screen. */
+export const LOGIN_ROUTE = { pathname: "/auth/phone", params: { mode: "customer" } } as const;
+
 export async function signOutApp() {
+  // the next person on this phone must not see the last person's saved details
+  await AsyncStorage.multiRemove(["matebeto.account.v1", "matebeto.address", "matebeto.delivery"]).catch(() => {});
   await clearPreviewSession();
   await clearPreviewRiderApplication();
   if (isSupabaseConfigured) {
