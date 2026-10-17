@@ -40,13 +40,13 @@ export function OfflineNotice({ onRetry, dark }: { onRetry: () => void; dark?: b
       <Pressable
         onPress={onRetry}
         style={{
-          backgroundColor: colors.gold,
+          backgroundColor: "#D6263A",
           paddingHorizontal: 24,
           paddingVertical: 12,
-          borderRadius: 999,
+          borderRadius: 14,
         }}
       >
-        <Text style={{ fontFamily: fonts.title, color: colors.ink }}>Try again</Text>
+        <Text style={{ fontFamily: fonts.title, color: "#fff" }}>Try again</Text>
       </Pressable>
     </View>
   );

@@ -12,6 +12,7 @@ export function Photo({
   dark = true,
   overlay,
   fallback,
+  hideLabel,
 }: {
   uri?: string | null;
   name?: string;
@@ -22,6 +23,8 @@ export function Photo({
   overlay?: boolean;
   /** Bundled picture used only when no photo has been uploaded for this item. */
   fallback?: ImageSourcePropType;
+  /** No name on the colour tile (use when the card already prints the name on top). */
+  hideLabel?: boolean;
 }) {
   return (
     <View style={[{ height, width, overflow: "hidden" }, style]}>
@@ -33,16 +36,16 @@ export function Photo({
         <View
           style={{
             flex: 1,
-            backgroundColor: dark ? colors.customerDeep : colors.gold,
+            backgroundColor: "#EFEFF3",
             alignItems: "center",
             justifyContent: "center",
             padding: 8,
           }}
         >
-          {!overlay ? (
+          {!overlay && !hideLabel ? (
             <Text
               style={{
-                color: dark ? colors.gold : colors.ink,
+                color: "#6B6A78",
                 fontFamily: fonts.title,
                 textAlign: "center",
               }}

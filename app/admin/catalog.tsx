@@ -7,6 +7,7 @@ import { Field } from "@/components/ui";
 import { AdminButton as PrimaryButton } from "@/components/admin-ui";
 import { PhotoPicker } from "@/components/photo-picker";
 import { formatKw } from "@/lib/lipila";
+import { confirmDialog } from "@/components/confirm";
 
 export default function Catalog() {
   const [meals, setMeals] = useState<any[]>([]);
@@ -67,19 +68,17 @@ export default function Catalog() {
     load();
   }
 
-  function deleteCategory(c: any) {
-    Alert.alert("Delete category", `Remove ${c.name}? Its meals stay but lose their category.`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          const { error } = await supabase.from("categories").delete().eq("id", c.id);
-          if (error) Alert.alert("Category", error.message);
-          load();
-        },
-      },
-    ]);
+  async function deleteCategory(c: any) {
+    const ok = await confirmDialog({
+      title: "Delete category?",
+      message: `Are you sure you want to delete ${c.name}? Its meals stay but lose their category.`,
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
+    const { error } = await supabase.from("categories").delete().eq("id", c.id);
+    if (error) Alert.alert("Category", error.message);
+    load();
   }
 
   async function add() {
@@ -127,15 +126,17 @@ export default function Catalog() {
     load();
   }
 
-  function deleteMeal(id: string) {
-    Alert.alert("Delete meal", "🗑️ Are you sure you want to delete this meal?", [
-      { text: "No", style: "cancel" },
-      { text: "Yes, delete", style: "destructive", onPress: async () => {
-        const { error } = await supabase.from("meals").delete().eq("id", id);
-        if (error) Alert.alert("Meal", error.message);
-        load();
-      }},
-    ]);
+  async function deleteMeal(id: string) {
+    const ok = await confirmDialog({
+      title: "Delete meal?",
+      message: "Are you sure you want to delete this meal?",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
+    const { error } = await supabase.from("meals").delete().eq("id", id);
+    if (error) Alert.alert("Meal", error.message);
+    load();
   }
 
   if (loading) return <View style={{ flex: 1, backgroundColor: colors.adminBg, padding: 16 }}><ListSkeleton /></View>;
@@ -148,9 +149,6 @@ export default function Catalog() {
       <PhotoPicker folder="categories" uri={catImage} name={catName || "Category"} onChange={setCatImage} height={110} />
       <PrimaryButton label="Save category" onPress={addCategory} />
       <View style={{ height: 12 }} />
-      <Text style={{ color: colors.adminMuted, fontFamily: fonts.body, marginTop: 4, marginBottom: 8 }}>
-        These are the food tiles customers see in each market, in this order.
-      </Text>
       {categories.map((c, i) => (
         <View key={c.id} style={{ backgroundColor: colors.adminCard, borderWidth: 1, borderColor: colors.adminCardBorder, borderRadius: radius.md, padding: 12, marginBottom: 8 }}>
           <Text style={{ fontFamily: fonts.title, marginBottom: 8, color: colors.adminText }}>{c.name}</Text>
@@ -165,15 +163,12 @@ export default function Catalog() {
       ))}
 
       <Text style={{ fontFamily: fonts.title, fontSize: 18, marginTop: 10, color: colors.adminText }}>Add meal</Text>
-      <Text style={{ color: colors.adminMuted, fontFamily: fonts.body, marginBottom: 10 }}>
-        Real meal name, Kwacha price, and a photo from your phone. Sides are included in the price.
-      </Text>
       <Text style={{ fontFamily: fonts.bodySemi, marginBottom: 8, color: colors.adminText }}>Choose category</Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
         {categories.map((c) => {
           const on = categoryId === c.id;
           return (
-            <Pressable key={c.id} onPress={() => setCategoryId(c.id)} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: on ? "#FFF8E1" : "#fff", borderWidth: 2, borderColor: on ? "#F4B400" : "#E8DFD2" }}>
+            <Pressable key={c.id} onPress={() => setCategoryId(c.id)} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: on ? "#FFF8E1" : "#fff", borderWidth: 2, borderColor: on ? "#F4B400" : "#EBEBEF" }}>
               <Text style={{ fontFamily: on ? fonts.title : fonts.body, color: "#1C1B26" }}>{c.name}</Text>
             </Pressable>
           );

@@ -5,23 +5,14 @@ import { fonts, ui } from "@/lib/theme";
 import { loadBasket } from "@/lib/basket";
 
 const TAB_BAR_STYLE = {
-  position: "absolute" as const,
-  left: 12,
-  right: 12,
-  bottom: 10,
-  height: 68,
-  borderRadius: 22,
-  backgroundColor: "rgba(255,255,255,0.92)",
-  borderTopWidth: 0,
-  borderWidth: 1,
-  borderColor: "rgba(255,255,255,0.8)",
-  paddingTop: 6,
-  paddingBottom: 6,
-  elevation: 8,
-  shadowColor: "#1C1B26",
-  shadowOpacity: 0.12,
-  shadowRadius: 16,
-  shadowOffset: { width: 0, height: 4 },
+  backgroundColor: "#FFFFFF",
+  borderTopWidth: 1,
+  borderTopColor: "#EBEBEF",
+  height: 66,
+  paddingTop: 8,
+  paddingBottom: 8,
+  elevation: 0,
+  shadowOpacity: 0,
 };
 
 const HIDDEN_TAB_BAR = { display: "none" as const };

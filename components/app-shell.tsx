@@ -76,7 +76,7 @@ export function GoldButton({
       onPress={onPress}
       disabled={disabled}
       loading={loading}
-      spinnerColor={colors.ink}
+      spinnerColor="#fff"
       style={styles.goldBtn}
     >
       <Text style={styles.goldBtnText}>{label}</Text>
@@ -108,7 +108,7 @@ export function DarkField({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#FFF0E6" },
+  root: { flex: 1, backgroundColor: "#FFFFFF" },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -140,18 +140,18 @@ const styles = StyleSheet.create({
   },
   goldBtn: {
     height: 54,
-    borderRadius: radius.pill,
-    backgroundColor: colors.gold,
+    borderRadius: 14,
+    backgroundColor: "#D6263A",
     alignItems: "center",
     justifyContent: "center",
   },
-  goldBtnText: { color: colors.ink, fontFamily: fonts.title, fontSize: 16 },
+  goldBtnText: { color: "#FFFFFF", fontFamily: fonts.title, fontSize: 16 },
   field: {
     height: 54,
-    borderRadius: radius.md,
-    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    backgroundColor: "#F5F5F7",
     borderWidth: 1,
-    borderColor: "#E8DFD2",
+    borderColor: "#EBEBEF",
     paddingHorizontal: 16,
     color: "#1C1B26",
     fontFamily: fonts.body,

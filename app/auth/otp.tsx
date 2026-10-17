@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { colors, fonts } from "@/lib/theme";
+import { fonts, ui } from "@/lib/theme";
 import { friendlyAuthError, isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { currentProfile } from "@/lib/session";
 import { PREVIEW_OTP, clearPreviewSession, setPreviewSession } from "@/lib/preview";
-import { SpinPressable } from "@/components/spin-pressable";
+import { AuthScreen } from "@/components/auth-ui";
 
 const RESEND_SECONDS = 60;
 
@@ -115,131 +113,67 @@ export default function Otp() {
   }
 
   return (
-    <View style={styles.root}>
-      <SafeAreaView style={{ flex: 1 }}>
-        <Pressable onPress={() => router.back()} style={styles.back} hitSlop={12}>
-          <Ionicons name="chevron-back" size={22} color="#1C1B26" />
-        </Pressable>
-        <View style={styles.body}>
-          <Text style={styles.kicker}>We sent you a code</Text>
-          <Text style={styles.heading}>Enter your code</Text>
-          <Text style={styles.sub}>Code sent to {phone}</Text>
-
-          <View style={styles.row}>
-            {boxes.map((d, i) => (
-              <View key={i} style={[styles.box, code.length === i && styles.boxOn]}>
-                <Text style={styles.digit}>{d}</Text>
-              </View>
-            ))}
-            <TextInput
-              value={code}
-              onChangeText={(t) => setCode(t.replace(/\D/g, "").slice(0, 6))}
-              keyboardType="number-pad"
-              maxLength={6}
-              autoFocus
-              caretHidden
-              style={styles.hidden}
-            />
-          </View>
-
-          {usePreview ? (
-            <Text style={styles.hint}>Test mode. Use code 123456.</Text>
+    <AuthScreen
+      heading="Enter your code"
+      sub={`Code sent to ${phone}`}
+      onBack={() => router.back()}
+      buttonLabel="Verify"
+      onPress={verify}
+      loading={loading}
+      disabled={code.length < 6}
+      footer={
+        <View style={styles.resendRow}>
+          {secondsLeft > 0 ? (
+            <Text style={styles.resendWait}>Resend code in {timerLabel}</Text>
           ) : (
-            <Text style={styles.live}>Enter the 6-digit code from your SMS.</Text>
+            <Pressable onPress={resend} disabled={resending} hitSlop={8}>
+              <Text style={styles.resendLink}>{resending ? "Resending…" : "Resend code"}</Text>
+            </Pressable>
           )}
-
-          <View style={styles.resendRow}>
-            {secondsLeft > 0 ? (
-              <Text style={styles.resendWait}>Resend code in {timerLabel}</Text>
-            ) : (
-              <Pressable onPress={resend} disabled={resending} hitSlop={8}>
-                <Text style={styles.resendLink}>
-                  {resending ? "Resending…" : "Resend code"}
-                </Text>
-              </Pressable>
-            )}
-          </View>
-
-          {error ? (
-            <View style={styles.error}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
-
-          <SpinPressable onPress={verify} loading={loading} spinnerColor={colors.ink} style={styles.next}>
-            <Text style={styles.nextText}>Verify</Text>
-          </SpinPressable>
         </View>
-      </SafeAreaView>
-
-    </View>
+      }
+    >
+      <View style={styles.row}>
+        {boxes.map((d, i) => (
+          <View key={i} style={[styles.box, code.length === i && styles.boxOn, !!error && styles.boxBad]}>
+            <Text style={styles.digit}>{d}</Text>
+          </View>
+        ))}
+        <TextInput
+          value={code}
+          onChangeText={(t) => setCode(t.replace(/\D/g, "").slice(0, 6))}
+          keyboardType="number-pad"
+          maxLength={6}
+          autoFocus
+          caretHidden
+          style={styles.hidden}
+        />
+      </View>
+      {usePreview ? <Text style={styles.hint}>Test mode. Use code 123456.</Text> : null}
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+    </AuthScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#FFF0E6" },
-  back: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 16,
-    marginTop: 6,
-  },
-  body: { paddingHorizontal: 22, paddingTop: 28 },
-  kicker: { color: colors.onGreenMuted, fontFamily: fonts.body, fontSize: 14, marginBottom: 10 },
-  heading: {
-    color: "#1C1B26",
-    fontFamily: fonts.display,
-    fontSize: 28,
-    letterSpacing: 0.4,
-    marginBottom: 8,
-  },
-  sub: { color: colors.onGreenMuted, fontFamily: fonts.body, marginBottom: 22 },
-  row: { flexDirection: "row", gap: 8, marginBottom: 16, position: "relative" },
+  row: { flexDirection: "row", gap: 8, position: "relative" },
   box: {
     flex: 1,
-    height: 54,
-    borderRadius: 10,
+    height: 60,
+    borderRadius: 16,
     backgroundColor: "#FFFFFF",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.14)",
+    borderWidth: 2,
+    borderColor: "#E3E2E8",
     alignItems: "center",
     justifyContent: "center",
   },
-  boxOn: { borderColor: colors.gold },
-  digit: { color: "#1C1B26", fontFamily: fonts.display, fontSize: 22 },
+  boxOn: { borderColor: "#1C1B26" },
+  boxBad: { borderColor: ui.red },
+  digit: { color: "#1C1B26", fontFamily: fonts.display, fontSize: 24 },
   hidden: { ...StyleSheet.absoluteFillObject, opacity: 0 },
-  hint: { color: colors.gold, fontFamily: fonts.bodySemi, fontSize: 13, marginBottom: 12 },
-  live: { color: colors.customer, fontFamily: fonts.bodySemi, fontSize: 13, marginBottom: 12 },
-  resendRow: { marginBottom: 12 },
-  resendWait: { color: colors.onGreenMuted, fontFamily: fonts.bodySemi, fontSize: 13 },
-  resendLink: { color: colors.gold, fontFamily: fonts.bodySemi, fontSize: 13 },
-  error: {
-    backgroundColor: colors.danger,
-    borderRadius: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    marginBottom: 12,
-  },
-  errorText: { color: "#fff", fontFamily: fonts.bodySemi, fontSize: 13 },
-  next: {
-    marginTop: 8,
-    height: 52,
-    borderRadius: 10,
-    backgroundColor: colors.gold,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  nextText: { color: colors.ink, fontFamily: fonts.display, fontSize: 16, letterSpacing: 1 },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.72)",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-  },
-  overlayText: { color: "#fff", fontFamily: fonts.bodySemi, letterSpacing: 0.3 },
+  hint: { color: ui.sub, fontFamily: fonts.bodySemi, fontSize: 13, marginTop: 14 },
+  resendRow: { alignItems: "center", paddingBottom: 4 },
+  resendWait: { color: "#8E8D99", fontFamily: fonts.bodySemi, fontSize: 14 },
+  resendLink: { color: ui.red, fontFamily: fonts.bodySemi, fontSize: 14 },
+  errorText: { fontFamily: fonts.bodySemi, fontSize: 13.5, color: ui.red, marginTop: 14 },
 });

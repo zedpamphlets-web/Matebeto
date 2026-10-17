@@ -6,7 +6,7 @@
     "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "scheme": "matebeto",
     "platforms": [
       "ios",
@@ -15,11 +15,11 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FFFFFF"
+      "backgroundColor": "#000000"
     },
     "androidStatusBar": {
-      "backgroundColor": "#000000",
-      "barStyle": "light-content"
+      "backgroundColor": "#FFFFFF",
+      "barStyle": "dark-content"
     },
     "runtimeVersion": {
       "policy": "appVersion"
@@ -45,7 +45,6 @@
     },
     "plugins": [
       "expo-router",
-      "./plugins/withGoogleServicesGradle.js",
       "expo-secure-store",
       [
         "expo-build-properties",

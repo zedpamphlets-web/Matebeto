@@ -2,20 +2,17 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { colors, fonts } from "@/lib/theme";
+import { fonts, ui } from "@/lib/theme";
 import { friendlyAuthError, isSupabaseConfigured, pingSupabase, supabase } from "@/lib/supabase";
 import { toZambianMsisdn } from "@/lib/lipila";
 import { clearPreviewSession } from "@/lib/preview";
-import { SpinPressable } from "@/components/spin-pressable";
+import { AuthScreen } from "@/components/auth-ui";
 
 export default function PhoneAuth() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const [phone, setPhone] = useState("");
-  const [human, setHuman] = useState(false);
   const [loading, setLoading] = useState(false);
   const [invalid, setInvalid] = useState(false);
-  const [humanError, setHumanError] = useState(false);
   const [sendError, setSendError] = useState("");
 
   const msisdn = toZambianMsisdn(phone);
@@ -49,201 +46,83 @@ export default function PhoneAuth() {
         setSendError(friendlyAuthError(error.message));
         return;
       }
-      router.push({
-        pathname: "/auth/otp",
-        params: { phone: e164, mode: mode || "customer", preview: "0" },
-      });
+      router.push({ pathname: "/auth/otp", params: { phone: e164, mode: mode || "customer", preview: "0" } });
       return;
     }
 
     setLoading(false);
-    router.push({
-      pathname: "/auth/otp",
-      params: { phone: e164, mode: mode || "customer", preview: "1" },
-    });
+    router.push({ pathname: "/auth/otp", params: { phone: e164, mode: mode || "customer", preview: "1" } });
   }
 
   return (
-    <View style={styles.root}>
-      <SafeAreaView style={{ flex: 1 }}>
-        <Pressable onPress={() => router.back()} style={styles.back} hitSlop={12}>
-          <Ionicons name="chevron-back" size={22} color="#1C1B26" />
-        </Pressable>
-
-        <View style={styles.body}>
-          <Text style={styles.kicker}>Log in or sign up</Text>
-          <Text style={styles.heading}>What is your{"\n"}mobile number?</Text>
-
-          <View style={[styles.inputRow, invalid && styles.inputBad]}>
-            <View style={styles.flagChip}>
-              <Text style={styles.flagEmoji}>🇿🇲</Text>
-              <Text style={styles.codeText}>+260</Text>
-            </View>
-            <View style={styles.inputDivider} />
-            <TextInput
-              value={phone}
-              onChangeText={(t) => {
-                setPhone(t);
-                if (invalid) setInvalid(false);
-                if (sendError) setSendError("");
-              }}
-              placeholder="Your mobile number"
-              placeholderTextColor="#7A7A7A"
-              keyboardType="phone-pad"
-              autoFocus
-              style={styles.input}
-            />
-          </View>
-
-          {invalid ? (
-            <View style={styles.error}>
-              <Text style={styles.errorText}>
-                Enter a valid mobile number, for example 0970000000
-              </Text>
-            </View>
-          ) : null}
-
-          {sendError ? (
-            <View style={styles.error}>
-              <Text style={styles.errorText}>{sendError}</Text>
-            </View>
-          ) : null}
-
-          {!isSupabaseConfigured ? (
-            <Text style={styles.warn}>
-              This APK has no Supabase key. In Expo → Environment variables (production) set
-              EXPO_PUBLIC_SUPABASE_ANON_KEY, then run a new production build and install it.
-            </Text>
-          ) : (
-            <Text style={styles.live}>We will text you a 6-digit code.</Text>
-          )}
-
-          <SpinPressable onPress={next} loading={loading} spinnerColor={colors.ink} style={styles.next}>
-            <Text style={styles.nextText}>Next</Text>
-          </SpinPressable>
+    <AuthScreen
+      heading="Enter your phone number"
+      sub="We will send a confirmation code to it"
+      onBack={() => (router.canGoBack() ? router.back() : router.replace("/"))}
+      buttonLabel="Continue"
+      onPress={next}
+      loading={loading}
+      disabled={!phone.trim()}
+      footer={
+        <Text style={s.terms}>
+          By continuing, I accept the terms of the <Text style={s.link}>User Agreement</Text> and consent to the
+          processing of my personal information in accordance with the terms of the <Text style={s.link}>Privacy Policy</Text>.
+        </Text>
+      }
+    >
+      <View style={[s.inputRow, invalid && s.inputBad]}>
+        <View style={s.flagWrap}>
+          <Text style={s.flag}>🇿🇲</Text>
         </View>
-      </SafeAreaView>
-    </View>
+        <Text style={s.code}>+260</Text>
+        <TextInput
+          value={phone}
+          onChangeText={(t) => {
+            setPhone(t);
+            if (invalid) setInvalid(false);
+            if (sendError) setSendError("");
+          }}
+          placeholder="000 000 000"
+          placeholderTextColor="#9C9CA6"
+          keyboardType="phone-pad"
+          autoFocus
+          style={s.input}
+        />
+        {phone ? (
+          <Pressable onPress={() => setPhone("")} hitSlop={12} style={s.clear} accessibilityLabel="Clear number">
+            <Ionicons name="close" size={26} color="#1C1B26" />
+          </Pressable>
+        ) : null}
+      </View>
+
+      {invalid ? <Text style={s.error}>Enter a valid mobile number, for example 097 000 0000</Text> : null}
+      {sendError ? <Text style={s.error}>{sendError}</Text> : null}
+      {!isSupabaseConfigured ? (
+        <Text style={s.error}>This build has no Supabase key. Set EXPO_PUBLIC_SUPABASE_ANON_KEY and build again.</Text>
+      ) : null}
+    </AuthScreen>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#FFF0E6" },
-  back: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 16,
-    marginTop: 6,
-  },
-  body: { paddingHorizontal: 22, paddingTop: 28 },
-  kicker: { color: "#6B6A78", fontFamily: fonts.body, fontSize: 14, marginBottom: 10 },
-  heading: {
-    color: "#1C1B26",
-    fontFamily: fonts.display,
-    fontSize: 28,
-    letterSpacing: 0.4,
-    lineHeight: 34,
-    marginBottom: 22,
-  },
+const s = StyleSheet.create({
   inputRow: {
-    height: 54,
-    borderRadius: 10,
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
-    borderColor: "#2A2A2A",
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  flagChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    gap: 6,
-  },
-  flagEmoji: { fontSize: 20 },
-  codeText: { color: "#fff", fontFamily: fonts.bodySemi, fontSize: 16 },
-  inputDivider: {
-    width: 1.5,
-    height: 26,
-    backgroundColor: "#2A2A2A",
-  },
-  input: {
-    flex: 1,
-    height: 54,
-    paddingHorizontal: 14,
-    color: "#fff",
-    fontFamily: fonts.body,
-    fontSize: 16,
-  },
-  inputBad: { borderColor: colors.danger },
-  error: {
-    marginTop: 12,
-    backgroundColor: colors.danger,
-    borderRadius: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-  },
-  errorText: { color: "#fff", fontFamily: fonts.bodySemi, fontSize: 13 },
-  live: {
-    marginTop: 10,
-    color: colors.customer,
-    fontFamily: fonts.bodySemi,
-    fontSize: 12,
-  },
-  warn: {
-    marginTop: 10,
-    color: colors.gold,
-    fontFamily: fonts.bodySemi,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  human: {
-    marginTop: 16,
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  humanBad: { borderWidth: 2, borderColor: colors.danger },
-  humanLeft: { flexDirection: "row", alignItems: "center" },
-  box: {
-    width: 22,
-    height: 22,
-    borderRadius: 3,
+    height: 64,
+    borderRadius: 32,
     borderWidth: 2,
-    borderColor: "#C8C8C8",
-    marginRight: 12,
+    borderColor: "#1C1B26",
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#fff",
+    paddingLeft: 4,
+    paddingRight: 14,
+    backgroundColor: "#FFFFFF",
   },
-  boxOn: { backgroundColor: colors.gold, borderColor: colors.gold },
-  humanText: { color: "#1A1A1A", fontFamily: fonts.body, fontSize: 16 },
-  badge: { alignItems: "center" },
-  badgeMark: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: colors.gold,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  badgeM: { fontFamily: fonts.script, fontSize: 18, color: colors.ink, marginTop: 2 },
-  badgeName: { fontSize: 8, color: "#888", marginTop: 2, fontFamily: fonts.bodySemi },
-  next: {
-    marginTop: 18,
-    height: 52,
-    borderRadius: 10,
-    backgroundColor: colors.gold,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  nextText: { color: colors.ink, fontFamily: fonts.display, fontSize: 16, letterSpacing: 1 },
+  inputBad: { borderColor: ui.red },
+  flagWrap: { width: 54, height: 54, borderRadius: 27, backgroundColor: "#F3F5F7", alignItems: "center", justifyContent: "center" },
+  flag: { fontSize: 26 },
+  code: { fontFamily: fonts.body, fontSize: 21, color: "#1C1B26", marginLeft: 14 },
+  input: { flex: 1, height: 60, marginLeft: 6, fontFamily: fonts.body, fontSize: 21, color: "#1C1B26", letterSpacing: 0.5 },
+  clear: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+  error: { fontFamily: fonts.bodySemi, fontSize: 13.5, color: ui.red, marginTop: 12, marginLeft: 6 },
+  terms: { fontFamily: fonts.body, fontSize: 13.5, lineHeight: 19, color: "#8E8D99" },
+  link: { color: ui.red },
 });

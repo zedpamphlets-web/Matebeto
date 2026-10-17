@@ -15,11 +15,11 @@ export function OfflineBanner({ dark }: { dark?: boolean }) {
         paddingVertical: 8,
         borderRadius: 999,
         marginBottom: 12,
-        backgroundColor: dark ? "rgba(255,255,255,0.10)" : "rgba(11,43,26,0.08)",
+        backgroundColor: "#F5F5F7",
       }}
     >
-      <Ionicons name="cloud-offline-outline" size={16} color={dark ? colors.gold : colors.brandGreen} />
-      <Text style={{ fontFamily: fonts.bodySemi, fontSize: 12, color: dark ? "#fff" : colors.brandGreen }}>
+      <Ionicons name="cloud-offline-outline" size={16} color="#6B6A78" />
+      <Text style={{ fontFamily: fonts.bodySemi, fontSize: 12, color: "#4A4958" }}>
         No internet. Showing your saved menu.
       </Text>
     </View>

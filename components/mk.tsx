@@ -168,7 +168,7 @@ export function MkStepper({
     <View style={[s.stepper, small && { paddingHorizontal: 0, backgroundColor: "transparent", borderWidth: 0 }]}>
       <Pressable
         onPress={() => onChange(Math.max(min, value - 1))}
-        style={[s.stepBtn, { width: d, height: d, borderRadius: d / 2, backgroundColor: "#ECE9E4" }]}
+        style={[s.stepBtn, { width: d, height: d, borderRadius: d / 2, backgroundColor: "#EDEDF0" }]}
         hitSlop={6}
         accessibilityLabel="Less"
       >

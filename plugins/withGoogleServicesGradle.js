@@ -1,4 +1,4 @@
-const { withAppBuildGradle, withProjectBuildGradle } = require("@expo/config-plugins");
+const { withAppBuildGradle, withProjectBuildGradle } = require("expo/config-plugins");
 
 /** Same plugin Firebase asked for: com.google.gms.google-services 4.5.0.
  * Expo's Android file uses classpath + apply plugin, not the plugins { id(...) } block.

@@ -1,32 +1,40 @@
 import { Tabs } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, fonts } from "@/lib/theme";
+import { fonts, ui } from "@/lib/theme";
 
 export default function RiderTabs() {
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.rider,
-        tabBarInactiveTintColor: colors.onGreenMuted,
-        tabBarLabelStyle: { fontFamily: fonts.bodySemi, fontSize: 11 },
-        tabBarStyle: {
-          backgroundColor: "#FFF0E6",
-          borderTopColor: "rgba(255,255,255,0.08)",
-          height: 64,
-          paddingTop: 6,
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{ title: "Jobs", tabBarIcon: ({ color }) => <Ionicons name="bicycle" size={22} color={color} /> }}
-      />
-      <Tabs.Screen
-        name="earnings"
-        options={{ title: "Earnings", tabBarIcon: ({ color }) => <Ionicons name="wallet" size={22} color={color} /> }}
-      />
-      <Tabs.Screen name="job/[id]" options={{ href: null, title: "Job" }} />
-    </Tabs>
+    <>
+      <StatusBar style="dark" />
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: ui.red,
+          tabBarInactiveTintColor: ui.sub,
+          tabBarLabelStyle: { fontFamily: fonts.bodySemi, fontSize: 12 },
+          sceneStyle: { backgroundColor: "#FFFFFF" },
+          tabBarStyle: {
+            backgroundColor: "#FFFFFF",
+            borderTopWidth: 1,
+            borderTopColor: ui.line,
+            height: 66,
+            paddingTop: 8,
+            paddingBottom: 8,
+            elevation: 0,
+          },
+        }}
+      >
+        <Tabs.Screen
+          name="index"
+          options={{ title: "Jobs", tabBarIcon: ({ color }) => <Ionicons name="bicycle" size={24} color={color} /> }}
+        />
+        <Tabs.Screen
+          name="earnings"
+          options={{ title: "Earnings", tabBarIcon: ({ color }) => <Ionicons name="wallet-outline" size={24} color={color} /> }}
+        />
+        <Tabs.Screen name="job/[id]" options={{ href: null, title: "Job", tabBarStyle: { display: "none" } }} />
+      </Tabs>
+    </>
   );
 }

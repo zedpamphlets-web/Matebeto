@@ -54,7 +54,7 @@ export function FaceCamera({
           <CameraView ref={cameraRef} facing={facing} style={StyleSheet.absoluteFillObject} />
         ) : (
           <View style={styles.need}>
-            <Ionicons name="camera" size={36} color={colors.gold} />
+            <Ionicons name="camera-outline" size={36} color="#D6263A" />
             <Pressable onPress={requestPermission} style={styles.allow}>
               <Text style={styles.allowText}>Allow camera</Text>
             </Pressable>
@@ -84,24 +84,24 @@ export function FaceCamera({
 }
 
 const styles = StyleSheet.create({
-  label: { fontFamily: fonts.title, marginBottom: 8, color: "#fff" },
+  label: { fontFamily: fonts.title, marginBottom: 8, color: "#1C1B26" },
   box: {
-    borderRadius: 28,
+    borderRadius: 18,
     overflow: "hidden",
-    backgroundColor: colors.surface,
-    borderWidth: 3,
-    borderColor: colors.gold,
+    backgroundColor: "#F5F5F7",
+    borderWidth: 1,
+    borderColor: "#EBEBEF",
   },
   need: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 10 },
-  needText: { color: "#ddd", textAlign: "center", fontFamily: fonts.body, lineHeight: 20 },
+  needText: { color: "#6B6A78", textAlign: "center", fontFamily: fonts.body, lineHeight: 20 },
   allow: {
     marginTop: 6,
-    backgroundColor: colors.gold,
+    backgroundColor: "#D6263A",
     borderRadius: 999,
     paddingHorizontal: 18,
     paddingVertical: 10,
   },
-  allowText: { fontFamily: fonts.title, color: colors.ink },
+  allowText: { fontFamily: fonts.title, color: "#fff" },
   busy: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.35)",
@@ -112,8 +112,8 @@ const styles = StyleSheet.create({
   snap: {
     flex: 1,
     height: 50,
-    borderRadius: 16,
-    backgroundColor: colors.rider,
+    borderRadius: 14,
+    backgroundColor: "#D6263A",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

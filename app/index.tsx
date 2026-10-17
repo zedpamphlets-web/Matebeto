@@ -1,12 +1,12 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandSplash } from "@/components/brand-splash";
-import { colors, fonts } from "@/lib/theme";
+import { fonts } from "@/lib/theme";
 import { currentProfile } from "@/lib/session";
 import { supabase } from "@/lib/supabase";
 import { isOnline, withTimeout } from "@/lib/network";
@@ -16,6 +16,21 @@ export default function Welcome() {
   const [ready, setReady] = useState(false);
   const [offline, setOffline] = useState(false);
   const [going, setGoing] = useState(false);
+  const [splashDone, setSplashDone] = useState(false);
+  const doneRef = useRef(false);
+  const navRef = useRef<null | (() => void)>(null);
+
+  // never leave the opening animation half-way: wait for it to finish before moving on
+  function navigate(fn: () => void) {
+    if (doneRef.current) fn();
+    else navRef.current = fn;
+  }
+  function onSplashFinished() {
+    doneRef.current = true;
+    setSplashDone(true);
+    navRef.current?.();
+    navRef.current = null;
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -28,7 +43,7 @@ export default function Welcome() {
         const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
         if (cancelled) return;
         if (data?.session) {
-          router.replace({ pathname: "/finding", params: { next: "/(customer)" } });
+          navigate(() => router.replace({ pathname: "/finding", params: { next: "/(customer)" } }));
           return;
         }
         setOffline(true);
@@ -39,9 +54,9 @@ export default function Welcome() {
       withTimeout(currentProfile())
         .then(({ user, admin, rider, preview }) => {
           if (cancelled) return;
-          if (admin) router.replace("/admin");
-          else if (rider?.status === "APPROVED") router.replace("/(rider)");
-          else if (preview || user) router.replace({ pathname: "/finding", params: { next: "/(customer)" } });
+          if (admin) navigate(() => router.replace("/admin"));
+          else if (rider?.status === "APPROVED") navigate(() => router.replace("/(rider)"));
+          else if (preview || user) navigate(() => router.replace({ pathname: "/finding", params: { next: "/(customer)" } }));
           else setReady(true);
         })
         .catch(async () => {
@@ -61,8 +76,8 @@ export default function Welcome() {
     };
   }, []);
 
-  if (!ready) {
-    return <BrandSplash />;
+  if (!ready || !splashDone) {
+    return <BrandSplash onFinished={onSplashFinished} />;
   }
 
   if (offline) {
@@ -71,7 +86,7 @@ export default function Welcome() {
         <BrandSplash offline />
         <View style={styles.retryWrap}>
           <SpinPressable
-            spinnerColor={colors.ink}
+            spinnerColor="#fff"
             onPress={async () => {
               setReady(false);
               setOffline(false);
@@ -83,9 +98,9 @@ export default function Welcome() {
               }
               try {
                 const { user, admin, rider, preview } = await withTimeout(currentProfile());
-                if (admin) router.replace("/admin");
-                else if (rider?.status === "APPROVED") router.replace("/(rider)");
-                else if (preview || user) router.replace({ pathname: "/finding", params: { next: "/(customer)" } });
+                if (admin) navigate(() => router.replace("/admin"));
+                else if (rider?.status === "APPROVED") navigate(() => router.replace("/(rider)"));
+                else if (preview || user) navigate(() => router.replace({ pathname: "/finding", params: { next: "/(customer)" } }));
                 else setReady(true);
               } catch {
                 const stillOnline = await isOnline();
@@ -108,37 +123,33 @@ export default function Welcome() {
 
   return (
     <View style={styles.root}>
-      <Image source={require("../assets/welcome-bg-full.jpg")} style={StyleSheet.absoluteFillObject} contentFit="cover" />
-      <LinearGradient
-        colors={["rgba(0,0,0,0.35)", "rgba(0,0,0,0.15)", "rgba(0,0,0,0.1)", "rgba(0,0,0,0.55)"]}
-        locations={[0, 0.3, 0.6, 1]}
-        style={StyleSheet.absoluteFill}
-      />
+      <StatusBar style="dark" />
       <SafeAreaView style={styles.safe}>
         <View style={styles.copy}>
           <Image
-            source={require("../assets/logo-wordmark-clear.png")}
-            style={{ width: 340, height: 130 }}
+            source={require("../assets/logo-wordmark-cropped.png")}
+            style={{ width: 280, height: 121 }}
             contentFit="contain"
           />
-          <Text style={styles.tag}>Let's Eat.</Text>
-          <Text style={styles.one}>One App.</Text>
-          <Text style={styles.two}>Two ways to use it.</Text>
+          <Text style={styles.tag}>Good food, closer to you.</Text>
         </View>
         <View style={styles.actions}>
           <RoleButton
-            color={colors.gold}
-            textColor={colors.brandGreen}
+            filled
             icon="person"
-            label="I'm a Customer"
-            onPress={() => { setGoing(true); setTimeout(() => router.push({ pathname: "/auth/phone", params: { mode: "customer" } }), 700); }}
+            label="I'm a customer"
+            onPress={() => {
+              setGoing(true);
+              setTimeout(() => router.push({ pathname: "/auth/phone", params: { mode: "customer" } }), 600);
+            }}
           />
           <RoleButton
-            color={colors.rider}
-            textColor="#fff"
             icon="bicycle"
-            label="I'm a Rider"
-            onPress={() => { setGoing(true); setTimeout(() => router.push({ pathname: "/auth/phone", params: { mode: "rider" } }), 700); }}
+            label="I'm a rider"
+            onPress={() => {
+              setGoing(true);
+              setTimeout(() => router.push({ pathname: "/auth/phone", params: { mode: "rider" } }), 600);
+            }}
           />
         </View>
       </SafeAreaView>
@@ -147,97 +158,47 @@ export default function Welcome() {
 }
 
 function RoleButton({
-  color,
-  textColor,
+  filled,
   icon,
   label,
   onPress,
 }: {
-  color: string;
-  textColor: string;
+  filled?: boolean;
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
 }) {
+  const fg = filled ? "#FFFFFF" : "#D6263A";
   return (
-    <SpinPressable onPress={onPress} spinnerColor={textColor} style={[styles.role, { backgroundColor: color }]}>
-      <View style={styles.roleIcon}>
-        <Ionicons name={icon} size={26} color={textColor} />
-      </View>
-      <Text style={[styles.roleLabel, { color: textColor }]}>{label}</Text>
-    </SpinPressable>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.role, filled ? styles.roleFilled : styles.roleOutline, pressed && { opacity: 0.85 }]}
+    >
+      <Ionicons name={icon} size={22} color={fg} />
+      <Text style={[styles.roleLabel, { color: fg }]}>{label}</Text>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  retryWrap: {
-    position: "absolute",
-    bottom: 56,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-  },
+  retryWrap: { position: "absolute", bottom: 56, left: 0, right: 0, alignItems: "center" },
   retry: {
-    backgroundColor: colors.gold,
+    backgroundColor: "#D6263A",
     minWidth: 150,
     height: 52,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 28,
-    borderRadius: 28,
+    borderRadius: 26,
   },
-  retryText: {
-    color: colors.ink,
-    fontFamily: fonts.title,
-    fontSize: 15,
-  },
-  root: { flex: 1, backgroundColor: "#FFF0E6" },
-  safe: { flex: 1, justifyContent: "space-between", paddingHorizontal: 22, paddingBottom: 28 },
-  copy: { paddingTop: 40, alignItems: "center" },
-  tag: {
-    marginTop: 8,
-    color: colors.gold,
-    fontFamily: fonts.title,
-    fontSize: 20,
-  },
-  one: {
-    marginTop: 2,
-    color: colors.gold,
-    fontFamily: fonts.display,
-    fontSize: 40,
-    letterSpacing: -0.5,
-    textAlign: "center",
-  },
-  two: {
-    marginTop: 4,
-    color: "#FFFFFF",
-    fontFamily: fonts.bodySemi,
-    fontSize: 17,
-    textAlign: "center",
-  },
-  actions: { gap: 14, paddingBottom: 8 },
-  role: {
-    height: 64,
-    borderRadius: 36,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingLeft: 8,
-    paddingRight: 18,
-  },
-  roleIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "rgba(255,255,255,0.22)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  roleLabel: {
-    flex: 1,
-    textAlign: "center",
-    color: "#fff",
-    fontFamily: fonts.title,
-    fontSize: 18,
-    marginRight: 42,
-  },
+  retryText: { color: "#fff", fontFamily: fonts.title, fontSize: 15 },
+  root: { flex: 1, backgroundColor: "#FFFFFF" },
+  safe: { flex: 1, justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 24 },
+  copy: { flex: 1, alignItems: "center", justifyContent: "center" },
+  tag: { marginTop: 6, color: "#6B6A78", fontFamily: fonts.body, fontSize: 16 },
+  actions: { gap: 12 },
+  role: { height: 54, borderRadius: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 },
+  roleFilled: { backgroundColor: "#D6263A" },
+  roleOutline: { backgroundColor: "#FFFFFF", borderWidth: 1.5, borderColor: "#D6263A" },
+  roleLabel: { fontFamily: fonts.title, fontSize: 16 },
 });

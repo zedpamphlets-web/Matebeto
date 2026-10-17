@@ -147,49 +147,24 @@ export default function OrderTrack() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-      {delivered ? (
-        <View
-          style={{
-            backgroundColor: colors.customerDeep,
-            borderRadius: 22,
-            padding: 22,
-            alignItems: "center",
-            marginBottom: 18,
-          }}
-        >
-          <Ionicons name="checkmark-circle" size={64} color="#fff" />
-          <Text style={{ color: "#fff", fontFamily: fonts.display, fontSize: 28, marginTop: 8 }}>Delivered!</Text>
-          <Text style={{ color: colors.goldSoft, fontFamily: fonts.title, fontSize: 18, marginTop: 4 }}>
-            Order #{order.order_number}
-          </Text>
-          <Text style={{ color: "#fff", fontFamily: fonts.body, marginTop: 8 }}>Thank you</Text>
-        </View>
-      ) : (
-        <View
-          style={{
-            backgroundColor: "#fff",
-            borderRadius: 22,
-            padding: 22,
-            alignItems: "center",
-            marginBottom: 18,
-            borderWidth: 1,
-            borderColor: colors.line,
-          }}
-        >
-          <Ionicons name={failed ? "alert-circle" : "checkmark-circle"} size={56} color={failed ? colors.danger : colors.customer} />
-          <Text style={{ fontFamily: fonts.display, fontSize: 24, marginTop: 8 }}>
-            {failed ? "We need a moment" : "Order Placed!"}
-          </Text>
-          <Text style={{ fontFamily: fonts.title, fontSize: 18, color: colors.muted }}>Order #{order.order_number}</Text>
-        </View>
-      )}
+      <View style={{ backgroundColor: "#fff", borderRadius: 18, padding: 22, alignItems: "center", marginBottom: 16, borderWidth: 1, borderColor: colors.line }}>
+        <Ionicons
+          name={failed ? "alert-circle" : "checkmark-circle"}
+          size={delivered ? 60 : 54}
+          color={failed ? colors.danger : colors.good}
+        />
+        <Text style={{ fontFamily: fonts.display, fontSize: 24, marginTop: 8, color: colors.ink }}>
+          {delivered ? "Delivered" : failed ? "We need a moment" : "Order placed"}
+        </Text>
+        <Text style={{ fontFamily: fonts.title, fontSize: 16, color: colors.muted, marginTop: 2 }}>Order #{order.order_number}</Text>
+      </View>
 
       {notice && (
         <View style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: colors.line }}>
           <Text style={{ fontFamily: fonts.body, color: colors.ink }}>{notice}</Text>
           {(order.status === "NO_VENDOR_FOUND" || order.status === "NO_RIDER_AVAILABLE") && (
-            <Pressable onPress={tryAgain} style={{ marginTop: 12, backgroundColor: colors.gold, paddingVertical: 12, borderRadius: 12, alignItems: "center" }}>
-              <Text style={{ fontFamily: fonts.title, color: colors.ink }}>Try again</Text>
+            <Pressable onPress={tryAgain} style={{ marginTop: 12, backgroundColor: "#D6263A", paddingVertical: 13, borderRadius: 12, alignItems: "center" }}>
+              <Text style={{ fontFamily: fonts.title, color: "#fff" }}>Try again</Text>
             </Pressable>
           )}
         </View>
@@ -219,15 +194,15 @@ export default function OrderTrack() {
       ))}
 
       {order.status === "OUT_FOR_DELIVERY" && (
-        <View style={{ backgroundColor: colors.ink, borderRadius: radius.md, padding: 16, marginTop: 8, marginBottom: 8 }}>
-          <Text style={{ color: "#fff", fontFamily: fonts.title }}>On the way</Text>
-          <Text style={{ color: colors.goldSoft, fontFamily: fonts.body, marginTop: 4 }}>
+        <View style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 16, marginTop: 8, marginBottom: 8, borderWidth: 1, borderColor: colors.line }}>
+          <Text style={{ color: colors.ink, fontFamily: fonts.title }}>On the way</Text>
+          <Text style={{ color: colors.muted, fontFamily: fonts.body, marginTop: 4 }}>
             Order #{order.order_number} · {order.delivery_type}
           </Text>
         </View>
       )}
 
-      <View style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 14, marginTop: 8 }}>
+      <View style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 14, marginTop: 8, borderWidth: 1, borderColor: colors.line }}>
         {items.map((it) => (
           <Text key={it.id} style={{ marginBottom: 4, fontFamily: fonts.body }}>
             {it.quantity} × {it.meal_name} · {formatKw(it.unit_price * it.quantity)}
@@ -240,9 +215,9 @@ export default function OrderTrack() {
       </View>
 
       {otp && (
-        <View style={{ marginTop: 16, backgroundColor: colors.ink, borderRadius: radius.md, padding: 16 }}>
-          <Text style={{ color: "#fff", fontFamily: fonts.title }}>Give this OTP to the rider</Text>
-          <Text style={{ color: colors.gold, fontSize: 32, fontFamily: fonts.display, letterSpacing: 6, marginTop: 6 }}>
+        <View style={{ marginTop: 16, backgroundColor: "#fff", borderRadius: radius.md, padding: 16, borderWidth: 1, borderColor: colors.line }}>
+          <Text style={{ color: colors.muted, fontFamily: fonts.title }}>Give this code to the rider</Text>
+          <Text style={{ color: colors.ink, fontSize: 34, fontFamily: fonts.display, letterSpacing: 8, marginTop: 6 }}>
             {otp}
           </Text>
         </View>

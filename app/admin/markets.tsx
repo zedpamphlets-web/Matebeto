@@ -6,6 +6,7 @@ import { colors, fonts, radius, ui } from "@/lib/theme";
 import { Field } from "@/components/ui";
 import { AdminButton as PrimaryButton } from "@/components/admin-ui";
 import { PhotoPicker } from "@/components/photo-picker";
+import { confirmDialog } from "@/components/confirm";
 
 const label = { fontFamily: fonts.bodySemi, color: colors.adminMuted, fontSize: 12, marginBottom: 6, marginTop: 4 } as const;
 
@@ -79,19 +80,17 @@ export default function AdminMarkets() {
     load();
   }
 
-  function deleteMarket(id: string) {
-    Alert.alert("Delete market", "Remove this market from the app?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          const { error } = await supabase.from("markets").delete().eq("id", id);
-          if (error) Alert.alert("Market", error.message);
-          load();
-        },
-      },
-    ]);
+  async function deleteMarket(id: string) {
+    const ok = await confirmDialog({
+      title: "Delete market?",
+      message: "Are you sure you want to delete this market?",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
+    const { error } = await supabase.from("markets").delete().eq("id", id);
+    if (error) Alert.alert("Market", error.message);
+    load();
   }
 
   if (loading && rows.length === 0) return <View style={{ flex: 1, backgroundColor: colors.adminBg, padding: 16 }}><ListSkeleton /></View>;
@@ -99,9 +98,6 @@ export default function AdminMarkets() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.adminBg }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
       <Text style={{ fontFamily: fonts.title, fontSize: 18, marginBottom: 4, color: colors.adminText }}>Add market</Text>
-      <Text style={{ color: colors.adminMuted, fontFamily: fonts.body, marginBottom: 10 }}>
-        Shows as a card on Home, in this order.
-      </Text>
       <Field value={name} onChangeText={setName} placeholder="Market name (e.g. Longacres)" />
       <Field value={distance} onChangeText={setDistance} placeholder="Distance in km (optional, e.g. 2.1)" keyboardType="decimal-pad" />
       <PhotoPicker folder="markets" uri={image} name={name || "Market"} onChange={setImage} />

@@ -19,6 +19,7 @@ import { EmptyState } from "@/components/empty-state";
 import { HomeSkeleton } from "@/components/skeleton";
 import { OfflineNotice } from "@/components/offline-notice";
 import { OfflineBanner } from "@/components/offline-banner";
+import { NotificationBell } from "@/components/notification-bell";
 import { MkScreen } from "@/components/mk";
 import { supabase } from "@/lib/supabase";
 import { fonts, ui } from "@/lib/theme";
@@ -28,7 +29,9 @@ import { useCachedLoad } from "@/lib/offline-cache";
 const W = Dimensions.get("window").width;
 const PAD = 16;
 const GAP = 12;
-const BANNER_W = W - PAD * 2;
+const BANNER_GAP = 10;
+const BANNER_W = W - PAD * 2 - 22; // a slice of the next banner stays visible
+const BANNER_STEP = BANNER_W + BANNER_GAP;
 const CARD_W = (W - PAD * 2 - GAP) / 2;
 const DEFAULT_TAGLINE = "Good Food. Closer to You.";
 const DEFAULT_CITY = "Lusaka";
@@ -115,7 +118,7 @@ export default function Home() {
     const t = setInterval(() => {
       setBannerIndex((i) => {
         const next = (i + 1) % slides.length;
-        bannerRef.current?.scrollTo({ x: next * BANNER_W, animated: true });
+        bannerRef.current?.scrollTo({ x: next * BANNER_STEP, animated: true });
         return next;
       });
     }, 10000);
@@ -123,23 +126,21 @@ export default function Home() {
   }, [slides.length, loading]);
 
   function onBannerScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
-    setBannerIndex(Math.round(e.nativeEvent.contentOffset.x / BANNER_W));
+    setBannerIndex(Math.round(e.nativeEvent.contentOffset.x / BANNER_STEP));
   }
 
   return (
     <MkScreen>
-      <ScrollView contentContainerStyle={{ paddingBottom: 96 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 28 }} showsVerticalScrollIndicator={false}>
         {/* Header: logo + tagline, bell */}
         <View style={styles.top}>
-          <Text style={styles.word}>Matebeto</Text>
-          <Pressable
-            onPress={() => router.push("/(customer)/notifications")}
-            hitSlop={12}
-            accessibilityLabel="Notifications"
-            style={styles.bell}
-          >
-            <Ionicons name="notifications" size={22} color={ui.ink} />
-          </Pressable>
+          <Image
+            source={require("../../assets/logo-wordmark-cropped.png")}
+            style={styles.logo}
+            contentFit="contain"
+            accessibilityLabel="Matebeto"
+          />
+          <NotificationBell />
         </View>
 
         {/* Banner */}
@@ -147,16 +148,16 @@ export default function Home() {
           <ScrollView
             ref={bannerRef}
             horizontal
-            pagingEnabled
             showsHorizontalScrollIndicator={false}
             onScroll={onBannerScroll}
             scrollEventThrottle={16}
             decelerationRate="fast"
-            snapToInterval={BANNER_W}
+            snapToInterval={BANNER_STEP}
+            snapToAlignment="start"
             contentContainerStyle={{ paddingHorizontal: PAD }}
           >
             {slides.map((sl) => (
-              <View key={sl.key} style={[styles.banner, { width: BANNER_W, backgroundColor: ui.banner }]}>
+              <View key={sl.key} style={[styles.banner, { width: BANNER_W, marginRight: BANNER_GAP, backgroundColor: ui.banner }]}>
                 {sl.uri ? (
                   <>
                     <Image source={{ uri: sl.uri }} style={styles.bannerFood} contentFit="cover" />
@@ -218,7 +219,7 @@ export default function Home() {
                       style={styles.card}
                     >
                       <View style={{ height: Math.round(CARD_W * 0.72), overflow: "hidden" }}>
-                        <Photo uri={m.image_url} name={m.name} height={Math.round(CARD_W * 0.72)} />
+                        <Photo uri={m.image_url} name={m.name} height={Math.round(CARD_W * 0.72)} hideLabel />
                         <LinearGradient
                           colors={["transparent", "rgba(0,0,0,0.65)"]}
                           style={StyleSheet.absoluteFill}
@@ -252,33 +253,28 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   top: {
-    marginHorizontal: PAD,
-    marginTop: 6,
-    marginBottom: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: PAD,
+    paddingTop: 2,
+    marginBottom: 8,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.95)",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.8)",
+    backgroundColor: "#FFFFFF",
   },
-  word: { fontFamily: fonts.display, fontSize: 26, color: ui.ink, letterSpacing: 0.3 },
+  logo: { width: 132, height: 57, marginLeft: -4 },
   bell: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.9)",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F5F5F7",
     alignItems: "center",
     justifyContent: "center",
   },
-  banner: { height: 140, borderRadius: 14, overflow: "hidden" },
+  banner: { height: 176, borderRadius: 14, overflow: "hidden" },
   bannerFood: { position: "absolute", top: 0, right: 0, bottom: 0, width: "56%" },
   bannerFade: { position: "absolute", top: 0, bottom: 0, left: "40%", width: 60 },
-  bannerCopy: { flex: 1, justifyContent: "center", paddingHorizontal: 16, maxWidth: "58%" },
-  bannerTitle: { color: "#fff", fontFamily: fonts.title, fontSize: 17, lineHeight: 21 },
+  bannerCopy: { flex: 1, justifyContent: "center", paddingHorizontal: 18, maxWidth: "58%" },
+  bannerTitle: { color: "#fff", fontFamily: fonts.title, fontSize: 19, lineHeight: 24 },
   bannerSub: { color: "#F3E7EC", fontFamily: fonts.body, fontSize: 10, marginTop: 10 },
   bannerRule: { width: 38, height: 3, borderRadius: 2, backgroundColor: ui.amber, marginTop: 6 },
   bannerAmount: { color: ui.amber, fontFamily: fonts.title, fontSize: 15, marginTop: 6 },
@@ -301,7 +297,9 @@ const styles = StyleSheet.create({
   cardMeta: { fontFamily: fonts.body, fontSize: 10.5, color: ui.sub, marginTop: 1 },
   promo: {
     marginTop: 18,
-    backgroundColor: ui.promo,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: ui.line,
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 14,

@@ -1,11 +1,13 @@
 import { useCallback, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { LOGIN_ROUTE, currentProfile, signOutApp } from "@/lib/session";
-import { ListSkeleton } from "@/components/skeleton";
-import { colors, fonts, radius } from "@/lib/theme";
-import { AppHeader, DarkScreen, GoldButton } from "@/components/app-shell";
+import { LoadingScreen } from "@/components/spinner";
+import { confirmDialog } from "@/components/confirm";
+import { MkScreen, RedButton } from "@/components/mk";
+import { fonts, ui } from "@/lib/theme";
 
 export default function RiderHome() {
   const [rider, setRider] = useState<any>(null);
@@ -42,93 +44,146 @@ export default function RiderHome() {
     load();
   }
 
-  if (loading) {
-    return (
-      <DarkScreen>
-        <AppHeader title="Jobs" />
-        <ListSkeleton rows={3} />
-      </DarkScreen>
-    );
+  async function logout() {
+    const ok = await confirmDialog({
+      title: "Log out?",
+      message: "Are you sure you want to log out?",
+      confirmLabel: "Log out",
+      destructive: true,
+    });
+    if (!ok) return;
+    await signOutApp();
+    router.replace(LOGIN_ROUTE);
   }
 
-  if (!rider) {
-    return (
-      <DarkScreen>
-        <AppHeader title="Rider mode" />
-        <View style={{ padding: 24 }}>
-          <Text style={{ fontSize: 22, fontFamily: fonts.display, color: "#1C1B26" }}>Apply first</Text>
-          <Text style={{ color: colors.onGreenMuted, marginTop: 8, fontFamily: fonts.body }}>
-            Fill the rider application after OTP. Jobs open only after admin approval.
-          </Text>
-          <View style={{ height: 16 }} />
-          <GoldButton label="Open application" onPress={() => router.push("/auth/rider-apply")} />
-        </View>
-      </DarkScreen>
-    );
-  }
+  if (loading) return <LoadingScreen />;
 
-  if (rider.status !== "APPROVED") {
+  if (!rider || rider.status !== "APPROVED") {
+    const noApplication = !rider;
     return (
-      <DarkScreen>
-        <AppHeader title="Rider mode" />
-        <View style={{ padding: 24 }}>
-          <Text style={{ fontSize: 22, fontFamily: fonts.display, color: "#1C1B26" }}>Status: {rider.status}</Text>
-          <Text style={{ color: colors.onGreenMuted, marginTop: 8, fontFamily: fonts.body }}>
-            Only approved riders receive jobs. You can keep ordering food as a customer.
+      <MkScreen>
+        <View style={s.centre}>
+          <View style={s.bigIcon}>
+            <Ionicons name={noApplication ? "document-text-outline" : "time-outline"} size={34} color={ui.red} />
+          </View>
+          <Text style={s.h1}>{noApplication ? "Apply to deliver" : statusTitle(rider.status)}</Text>
+          <Text style={s.p}>
+            {noApplication
+              ? "Send your details and an admin will review them. Jobs open once you are approved."
+              : "Only approved riders receive jobs. You can keep ordering food as a customer."}
           </Text>
-          <View style={{ height: 16 }} />
-          <GoldButton label="Order food" onPress={() => router.push("/(customer)")} />
+          <View style={{ height: 22, alignSelf: "stretch" }} />
+          {noApplication ? (
+            <RedButton label="Start application" onPress={() => router.push("/auth/rider-apply")} style={{ alignSelf: "stretch" }} />
+          ) : (
+            <RedButton label="Order food" onPress={() => router.push("/(customer)")} style={{ alignSelf: "stretch" }} />
+          )}
+          <Pressable onPress={logout} style={s.linkBtn} hitSlop={8}>
+            <Text style={s.linkText}>Log out</Text>
+          </Pressable>
         </View>
-      </DarkScreen>
+      </MkScreen>
     );
   }
 
   return (
-    <DarkScreen>
-      <AppHeader title="Jobs" />
-      <ScrollView contentContainerStyle={{ padding: 20 }}>
-        <Text style={{ fontSize: 22, fontFamily: fonts.display, color: "#1C1B26" }}>{rider.full_name}</Text>
-        <Text style={{ color: colors.onGreenMuted, textTransform: "capitalize", fontFamily: fonts.body }}>{rider.vehicle_type}</Text>
-        <View style={{ height: 14 }} />
-        <GoldButton label={rider.is_online ? "Go offline" : "Go online"} onPress={toggleOnline} />
-        {rider.current_order_id && (
-          <>
-            <View style={{ height: 10 }} />
-            <GoldButton label="Open current job" onPress={() => router.push(`/(rider)/job/${rider.current_order_id}`)} />
-          </>
+    <MkScreen>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+        <View style={s.profile}>
+          <View style={s.avatar}>
+            <Ionicons name={rider.vehicle_type === "motorbike" ? "speedometer-outline" : "bicycle"} size={24} color={ui.red} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.name}>{rider.full_name}</Text>
+            <Text style={s.vehicle}>{rider.vehicle_type}</Text>
+          </View>
+        </View>
+
+        <View style={s.onlineCard}>
+          <View style={{ flex: 1 }}>
+            <Text style={s.onlineTitle}>{rider.is_online ? "You are online" : "You are offline"}</Text>
+            <Text style={s.onlineSub}>{rider.is_online ? "New deliveries can reach you." : "Go online to receive deliveries."}</Text>
+          </View>
+          <Switch
+            value={!!rider.is_online}
+            onValueChange={toggleOnline}
+            trackColor={{ true: ui.red, false: "#D9D9DE" }}
+            thumbColor="#fff"
+          />
+        </View>
+
+        {rider.current_order_id ? (
+          <RedButton
+            label="Open current job"
+            onPress={() => router.push(`/(rider)/job/${rider.current_order_id}`)}
+            style={{ marginTop: 12 }}
+          />
+        ) : null}
+
+        <Text style={s.section}>Delivery requests</Text>
+        {offers.length === 0 ? (
+          <View style={s.empty}>
+            <Ionicons name="bicycle-outline" size={30} color={ui.hint} />
+            <Text style={s.emptyText}>No requests right now</Text>
+          </View>
+        ) : (
+          offers.map((off) => (
+            <Pressable key={off.id} onPress={() => router.push(`/(rider)/job/${off.orders.id}`)} style={s.offer}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.offerTitle}>Order #{off.orders.order_number}</Text>
+                <Text style={s.offerMeta} numberOfLines={2}>
+                  {off.orders.delivery_type} · {off.orders.delivery_address?.text}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={ui.hint} />
+            </Pressable>
+          ))
         )}
-        <Text style={{ marginTop: 22, fontFamily: fonts.title, color: "#1C1B26" }}>Delivery requests</Text>
-        {offers.length === 0 && <Text style={{ color: colors.onGreenMuted, marginTop: 8, fontFamily: fonts.body }}>No jobs right now.</Text>}
-        {offers.map((off) => (
-          <Pressable
-            key={off.id}
-            onPress={() => router.push(`/(rider)/job/${off.orders.id}`)}
-            style={{
-              backgroundColor: "#FFFFFF",
-              borderRadius: radius.md,
-              padding: 16,
-              marginTop: 10,
-              borderWidth: 1,
-              borderColor: "rgba(255,255,255,0.08)",
-            }}
-          >
-            <Text style={{ fontFamily: fonts.title, color: "#1C1B26" }}>Order #{off.orders.order_number}</Text>
-            <Text style={{ color: colors.onGreenMuted, fontFamily: fonts.body }}>
-              {off.orders.delivery_type} · {off.orders.delivery_address?.text}
-            </Text>
-          </Pressable>
-        ))}
-        <View style={{ height: 20 }} />
-        <GoldButton label="Order food as customer" onPress={() => router.push("/(customer)")} />
-        <View style={{ height: 12 }} />
-        <GoldButton
-          label="Log out"
-          onPress={async () => {
-            await signOutApp();
-            router.replace(LOGIN_ROUTE);
-          }}
-        />
+
+        <View style={s.rule} />
+        <Pressable onPress={() => router.push("/(customer)")} style={s.row}>
+          <Ionicons name="restaurant-outline" size={21} color={ui.ink} />
+          <Text style={s.rowText}>Order food as a customer</Text>
+          <Ionicons name="chevron-forward" size={16} color={ui.hint} />
+        </Pressable>
+        <Pressable onPress={logout} style={s.row}>
+          <Ionicons name="log-out-outline" size={21} color={ui.red} />
+          <Text style={[s.rowText, { color: ui.red }]}>Log out</Text>
+        </Pressable>
       </ScrollView>
-    </DarkScreen>
+    </MkScreen>
   );
 }
+
+function statusTitle(status: string) {
+  const t = String(status || "").toLowerCase();
+  if (t === "pending") return "Application in review";
+  if (t === "rejected") return "Application not approved";
+  if (t === "suspended") return "Account suspended";
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+const s = StyleSheet.create({
+  centre: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 28 },
+  bigIcon: { width: 76, height: 76, borderRadius: 38, backgroundColor: ui.redSoft, alignItems: "center", justifyContent: "center", marginBottom: 18 },
+  h1: { fontFamily: fonts.display, fontSize: 24, color: ui.ink, textAlign: "center", letterSpacing: -0.4 },
+  p: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: ui.sub, textAlign: "center", marginTop: 8 },
+  linkBtn: { paddingVertical: 16 },
+  linkText: { fontFamily: fonts.title, fontSize: 15, color: ui.sub },
+  profile: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 8 },
+  avatar: { width: 54, height: 54, borderRadius: 27, backgroundColor: ui.redSoft, alignItems: "center", justifyContent: "center" },
+  name: { fontFamily: fonts.display, fontSize: 22, color: ui.ink },
+  vehicle: { fontFamily: fonts.body, fontSize: 14, color: ui.sub, textTransform: "capitalize", marginTop: 2 },
+  onlineCard: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: ui.line, borderRadius: 16, padding: 16, marginTop: 14, backgroundColor: "#fff" },
+  onlineTitle: { fontFamily: fonts.title, fontSize: 16, color: ui.ink },
+  onlineSub: { fontFamily: fonts.body, fontSize: 13.5, color: ui.sub, marginTop: 3 },
+  section: { fontFamily: fonts.title, fontSize: 17, color: ui.ink, marginTop: 26, marginBottom: 10 },
+  empty: { alignItems: "center", paddingVertical: 28, borderWidth: 1, borderColor: ui.line, borderRadius: 16, gap: 8 },
+  emptyText: { fontFamily: fonts.body, fontSize: 14.5, color: ui.sub },
+  offer: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: ui.line, borderRadius: 14, padding: 16, marginBottom: 10, backgroundColor: "#fff" },
+  offerTitle: { fontFamily: fonts.title, fontSize: 16, color: ui.ink },
+  offerMeta: { fontFamily: fonts.body, fontSize: 13.5, color: ui.sub, marginTop: 3, textTransform: "capitalize" },
+  rule: { height: 1, backgroundColor: ui.line, marginTop: 20 },
+  row: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: ui.line },
+  rowText: { flex: 1, fontFamily: fonts.title, fontSize: 16, color: ui.ink },
+});

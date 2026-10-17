@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Photo } from "@/components/photo";
 import { EmptyState } from "@/components/empty-state";
 import { BasketSkeleton } from "@/components/skeleton";
 import { OfflineNotice } from "@/components/offline-notice";
+import { confirmDialog } from "@/components/confirm";
 import { MkHeader, MkScreen, MkStepper, RedButton, goBack } from "@/components/mk";
 import { clearBasket, foodTotal, loadBasket, saveBasket, type BasketState } from "@/lib/basket";
 import { supabase } from "@/lib/supabase";
@@ -65,18 +66,16 @@ export default function Basket() {
     await saveBasket(next);
   }
 
-  function confirmClear() {
-    Alert.alert("Clear basket", "Remove everything from your basket?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Clear",
-        style: "destructive",
-        onPress: async () => {
-          await clearBasket();
-          setBasket({ marketId: null, marketName: null, items: [] });
-        },
-      },
-    ]);
+  async function confirmClear() {
+    const ok = await confirmDialog({
+      title: "Clear basket?",
+      message: "Remove everything from your basket?",
+      confirmLabel: "Clear",
+      destructive: true,
+    });
+    if (!ok) return;
+    await clearBasket();
+    setBasket({ marketId: null, marketName: null, items: [] });
   }
 
   const subtotal = foodTotal(basket.items);

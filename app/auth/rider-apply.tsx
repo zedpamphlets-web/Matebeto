@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View, Image } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View, Image } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import { DarkField, DarkScreen, GoldButton, AppHeader } from "@/components/app-shell";
+import { MkField, MkHeader, MkScreen } from "@/components/mk";
+import { SpinPressable } from "@/components/spin-pressable";
+import { confirmDialog } from "@/components/confirm";
+import Svg, { Circle } from "react-native-svg";
 import { FaceCamera } from "@/components/face-camera";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { currentProfile } from "@/lib/session";
 import { savePreviewRiderApplication } from "@/lib/preview";
 import { uploadBase64 } from "@/lib/upload";
-import { colors, fonts, radius } from "@/lib/theme";
+import { fonts, ui } from "@/lib/theme";
 
 export default function RiderApply() {
   const [step, setStep] = useState(1);
@@ -17,7 +20,7 @@ export default function RiderApply() {
   const [gender, setGender] = useState<"Male" | "Female" | "">("");
   const [vehicle, setVehicle] = useState<"bicycle" | "motorbike">("bicycle");
   const [area, setArea] = useState("");
-  const [docType, setDocType] = useState<"NRC" | "Licence">("NRC");
+  const [docType, setDocType] = useState<"NRC" | "Licence" | "Passport">("NRC");
   const [front, setFront] = useState<string | null>(null);
   const [frontB64, setFrontB64] = useState<string | undefined>();
   const [back, setBack] = useState<string | null>(null);
@@ -115,163 +118,257 @@ export default function RiderApply() {
         const { data: user } = await supabase.auth.getUser();
         const uid = user.user?.id;
         if (!uid) throw new Error("Not signed in");
-        const { error } = await supabase.from("riders").upsert({
-          user_id: uid,
-          full_name: fullName.trim(),
-          phone: phone.trim(),
-          address_text: area.trim(),
-          vehicle_type: vehicle,
-          licence_info: packed,
-          photo_url: photoUrl,
-          licence_front_url: frontUrl,
-          licence_back_url: backUrl,
-          status: "PENDING",
-        }, { onConflict: "user_id" });
+        // Riders cannot write to the table directly (security rules). apply_rider saves it safely.
+        const { error } = await supabase.rpc("apply_rider", {
+          p_full_name: fullName.trim(),
+          p_phone: phone.trim(),
+          p_address: area.trim(),
+          p_vehicle: vehicle,
+          p_licence: packed,
+          p_ownership: "",
+          p_licence_front: frontUrl,
+          p_licence_back: backUrl,
+          p_photo: photoUrl,
+        });
         if (error) throw error;
       }
       setDone(true);
       setStep(4);
     } catch (e: any) {
-      Alert.alert("Could not submit", e?.message || "Try again.");
+      const raw = String(e?.message || "");
+      let msg = raw || "Try again.";
+      if (/row-level security|violates/i.test(raw)) msg = "Photo upload was not allowed. Ask the admin to finish the rider setup in Supabase, then try again.";
+      else if (/apply_rider|schema cache|does not exist/i.test(raw)) msg = "The rider form is not set up in the database yet. Ask the admin to run the rider setup SQL.";
+      else if (/network|fetch/i.test(raw)) msg = "No internet. Check your connection and try again.";
+      Alert.alert("Could not submit", msg);
     } finally {
       setLoading(false);
     }
   }
 
+  const progress = step === 1 ? 0 : step === 2 ? 33 : step === 3 ? 66 : 100;
+  const canContinue2 = !!front && !!back;
+  const DOCS = [
+    { id: "Licence", label: "Driver's licence" },
+    { id: "NRC", label: "National Registration Card" },
+    { id: "Passport", label: "International passport" },
+  ] as const;
+  const docLabel = DOCS.find((d) => d.id === docType)?.label || docType;
+
+  function leave() {
+    if (step === 2) return setStep(1);
+    if (step === 3) return setStep(2);
+    router.back();
+  }
+
   return (
-    <DarkScreen>
-      <AppHeader title={step === 4 ? "Application" : "Rider application"} back />
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-        {step < 4 ? (
-          <Text style={{ fontFamily: fonts.body, color: "#6B6A78", marginBottom: 12 }}>
-            Step {step} of 3
-          </Text>
-        ) : null}
-
-        {step === 1 && (
-          <>
-            <DarkField value={fullName} onChangeText={setFullName} placeholder="Full name" />
-            <DarkField value={phone} onChangeText={setPhone} placeholder="Mobile number" keyboardType="phone-pad" />
-            <Text style={{ fontFamily: fonts.title, color: "#1C1B26", marginTop: 6, marginBottom: 8 }}>Gender</Text>
-            <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
-              {(["Male", "Female"] as const).map((g) => (
-                <Pressable key={g} onPress={() => setGender(g)} style={chip(gender === g)}>
-                  <Text style={chipText(gender === g)}>{g}</Text>
-                </Pressable>
-              ))}
+    <MkScreen>
+      <MkHeader title="Rider application" onBack={step === 4 ? () => router.replace("/(customer)") : leave} />
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
+        <View style={s.card}>
+          <View style={s.cardHead}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={s.cardTitle}>
+                {step === 1 ? "Your details" : step === 2 ? "Means of ID" : step === 3 ? "Photo and area" : "Application sent"}
+              </Text>
+              <Text style={s.cardSub}>
+                {step === 1
+                  ? "Tell us who you are"
+                  : step === 2
+                  ? "Provide us with a valid means of ID"
+                  : step === 3
+                  ? "Take a clear photo of your face"
+                  : "An admin will review it"}
+              </Text>
             </View>
-            <Text style={{ fontFamily: fonts.title, color: "#1C1B26", marginBottom: 8 }}>Vehicle</Text>
-            <View style={{ flexDirection: "row", gap: 10, marginBottom: 18 }}>
-              {(["bicycle", "motorbike"] as const).map((v) => (
-                <Pressable key={v} onPress={() => setVehicle(v)} style={chip(vehicle === v)}>
-                  <Text style={chipText(vehicle === v)}>{v === "bicycle" ? "Bicycle" : "Motorbike"}</Text>
-                </Pressable>
-              ))}
-            </View>
-            <GoldButton label="Continue" onPress={nextFromStep1} />
-          </>
-        )}
-
-        {step === 2 && (
-          <>
-            <Text style={{ fontFamily: fonts.title, color: "#1C1B26", marginBottom: 8 }}>Document</Text>
-            <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
-              {(["NRC", "Licence"] as const).map((d) => (
-                <Pressable key={d} onPress={() => setDocType(d)} style={chip(docType === d)}>
-                  <Text style={chipText(docType === d)}>{d === "Licence" ? "Driving licence" : "NRC"}</Text>
-                </Pressable>
-              ))}
-            </View>
-            <Text style={{ fontFamily: fonts.title, color: "#1C1B26", marginBottom: 10 }}>Select document to upload</Text>
-            <Pressable onPress={() => chooseDoc("front")} style={box}>
-              {front ? (
-                <Image source={{ uri: front }} style={{ width: "100%", height: 120, borderRadius: 10 }} resizeMode="cover" />
-              ) : (
-                <>
-                  <Text style={{ color: "#4A6CF7", fontFamily: fonts.title, fontSize: 16 }}>Front Page</Text>
-                  <Text style={{ color: "#6B6A78", fontFamily: fonts.body, marginTop: 4 }}>Tap to take a photo or choose from phone</Text>
-                </>
-              )}
-            </Pressable>
-            <Pressable onPress={() => chooseDoc("back")} style={box}>
-              {back ? (
-                <Image source={{ uri: back }} style={{ width: "100%", height: 120, borderRadius: 10 }} resizeMode="cover" />
-              ) : (
-                <>
-                  <Text style={{ color: "#4A6CF7", fontFamily: fonts.title, fontSize: 16 }}>Back Page</Text>
-                  <Text style={{ color: "#6B6A78", fontFamily: fonts.body, marginTop: 4 }}>Tap to take a photo or choose from phone</Text>
-                </>
-              )}
-            </Pressable>
-            <View style={{ height: 8 }} />
-            <GoldButton label="Continue" onPress={nextFromStep2} />
-            <View style={{ height: 10 }} />
-            <Pressable onPress={() => setStep(1)} style={{ alignItems: "center", padding: 10 }}>
-              <Text style={{ fontFamily: fonts.bodySemi, color: "#6B6A78" }}>Back</Text>
-            </Pressable>
-          </>
-        )}
-
-        {step === 3 && (
-          <>
-            <DarkField value={area} onChangeText={setArea} placeholder="Area (e.g. Lusaka)" />
-            <FaceCamera uri={photoUri} label="Your photo" facing="front" buttonLabel="Capture face" height={200} onCapture={(uri, b64) => { setPhotoUri(uri); setPhotoB64(b64); }} />
-            <View style={{ backgroundColor: "#fff", borderRadius: 14, padding: 14, marginVertical: 12, borderWidth: 1, borderColor: "#E8DFD2" }}>
-              <Text style={{ fontFamily: fonts.title, color: "#1C1B26" }}>{fullName}</Text>
-              <Text style={{ fontFamily: fonts.body, color: "#6B6A78", marginTop: 4 }}>{phone} · {gender}</Text>
-              <Text style={{ fontFamily: fonts.body, color: "#6B6A78" }}>{vehicle} · {docType}</Text>
-              {area ? <Text style={{ fontFamily: fonts.body, color: "#6B6A78" }}>{area}</Text> : null}
-            </View>
-            <GoldButton label="Submit for review" onPress={submit} loading={loading} />
-            <View style={{ height: 10 }} />
-            <Pressable onPress={() => setStep(2)} style={{ alignItems: "center", padding: 10 }}>
-              <Text style={{ fontFamily: fonts.bodySemi, color: "#6B6A78" }}>Back</Text>
-            </Pressable>
-          </>
-        )}
-
-        {step === 4 && (
-          <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 18, borderWidth: 1, borderColor: "#E8DFD2" }}>
-            <Text style={{ fontFamily: fonts.title, fontSize: 18, color: "#1C1B26" }}>Pending</Text>
-            <Text style={{ fontFamily: fonts.body, color: "#6B6A78", marginTop: 8 }}>
-              Your rider application is pending review. An admin will approve or reject it.
-            </Text>
-            <Text style={{ fontFamily: fonts.body, color: "#1C1B26", marginTop: 12 }}>NRC / {docType}: uploaded</Text>
-            <Text style={{ fontFamily: fonts.body, color: "#1C1B26" }}>Area: {area || "—"}</Text>
-            <Text style={{ fontFamily: fonts.body, color: "#1C1B26" }}>Vehicle: {vehicle}</Text>
-            <View style={{ height: 16 }} />
-            <GoldButton label="Done" onPress={() => router.replace("/(customer)")} />
+            <ProgressRing percent={progress} />
           </View>
-        )}
+          <View style={s.divider} />
+
+          {step === 1 && (
+            <>
+              <MkField value={fullName} onChangeText={setFullName} placeholder="Full name" />
+              <MkField value={phone} onChangeText={setPhone} placeholder="Mobile number" keyboardType="phone-pad" />
+              <Text style={s.group}>Gender</Text>
+              <View style={s.chips}>
+                {(["Male", "Female"] as const).map((g) => (
+                  <Pressable key={g} onPress={() => setGender(g)} style={[s.chip, gender === g && s.chipOn]}>
+                    <Text style={[s.chipText, gender === g && { color: "#fff" }]}>{g}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Text style={s.group}>Vehicle</Text>
+              <View style={s.chips}>
+                {(["bicycle", "motorbike"] as const).map((v) => (
+                  <Pressable key={v} onPress={() => setVehicle(v)} style={[s.chip, vehicle === v && s.chipOn]}>
+                    <Text style={[s.chipText, vehicle === v && { color: "#fff" }]}>{v === "bicycle" ? "Bicycle" : "Motorbike"}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          )}
+
+          {step === 2 && (
+            <>
+              <View style={{ paddingHorizontal: 8, paddingTop: 6 }}>
+                {DOCS.map((d) => (
+                  <Pressable key={d.id} onPress={() => setDocType(d.id)} style={s.radioRow}>
+                    <View style={[s.radio, docType === d.id && s.radioOn]}>
+                      {docType === d.id ? <View style={s.radioDot} /> : null}
+                    </View>
+                    <Text style={s.radioLabel}>{d.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Text style={s.selectTitle}>Select document to upload</Text>
+              <UploadBox label="Front page" uri={front} onPress={() => chooseDoc("front")} />
+              <UploadBox label="Back page" uri={back} onPress={() => chooseDoc("back")} />
+            </>
+          )}
+
+          {step === 3 && (
+            <>
+              <MkField value={area} onChangeText={setArea} placeholder="Area (e.g. Lusaka)" />
+              <FaceCamera uri={photoUri} label="Your photo" facing="front" buttonLabel="Capture face" height={200} onCapture={(uri, b64) => { setPhotoUri(uri); setPhotoB64(b64); }} />
+              <View style={s.summary}>
+                <SummaryRow label="Name" value={fullName} />
+                <SummaryRow label="Phone" value={phone} />
+                <SummaryRow label="Gender" value={gender} />
+                <SummaryRow label="Vehicle" value={vehicle} />
+                <SummaryRow label="ID" value={docLabel} />
+                {area ? <SummaryRow label="Area" value={area} last /> : null}
+              </View>
+            </>
+          )}
+
+          {step === 4 && (
+            <View style={s.summary}>
+              <SummaryRow label="Status" value="Pending review" />
+              <SummaryRow label="ID" value={`${docLabel} uploaded`} />
+              <SummaryRow label="Area" value={area || "—"} />
+              <SummaryRow label="Vehicle" value={vehicle} last />
+            </View>
+          )}
+        </View>
       </ScrollView>
-    </DarkScreen>
+
+      <View style={s.footer}>
+        {step === 1 && <Continue label="Continue" onPress={nextFromStep1} disabled={!fullName.trim() || !phone.trim() || !gender} />}
+        {step === 2 && <Continue label="Continue" onPress={nextFromStep2} disabled={!canContinue2} />}
+        {step === 3 && <Continue label="Submit for review" onPress={submit} loading={loading} disabled={!photoUri} />}
+        {step === 4 && <Continue label="Done" onPress={() => router.replace("/(customer)")} />}
+      </View>
+    </MkScreen>
   );
 }
 
-function chip(on: boolean) {
-  return {
-    flex: 1,
-    borderRadius: radius.md,
-    padding: 14,
-    borderWidth: 2,
-    borderColor: on ? colors.gold : "#E8DFD2",
-    backgroundColor: on ? "#FFF8E1" : "#FFFFFF",
-    alignItems: "center" as const,
-  };
-}
-function chipText(on: boolean) {
-  return { color: "#1C1B26", fontFamily: fonts.title, textAlign: "center" as const };
+function Continue({ label, onPress, disabled, loading }: { label: string; onPress: () => void | Promise<unknown>; disabled?: boolean; loading?: boolean }) {
+  return (
+    <SpinPressable
+      onPress={onPress}
+      disabled={disabled}
+      loading={loading}
+      spinnerColor="#fff"
+      style={[s.cont, disabled ? s.contOff : s.contOn]}
+    >
+      <Text style={s.contText}>{label}</Text>
+    </SpinPressable>
+  );
 }
 
-const box = {
-  borderWidth: 1,
-  borderStyle: "dashed" as const,
-  borderColor: "#C8C6D0",
-  borderRadius: 14,
-  backgroundColor: "#F7F7FA",
-  minHeight: 140,
-  alignItems: "center" as const,
-  justifyContent: "center" as const,
-  marginBottom: 12,
-  padding: 16,
-};
+function UploadBox({ label, uri, onPress }: { label: string; uri: string | null; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={s.upload}>
+      {uri ? (
+        <>
+          <Image source={{ uri }} style={{ width: "100%", height: 150, borderRadius: 10 }} resizeMode="cover" />
+          <Text style={s.change}>Change {label.toLowerCase()}</Text>
+        </>
+      ) : (
+        <>
+          <Text style={s.uploadLink}>{label}</Text>
+          <Text style={s.uploadSub}>Tap to take a photo or choose one</Text>
+        </>
+      )}
+    </Pressable>
+  );
+}
+
+function SummaryRow({ label, value, last }: { label: string; value?: string; last?: boolean }) {
+  return (
+    <View style={[s.sumRow, !last && s.sumRule]}>
+      <Text style={s.sumLabel}>{label}</Text>
+      <Text style={s.sumValue}>{value || "—"}</Text>
+    </View>
+  );
+}
+
+function ProgressRing({ percent }: { percent: number }) {
+  const size = 46;
+  const sw = 4;
+  const r = (size - sw) / 2;
+  const c = 2 * Math.PI * r;
+  return (
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      <Svg width={size} height={size} style={{ position: "absolute", transform: [{ rotate: "-90deg" }] }}>
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke="#EEEEF2" strokeWidth={sw} fill="none" />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={ui.red}
+          strokeWidth={sw}
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={`${(c * percent) / 100} ${c}`}
+        />
+      </Svg>
+      <Text style={s.pct}>{percent}%</Text>
+    </View>
+  );
+}
+
+const s = StyleSheet.create({
+  card: { borderWidth: 1, borderColor: ui.line, borderRadius: 18, backgroundColor: "#fff", padding: 18 },
+  cardHead: { flexDirection: "row", alignItems: "center" },
+  cardTitle: { fontFamily: fonts.display, fontSize: 24, color: ui.ink, letterSpacing: -0.4 },
+  cardSub: { fontFamily: fonts.body, fontSize: 15, color: ui.sub, marginTop: 6 },
+  divider: { height: 1, backgroundColor: ui.line, marginVertical: 16 },
+  pct: { fontFamily: fonts.bodySemi, fontSize: 11.5, color: ui.sub },
+  group: { fontFamily: fonts.title, fontSize: 15, color: ui.ink, marginTop: 4, marginBottom: 10 },
+  chips: { flexDirection: "row", gap: 10, marginBottom: 14 },
+  chip: { flex: 1, height: 48, borderRadius: 14, borderWidth: 1, borderColor: ui.line, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
+  chipOn: { backgroundColor: ui.red, borderColor: ui.red },
+  chipText: { fontFamily: fonts.title, fontSize: 15, color: ui.ink },
+  radioRow: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 12 },
+  radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: "#D5D5DC", alignItems: "center", justifyContent: "center" },
+  radioOn: { borderColor: ui.red },
+  radioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: ui.red },
+  radioLabel: { fontFamily: fonts.bodySemi, fontSize: 17, color: ui.ink },
+  selectTitle: { fontFamily: fonts.title, fontSize: 18, color: ui.ink, textAlign: "center", marginTop: 14, marginBottom: 16 },
+  upload: {
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderColor: "#CFCFD8",
+    borderRadius: 14,
+    backgroundColor: "#FAFAFC",
+    minHeight: 150,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 14,
+    marginBottom: 14,
+  },
+  uploadLink: { fontFamily: fonts.title, fontSize: 18, color: ui.red },
+  uploadSub: { fontFamily: fonts.body, fontSize: 15, color: ui.sub, marginTop: 6 },
+  change: { fontFamily: fonts.bodySemi, fontSize: 14, color: ui.red, marginTop: 10 },
+  summary: { borderWidth: 1, borderColor: ui.line, borderRadius: 14, paddingHorizontal: 14, marginTop: 14 },
+  sumRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 13, gap: 16 },
+  sumRule: { borderBottomWidth: 1, borderBottomColor: ui.line },
+  sumLabel: { fontFamily: fonts.body, fontSize: 14.5, color: ui.sub },
+  sumValue: { fontFamily: fonts.bodySemi, fontSize: 14.5, color: ui.ink, flexShrink: 1, textAlign: "right", textTransform: "capitalize" },
+  footer: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 14, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: ui.line },
+  cont: { height: 54, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  contOn: { backgroundColor: ui.red },
+  contOff: { backgroundColor: "#B9BAC8", opacity: 1 },
+  contText: { fontFamily: fonts.title, fontSize: 16, color: "#fff" },
+});

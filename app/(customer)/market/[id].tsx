@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Photo } from "@/components/photo";
@@ -7,7 +7,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { BackStrip, HeartButton, MkHeader, MkScreen } from "@/components/mk";
 import { supabase } from "@/lib/supabase";
 import { useCachedLoad } from "@/lib/offline-cache";
-import { CategoriesSkeleton } from "@/components/skeleton";
+import { LoadingScreen } from "@/components/spinner";
 import { OfflineNotice } from "@/components/offline-notice";
 import { OfflineBanner } from "@/components/offline-banner";
 import { fonts, ui } from "@/lib/theme";
@@ -87,7 +87,7 @@ export default function Market() {
       {failed ? (
         <OfflineNotice onRetry={retry} />
       ) : loading ? (
-        <CategoriesSkeleton />
+        <LoadingScreen />
       ) : (
         <ScrollView
           ref={scroller}
@@ -115,7 +115,7 @@ export default function Market() {
                 style={[styles.tile, active === c.id && { borderColor: ui.red }]}
               >
                 <View style={{ height: Math.round(TILE_W * 0.78), overflow: "hidden" }}>
-                  <Photo uri={c.image_url} name={c.name} height={Math.round(TILE_W * 0.78)} />
+                  <Photo uri={c.image_url} name={c.name} height={Math.round(TILE_W * 0.78)} hideLabel />
                   <LinearGradient colors={["transparent", "rgba(0,0,0,0.65)"]} style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "50%" }} />
                   <View style={{ position: "absolute", left: 8, right: 8, bottom: 8 }}>
                     <Text style={{ fontFamily: fonts.title, fontSize: 13, color: "#fff" }} numberOfLines={1}>{c.name}</Text>
@@ -127,18 +127,23 @@ export default function Market() {
 
           {active && shown.length === 0 ? <Text style={styles.empty}>No meals in this category yet.</Text> : null}
           {active && shown.length > 0 ? (
-            <View onLayout={(e) => (listY.current = e.nativeEvent.layout.y)} style={{ marginTop: 20 }}>
-              {shown.map((meal) => (
-                <Pressable key={meal.id} onPress={() => openMeal(meal.id)} style={styles.meal}>
-                  <View style={{ flex: 1, paddingRight: 10 }}>
-                    <Text style={styles.mealName}>{meal.name}</Text>
+            <View onLayout={(e) => (listY.current = e.nativeEvent.layout.y)} style={{ marginTop: 22 }}>
+              <Text style={styles.listTitle}>{categories.find((c) => c.id === active)?.name}</Text>
+              {shown.map((meal, i) => (
+                <Pressable
+                  key={meal.id}
+                  onPress={() => openMeal(meal.id)}
+                  style={[styles.meal, i < shown.length - 1 && styles.mealRule]}
+                >
+                  <View style={{ flex: 1, paddingRight: 14 }}>
+                    <Text style={styles.mealName} numberOfLines={2}>{meal.name}</Text>
                     {meal.description ? (
                       <Text numberOfLines={2} style={styles.mealDesc}>{meal.description}</Text>
                     ) : null}
                     <Text style={styles.mealPrice}>{kw(meal.price)}</Text>
                   </View>
                   <View style={styles.mealPhoto}>
-                    <Photo uri={meal.image_url} name={meal.name} height={78} width={78} />
+                    <Photo uri={meal.image_url} name={meal.name} height={84} width={112} hideLabel />
                   </View>
                 </Pressable>
               ))}
@@ -149,9 +154,8 @@ export default function Market() {
       <BackStrip label="Back to Markets" onPress={() => router.back()} />
     
       {opening ? (
-        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(255,240,230,0.85)", alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator size="large" color="#D6263A" />
-          <Text style={{ marginTop: 10, fontFamily: fonts.bodySemi, color: ui.ink }}>Loading meal...</Text>
+        <View style={StyleSheet.absoluteFill}>
+          <LoadingScreen />
         </View>
       ) : null}
     </MkScreen>
@@ -171,26 +175,14 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 1,
     borderColor: ui.line,
-    shadowColor: "#1C1B26",
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
   },
   tileBody: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 10, height: 38 },
   tileName: { fontFamily: fonts.title, fontSize: 13, color: ui.ink, flex: 1 },
-  meal: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#E8DFD2",
-    padding: 12,
-    marginBottom: 10,
-  },
+  listTitle: { fontFamily: fonts.display, fontSize: 22, color: ui.ink, marginBottom: 6, letterSpacing: -0.4 },
+  meal: { flexDirection: "row", alignItems: "center", paddingVertical: 16 },
+  mealRule: { borderBottomWidth: 1, borderBottomColor: ui.line },
   mealPhoto: { borderRadius: 10, overflow: "hidden" },
-  mealName: { fontFamily: fonts.title, fontSize: 14, color: ui.ink },
-  mealDesc: { fontFamily: fonts.body, fontSize: 11.5, color: ui.sub, marginTop: 3 },
-  mealPrice: { fontFamily: fonts.title, fontSize: 14, color: ui.red, marginTop: 5 },
+  mealName: { fontFamily: fonts.title, fontSize: 16, color: ui.ink },
+  mealDesc: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: ui.sub, marginTop: 4 },
+  mealPrice: { fontFamily: fonts.title, fontSize: 15, color: ui.ink, marginTop: 8 },
 });

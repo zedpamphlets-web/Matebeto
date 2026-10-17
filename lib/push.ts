@@ -1,4 +1,4 @@
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
@@ -55,9 +55,11 @@ export async function registerPush() {
     if (!id) return;
     const token = await Notifications.getExpoPushTokenAsync({ projectId: id });
     if (!token.data) return;
-    await supabase.rpc("register_push_token", { p_token: token.data, p_platform: Platform.OS });
-  } catch {
-    // A missing notification permission must not stop the app from opening.
+    const { error } = await supabase.rpc("register_push_token", { p_token: token.data, p_platform: Platform.OS });
+    if (error) console.warn("[push] could not save token:", error.message);
+  } catch (e: any) {
+    // Never stop the app from opening, but leave a trace for debugging.
+    console.warn("[push] registration failed:", e?.message || e);
   }
 }
 
@@ -75,9 +77,14 @@ export function startPush() {
         if (response) openFromPush(response.notification.request.content.data as Record<string, unknown>);
       })
       .catch(() => {});
+    // Re-save the token whenever the app comes back to the front (it can change or be cleared).
+    const appState = AppState.addEventListener("change", (state) => {
+      if (state === "active") registerPush();
+    });
     return () => {
       auth.data.subscription.unsubscribe();
       opened.remove();
+      appState.remove();
     };
   } catch {
     return () => {};

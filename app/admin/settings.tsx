@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { FormSkeleton } from "@/components/skeleton";
 import { Alert, Switch, Text, TextInput, View, ScrollView, Pressable } from "react-native";
-import { router } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { Field } from "@/components/ui";
 import { AdminButton as PrimaryButton } from "@/components/admin-ui";
 import { PhotoPicker } from "@/components/photo-picker";
+import { confirmDialog } from "@/components/confirm";
 import { colors, fonts, radius, ui } from "@/lib/theme";
 
 const DEFAULTS = {
@@ -17,7 +17,6 @@ const DEFAULTS = {
 
 const label = { fontFamily: fonts.bodySemi, color: colors.adminMuted, fontSize: 12, marginBottom: 6, marginTop: 4 } as const;
 const heading = { fontFamily: fonts.title, fontSize: 18, color: colors.adminText, marginTop: 24, marginBottom: 6 } as const;
-const note = { color: colors.adminMuted, fontFamily: fonts.body, lineHeight: 20, marginBottom: 12 } as const;
 
 export default function HomeAdmin() {
   // Home screen text
@@ -108,19 +107,17 @@ export default function HomeAdmin() {
     return true;
   }
 
-  function deleteBanner(id: string) {
-    Alert.alert("Delete banner", "Remove this banner from Home?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          const { error } = await supabase.from("banners").delete().eq("id", id);
-          if (error) Alert.alert("Banner", error.message);
-          load();
-        },
-      },
-    ]);
+  async function deleteBanner(id: string) {
+    const ok = await confirmDialog({
+      title: "Delete banner?",
+      message: "Are you sure you want to delete this banner?",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
+    const { error } = await supabase.from("banners").delete().eq("id", id);
+    if (error) Alert.alert("Banner", error.message);
+    load();
   }
 
   async function move(idx: number, dir: -1 | 1) {
@@ -137,16 +134,8 @@ export default function HomeAdmin() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.adminBg }} contentContainerStyle={{ padding: 20, paddingBottom: 48 }}>
       <Text style={{ fontFamily: fonts.display, fontSize: 28, color: colors.adminText }}>Home</Text>
-      <Text style={[note, { marginTop: 6 }]}>
-        Everything customers see on the Home screen is edited here, plus the Markets tab for the market cards. Leave a text
-        empty to use the standard wording.
-      </Text>
 
       <Text style={heading}>Banners</Text>
-      <Text style={note}>
-        The maroon banner at the top. Add more than one and they swap every 10 seconds. With none, the standard Matebeto
-        banner shows.
-      </Text>
       {banners.map((b, i) => (
         <BannerForm
           key={b.id + String(b.sort_order)}
@@ -181,7 +170,6 @@ export default function HomeAdmin() {
       <PrimaryButton label="Save home text" onPress={saveHomeText} />
 
       <Text style={heading}>Fees</Text>
-      <Text style={note}>Customers see food total, platform fee and delivery fee.</Text>
       <Field value={platform} onChangeText={setPlatform} placeholder="Platform fee" keyboardType="decimal-pad" />
       <View style={{ height: 10 }} />
       <Field value={bike} onChangeText={setBike} placeholder="Bicycle delivery fee" keyboardType="decimal-pad" />
@@ -190,13 +178,6 @@ export default function HomeAdmin() {
       <View style={{ height: 12 }} />
       <PrimaryButton label="Save fees" onPress={saveFees} />
 
-      <View style={{ height: 20 }} />
-      <PrimaryButton
-        label="Open customer app"
-        color={colors.customer}
-        textColor="#fff"
-        onPress={() => router.push("/(customer)")}
-      />
     </ScrollView>
   );
 }

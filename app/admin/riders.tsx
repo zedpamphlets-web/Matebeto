@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Photo } from "@/components/photo";
 import { supabase } from "@/lib/supabase";
 import { colors, fonts, radius } from "@/lib/theme";
+import { confirmDialog } from "@/components/confirm";
 
 function licenceUrl(row: any, side: "FRONT" | "BACK") {
   if (side === "FRONT" && row.licence_front_url) return row.licence_front_url;
@@ -13,6 +14,31 @@ function licenceUrl(row: any, side: "FRONT" | "BACK") {
     .split("\n")
     .find((part: string) => part.startsWith(`${side}:`));
   return line ? line.slice(side.length + 1) : null;
+}
+
+function infoValue(row: any, key: string) {
+  const line = String(row.licence_info || "")
+    .split("\n")
+    .find((part: string) => part.startsWith(`${key}:`));
+  return line ? line.slice(key.length + 1) : "";
+}
+
+function docName(row: any) {
+  const first = String(row.licence_info || "").split("\n")[0];
+  if (first === "NRC") return "National Registration Card";
+  if (first === "Licence") return "Driver's licence";
+  if (first === "Passport") return "International passport";
+  return "";
+}
+
+function Detail({ label, value, last }: { label: string; value?: string; last?: boolean }) {
+  if (!value) return null;
+  return (
+    <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 16, paddingVertical: 11, borderBottomWidth: last ? 0 : 1, borderBottomColor: colors.adminCardBorder }}>
+      <Text style={{ fontFamily: fonts.body, fontSize: 14, color: colors.adminMuted }}>{label}</Text>
+      <Text style={{ fontFamily: fonts.bodySemi, fontSize: 14, color: colors.adminText, flexShrink: 1, textAlign: "right", textTransform: "capitalize" }}>{value}</Text>
+    </View>
+  );
 }
 
 export default function AdminRiders() {
@@ -35,15 +61,17 @@ export default function AdminRiders() {
     load();
   }
 
-  function confirmDelete(id: string, name: string) {
-    Alert.alert("Delete rider", `Are you sure you want to delete ${name}?`, [
-      { text: "No", style: "cancel" },
-      { text: "Yes", style: "destructive", onPress: async () => {
-        const { error } = await supabase.from("riders").delete().eq("id", id);
-        if (error) Alert.alert("Rider", error.message);
-        load();
-      }},
-    ]);
+  async function confirmDelete(id: string, name: string) {
+    const ok = await confirmDialog({
+      title: "Delete rider?",
+      message: `Are you sure you want to delete ${name}?`,
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
+    const { error } = await supabase.from("riders").delete().eq("id", id);
+    if (error) Alert.alert("Rider", error.message);
+    load();
   }
 
   if (loading && rows.length === 0) return <View style={{ flex: 1, backgroundColor: colors.adminBg, padding: 16 }}><ListSkeleton /></View>;
@@ -79,17 +107,30 @@ export default function AdminRiders() {
             </View>
             {expanded ? (
               <View style={{ marginTop: 12 }}>
-                {r.address_text ? <Text style={{ fontFamily: fonts.body, marginBottom: 6 }}>{r.address_text}</Text> : null}
+                <View style={{ borderWidth: 1, borderColor: colors.adminCardBorder, borderRadius: 12, paddingHorizontal: 12, marginBottom: 12 }}>
+                  <Detail label="Full name" value={r.full_name} />
+                  <Detail label="Phone" value={r.phone} />
+                  <Detail label="Gender" value={infoValue(r, "GENDER")} />
+                  <Detail label="Vehicle" value={r.vehicle_type} />
+                  <Detail label="ID document" value={docName(r)} />
+                  <Detail label="Area" value={r.address_text} />
+                  <Detail label="Applied" value={r.created_at ? new Date(r.created_at).toLocaleDateString() : ""} last />
+                </View>
+                {r.photo_url ? (
+                  <View style={{ borderRadius: 12, overflow: "hidden", marginBottom: 10 }}>
+                    <Photo uri={r.photo_url} name={r.full_name} height={200} />
+                  </View>
+                ) : null}
                 {(licenceUrl(r, "FRONT") || licenceUrl(r, "BACK")) && (
                   <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
                     {licenceUrl(r, "FRONT") ? (
                       <View style={{ flex: 1, borderRadius: 10, overflow: "hidden" }}>
-                        <Photo uri={licenceUrl(r, "FRONT")} name="Front" height={72} />
+                        <Photo uri={licenceUrl(r, "FRONT")} name="Front" height={120} />
                       </View>
                     ) : null}
                     {licenceUrl(r, "BACK") ? (
                       <View style={{ flex: 1, borderRadius: 10, overflow: "hidden" }}>
-                        <Photo uri={licenceUrl(r, "BACK")} name="Back" height={72} />
+                        <Photo uri={licenceUrl(r, "BACK")} name="Back" height={120} />
                       </View>
                     ) : null}
                   </View>

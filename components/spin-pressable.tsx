@@ -1,5 +1,6 @@
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, StyleProp, ViewStyle } from "react-native";
+import { Pressable, StyleProp, ViewStyle } from "react-native";
+import { Spinner } from "@/components/spinner";
 
 /**
  * A button that shows a spinner as soon as it is tapped and ignores taps until it is done.
@@ -62,7 +63,7 @@ export function SpinPressable({
       hitSlop={hitSlop}
       style={({ pressed }) => [style, { opacity: disabled ? 0.5 : pressed ? 0.88 : 1 }]}
     >
-      {showSpinner ? <ActivityIndicator color={spinnerColor} /> : children}
+      {showSpinner ? <Spinner size={22} color={spinnerColor} track="rgba(128,128,128,0.25)" /> : children}
     </Pressable>
   );
 }

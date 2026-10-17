@@ -90,19 +90,19 @@ export default function Checkout() {
             padding: 16,
             marginBottom: 16,
             borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.08)",
+            borderColor: "#EBEBEF",
           }}
         >
-          <MoneyRow label="Food Total" value={formatKw(food)} light />
-          <MoneyRow label="Platform Fee" value={formatKw(platform)} light />
-          <MoneyRow label="Delivery Fee" value={formatKw(deliveryFee)} light />
-          <View style={{ height: 1, backgroundColor: "rgba(255,255,255,0.1)", marginVertical: 10 }} />
-          <MoneyRow label="Total" value={formatKw(total)} bold light />
+          <MoneyRow label="Food Total" value={formatKw(food)} />
+          <MoneyRow label="Platform Fee" value={formatKw(platform)} />
+          <MoneyRow label="Delivery Fee" value={formatKw(deliveryFee)} />
+          <View style={{ height: 1, backgroundColor: "#EBEBEF", marginVertical: 10 }} />
+          <MoneyRow label="Total" value={formatKw(total)} bold />
         </View>
 
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 18 }}>
           <Ionicons name="shield-checkmark" size={18} color={colors.customer} />
-          <Text style={{ color: colors.onGreenMuted, fontFamily: fonts.body }}>Secure payment. Your payment is protected.</Text>
+          <Text style={{ color: "#6B6A78", fontFamily: fonts.body }}>Secure payment. Your payment is protected.</Text>
         </View>
 
         <Text style={{ fontFamily: fonts.title, color: "#1C1B26" }}>Pay with mobile money</Text>
@@ -117,7 +117,7 @@ export default function Checkout() {
                 borderRadius: 12,
                 backgroundColor: "#FFFFFF",
                 borderWidth: 2,
-                borderColor: provider === p.id ? colors.gold : "rgba(255,255,255,0.12)",
+                borderColor: provider === p.id ? "#D6263A" : "#EBEBEF",
               }}
             >
               <Text style={{ fontFamily: fonts.bodySemi, color: "#1C1B26" }}>{p.label}</Text>

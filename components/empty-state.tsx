@@ -19,19 +19,14 @@ export function EmptyState({
         style={{
           width: 88,
           height: 88,
-          borderRadius: 28,
-          backgroundColor: color,
+          borderRadius: 44,
+          backgroundColor: "#FBF0EC",
           alignItems: "center",
           justifyContent: "center",
           marginBottom: 16,
-          shadowColor: color,
-          shadowOpacity: 0.35,
-          shadowRadius: 16,
-          shadowOffset: { width: 0, height: 8 },
-          elevation: 5,
         }}
       >
-        <Ionicons name={icon} size={40} color="#fff" />
+        <Ionicons name={icon} size={38} color="#D6263A" />
       </View>
       <Text style={{ fontFamily: fonts.title, fontSize: 18, color: colors.ink, textAlign: "center" }}>
         {title}

@@ -8,6 +8,7 @@ import { startRiderSearch, startVendorSearch } from "@/lib/orders";
 import { AdminOrdersSkeleton } from "@/components/skeleton";
 import { OfflineNotice } from "@/components/offline-notice";
 import { isOnline, withTimeout } from "@/lib/network";
+import { confirmDialog } from "@/components/confirm";
 
 const PROBLEM_STATUSES = ["NO_VENDOR_FOUND", "NO_RIDER_AVAILABLE", "SUPPORT_REQUIRED", "CUSTOMER_NOT_HOME", "DELIVERY_FAILED"];
 const HAS_RIDER = ["RIDER_ASSIGNED", "PICKED_UP", "OUT_FOR_DELIVERY", "CUSTOMER_NOT_HOME", "SUPPORT_REQUIRED"];
@@ -50,11 +51,9 @@ export default function AdminOrders() {
     }, [])
   );
 
-  function confirm(title: string, message: string, run: () => void) {
-    Alert.alert(title, message, [
-      { text: "No", style: "cancel" },
-      { text: "Yes", onPress: run },
-    ]);
+  async function confirm(title: string, message: string, run: () => void) {
+    const ok = await confirmDialog({ title, message, confirmLabel: "Yes", destructive: title.startsWith("Cancel") });
+    if (ok) run();
   }
 
   async function action(fn: string, id: string, done?: string) {

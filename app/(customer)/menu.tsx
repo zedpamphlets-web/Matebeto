@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { MkScreen } from "@/components/mk";
 import { LOGIN_ROUTE, currentProfile, signOutApp } from "@/lib/session";
+import { confirmDialog } from "@/components/confirm";
 import { fonts, ui } from "@/lib/theme";
 
 type Row = {
@@ -68,6 +69,13 @@ export default function MenuDrawer() {
     label: "Log out",
     icon: "log-out-outline",
     onPress: async () => {
+      const ok = await confirmDialog({
+        title: "Log out?",
+        message: "Are you sure you want to log out?",
+        confirmLabel: "Log out",
+        destructive: true,
+      });
+      if (!ok) return;
       await signOutApp();
       router.replace(LOGIN_ROUTE);
     },
@@ -77,7 +85,7 @@ export default function MenuDrawer() {
     <MkScreen>
       <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
         <View style={{ paddingHorizontal: 24, paddingTop: 12, paddingBottom: 24 }}>
-          <Image source={require("../../assets/logo-matebeto.png")} style={{ width: 118, height: 52 }} contentFit="contain" />
+          <Image source={require("../../assets/logo-wordmark-cropped.png")} style={{ width: 132, height: 57, marginLeft: -4 }} contentFit="contain" />
           <Text style={{ color: ui.sub, fontFamily: fonts.body, marginTop: 10 }}>
             {name || phone || "Signed in"}
           </Text>

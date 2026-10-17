@@ -8,6 +8,7 @@ import { Pacifico_400Regular } from "@expo-google-fonts/pacifico";
 import { PlayfairDisplay_400Regular_Italic } from "@expo-google-fonts/playfair-display";
 import * as SplashScreen from "expo-splash-screen";
 import { BrandSplash } from "@/components/brand-splash";
+import { ConfirmHost } from "@/components/confirm";
 import { startPush } from "@/lib/push";
 import { colors } from "@/lib/theme";
 
@@ -30,16 +31,17 @@ export default function Root() {
   useEffect(() => startPush(), []);
 
   if (!loaded && !error) {
-    return <BrandSplash useImage message="Opening Matebeto" />;
+    return <BrandSplash staticBrand />;
   }
 
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
+      <ConfirmHost />
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: "#FFF0E6" },
+          contentStyle: { backgroundColor: "#FFFFFF" },
           animation: "fade",
         }}
       >
@@ -47,18 +49,18 @@ export default function Root() {
         <Stack.Screen name="finding" options={{ gestureEnabled: false, animation: "fade" }} />
         <Stack.Screen name="auth/phone" />
         <Stack.Screen name="auth/otp" />
-        <Stack.Screen name="auth/rider-apply" options={{ headerShown: false, contentStyle: { backgroundColor: "#FFF0E6" } }} />
+        <Stack.Screen name="auth/rider-apply" options={{ headerShown: false, contentStyle: { backgroundColor: "#FFFFFF" } }} />
         <Stack.Screen name="(customer)" options={{ contentStyle: { backgroundColor: "#FFFFFF" } }} />
         <Stack.Screen name="(rider)" />
         <Stack.Screen name="admin" options={{ contentStyle: { backgroundColor: "#FFFFFF" } }} />
-        <Stack.Screen name="payment/[id]" options={{ headerShown: false, gestureEnabled: false, contentStyle: { backgroundColor: "#FFF0E6" } }} />
+        <Stack.Screen name="payment/[id]" options={{ headerShown: false, gestureEnabled: false, contentStyle: { backgroundColor: "#FFFFFF" } }} />
         <Stack.Screen
           name="order/[id]"
           options={{
             headerShown: true,
             title: "Order",
             headerTintColor: "#111",
-            contentStyle: { backgroundColor: "#F7F4EE" },
+            contentStyle: { backgroundColor: "#FFFFFF" },
           }}
         />
       </Stack>

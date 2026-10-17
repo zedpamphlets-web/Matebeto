@@ -32,8 +32,8 @@ export function Card({ children, style }: { children: ReactNode; style?: ViewSty
 export function PrimaryButton({
   label,
   onPress,
-  color = colors.gold,
-  textColor = colors.ink,
+  color = "#D6263A",
+  textColor,
   disabled,
   loading,
 }: {
@@ -44,15 +44,16 @@ export function PrimaryButton({
   disabled?: boolean;
   loading?: boolean;
 }) {
+  const isLight = color.toLowerCase() === "#fff" || color.toLowerCase() === "#ffffff";
   return (
     <SpinPressable
       onPress={onPress}
       disabled={disabled}
       loading={loading}
-      spinnerColor={textColor}
-      style={[styles.btn, { backgroundColor: color }]}
+      spinnerColor={textColor || (isLight ? "#1C1B26" : "#fff")}
+      style={[styles.btn, { backgroundColor: color }, isLight && { borderWidth: 1, borderColor: "#E3E2E8" }]}
     >
-      <Text style={[styles.btnText, { color: textColor }]}>{label}</Text>
+      <Text style={[styles.btnText, { color: textColor || (isLight ? "#1C1B26" : "#fff") }]}>{label}</Text>
     </SpinPressable>
   );
 }
@@ -95,7 +96,7 @@ export function CheckRow({
   return (
     <Pressable onPress={onPress} style={styles.checkRow}>
       <View style={[styles.box, on && styles.boxOn]}>
-        {on ? <Ionicons name="checkmark" size={16} color={colors.ink} /> : null}
+        {on ? <Ionicons name="checkmark" size={16} color="#fff" /> : null}
       </View>
       <Text style={styles.checkLabel}>{label}</Text>
     </Pressable>
@@ -165,8 +166,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   btn: {
-    height: 56,
-    borderRadius: radius.pill,
+    height: 54,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -194,7 +195,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  boxOn: { backgroundColor: colors.gold, borderColor: colors.gold },
+  boxOn: { backgroundColor: "#D6263A", borderColor: "#D6263A" },
   checkLabel: { fontFamily: fonts.bodySemi, fontSize: 16, color: colors.ink },
   stepWrap: { flexDirection: "row", alignItems: "center", marginVertical: 12 },
   stepBtn: {

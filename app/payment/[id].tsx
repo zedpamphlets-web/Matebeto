@@ -3,6 +3,7 @@ import { Alert, Animated, BackHandler, Easing, Pressable, Text, View } from "rea
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { DarkScreen, GoldButton } from "@/components/app-shell";
+import { Spinner } from "@/components/spinner";
 import { colors, fonts } from "@/lib/theme";
 import { supabase } from "@/lib/supabase";
 import { startLipilaPayment, verifyLipilaPayment } from "@/lib/payments";
@@ -133,25 +134,11 @@ export default function PaymentProcessing() {
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 28 }}>
         {processing && (
           <>
-            <Animated.View
-              style={{
-                width: 170,
-                height: 170,
-                borderRadius: 85,
-                backgroundColor: "#fff",
-                borderWidth: 10,
-                borderColor: colors.gold,
-                alignItems: "center",
-                justifyContent: "center",
-                transform: [{ rotate }],
-              }}
-            >
-              <Text style={{ fontSize: 70 }}>🍗</Text>
-            </Animated.View>
-            <Text style={{ color: "#fff", fontFamily: fonts.display, fontSize: 26, marginTop: 28, textAlign: "center" }}>
+            <Spinner size={64} />
+            <Text style={{ color: "#1C1B26", fontFamily: fonts.display, fontSize: 26, marginTop: 28, textAlign: "center" }}>
               Processing your payment…
             </Text>
-            <Text style={{ color: "#A8A8A8", fontFamily: fonts.body, marginTop: 10, textAlign: "center", lineHeight: 22 }}>
+            <Text style={{ color: "#6B6A78", fontFamily: fonts.body, marginTop: 10, textAlign: "center", lineHeight: 22 }}>
               {phase === "starting"
                 ? "Sending the request to your mobile money…"
                 : "Approve the payment on your phone and enter your PIN. Please do not close the app."}
@@ -161,9 +148,9 @@ export default function PaymentProcessing() {
 
         {phase === "success" && (
           <Animated.View style={{ alignItems: "center", transform: [{ scale: popScale }] }}>
-            <Ionicons name="checkmark-circle" size={120} color={colors.customer} />
-            <Text style={{ color: "#fff", fontFamily: fonts.display, fontSize: 28, marginTop: 14 }}>Payment received 🎉</Text>
-            <Text style={{ color: "#A8A8A8", fontFamily: fonts.body, marginTop: 8, textAlign: "center" }}>
+            <Ionicons name="checkmark-circle" size={96} color={colors.good} />
+            <Text style={{ color: "#1C1B26", fontFamily: fonts.display, fontSize: 28, marginTop: 14 }}>Payment received</Text>
+            <Text style={{ color: "#6B6A78", fontFamily: fonts.body, marginTop: 8, textAlign: "center" }}>
               Finding your food partner…
             </Text>
           </Animated.View>
@@ -171,16 +158,16 @@ export default function PaymentProcessing() {
 
         {phase === "failed" && (
           <Animated.View style={{ alignItems: "center", width: "100%", transform: [{ scale: popScale }] }}>
-            <Ionicons name="close-circle" size={120} color={colors.danger} />
-            <Text style={{ color: "#fff", fontFamily: fonts.display, fontSize: 28, marginTop: 14 }}>Payment failed 😞</Text>
-            <Text style={{ color: "#A8A8A8", fontFamily: fonts.body, marginTop: 10, textAlign: "center", lineHeight: 22 }}>
+            <Ionicons name="close-circle" size={96} color={colors.danger} />
+            <Text style={{ color: "#1C1B26", fontFamily: fonts.display, fontSize: 28, marginTop: 14 }}>Payment failed</Text>
+            <Text style={{ color: "#6B6A78", fontFamily: fonts.body, marginTop: 10, textAlign: "center", lineHeight: 22 }}>
               {message || "The payment did not go through."}
             </Text>
             <View style={{ width: "100%", marginTop: 26 }}>
               <GoldButton label="Try again" onPress={begin} />
               <View style={{ height: 10 }} />
               <Pressable onPress={() => router.replace("/(customer)/checkout")} style={{ padding: 12, alignItems: "center" }}>
-                <Text style={{ color: "#fff", fontFamily: fonts.bodySemi }}>Use a different number</Text>
+                <Text style={{ color: "#1C1B26", fontFamily: fonts.bodySemi }}>Use a different number</Text>
               </Pressable>
               <Pressable onPress={cancelOrder} style={{ padding: 12, alignItems: "center" }}>
                 <Text style={{ color: colors.danger, fontFamily: fonts.bodySemi }}>Cancel order</Text>
@@ -191,18 +178,18 @@ export default function PaymentProcessing() {
 
         {phase === "slow" && (
           <Animated.View style={{ alignItems: "center", width: "100%", transform: [{ scale: popScale }] }}>
-            <Ionicons name="time" size={110} color={colors.gold} />
-            <Text style={{ color: "#fff", fontFamily: fonts.display, fontSize: 26, marginTop: 14, textAlign: "center" }}>
-              This is taking longer than usual ⏳
+            <Ionicons name="time" size={96} color={colors.rider} />
+            <Text style={{ color: "#1C1B26", fontFamily: fonts.display, fontSize: 26, marginTop: 14, textAlign: "center" }}>
+              This is taking longer than usual
             </Text>
-            <Text style={{ color: "#A8A8A8", fontFamily: fonts.body, marginTop: 10, textAlign: "center", lineHeight: 22 }}>
+            <Text style={{ color: "#6B6A78", fontFamily: fonts.body, marginTop: 10, textAlign: "center", lineHeight: 22 }}>
               If you already entered your PIN, the payment may still arrive. Check again in a moment.
             </Text>
             <View style={{ width: "100%", marginTop: 26 }}>
               <GoldButton label={busy ? "Checking…" : "Check again"} onPress={checkAgain} disabled={busy} />
               <View style={{ height: 10 }} />
               <Pressable onPress={() => router.replace(`/order/${id}`)} style={{ padding: 12, alignItems: "center" }}>
-                <Text style={{ color: "#fff", fontFamily: fonts.bodySemi }}>View my order</Text>
+                <Text style={{ color: "#1C1B26", fontFamily: fonts.bodySemi }}>View my order</Text>
               </Pressable>
               <Pressable onPress={cancelOrder} style={{ padding: 12, alignItems: "center" }}>
                 <Text style={{ color: colors.danger, fontFamily: fonts.bodySemi }}>Cancel order</Text>
