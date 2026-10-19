@@ -64,12 +64,14 @@ export function Field({
   placeholder,
   keyboardType,
   secure,
+  autoCapitalize,
 }: {
   value: string;
   onChangeText: (t: string) => void;
   placeholder: string;
   keyboardType?: any;
   secure?: boolean;
+  autoCapitalize?: "none" | "sentences" | "words" | "characters";
 }) {
   return (
     <TextInput
@@ -79,6 +81,7 @@ export function Field({
       placeholderTextColor={colors.muted}
       keyboardType={keyboardType}
       secureTextEntry={secure}
+      autoCapitalize={autoCapitalize}
       style={styles.input}
     />
   );

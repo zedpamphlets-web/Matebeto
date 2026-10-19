@@ -7,7 +7,7 @@ import { colors, fonts, radius } from "@/lib/theme";
 import { formatKw } from "@/lib/lipila";
 import { PrimaryButton } from "@/components/ui";
 import { JobSkeleton } from "@/components/skeleton";
-import { startRiderSearch, TRACK_STEPS, stepDone } from "@/lib/orders";
+import { TRACK_STEPS, stepDone } from "@/lib/orders";
 import { verifyLipilaPayment } from "@/lib/payments";
 
 const CANCELLABLE = ["CREATED", "PAYMENT_CONFIRMED", "SEARCHING_VENDOR", "VENDOR_OFFERED", "NO_VENDOR_FOUND"];
@@ -68,15 +68,24 @@ export default function OrderTrack() {
     refresh();
   }
 
-  async function retryRider() {
+  // One server call restarts the vendor search (no vendor found) or the rider search (no rider found).
+  async function retrySearch() {
+    if (busy) return;
     setBusy(true);
     try {
-      const res = await startRiderSearch(String(id));
-      if (!res?.ok && res?.reason === "NO_RIDER_AVAILABLE") {
+      const { data, error } = await supabase.rpc("customer_retry_order", { p_order: id });
+      if (error) throw error;
+      if (data?.ok === false && data?.reason === "NO_VENDOR_FOUND") {
+        Alert.alert("No vendor yet", "We could not find a vendor this time. You can try again in a moment, or cancel the order for a refund.");
+      } else if (data?.ok === false && data?.reason === "NO_RIDER_AVAILABLE") {
         Alert.alert(
           "No matching rider",
-          "No bicycle/motorbike rider of the type you chose is online. Wait and try again, or contact support. The vehicle type will not be silently swapped."
+          "No rider of the type you chose is online right now. Wait a moment and try again, or contact support. The vehicle type will not be swapped."
         );
+      } else if (data?.ok === false && data?.reason === "NOT_RETRYABLE") {
+        // the order has already moved on
+      } else {
+        Alert.alert("Searching", data?.searching === "rider" ? "We are looking for a rider." : "We are looking for a vendor.");
       }
     } catch (e: any) {
       Alert.alert("Could not search", e?.message || "Please try again.");
@@ -84,6 +93,7 @@ export default function OrderTrack() {
     setBusy(false);
     refresh();
   }
+  const retryRider = retrySearch;
 
   function confirmCancel() {
     const paid = order?.payment_status === "paid";
@@ -120,7 +130,7 @@ export default function OrderTrack() {
 
   let notice: string | null = null;
   if (order.status === "NO_VENDOR_FOUND") {
-    notice = "Matebeto could not find a suitable vendor after 3 attempts. You can cancel for a refund, or place a new order with a different basket.";
+    notice = "Matebeto could not find a suitable vendor. Tap Try again to search once more, or cancel for a refund.";
   } else if (order.status === "NO_RIDER_AVAILABLE") {
     notice = `No ${order.delivery_type} rider is online right now. Your food partner has your order. Try again in a moment.${support}`;
   } else if (order.status === "SUPPORT_REQUIRED") {
@@ -136,14 +146,7 @@ export default function OrderTrack() {
         : "This order was cancelled.";
   }
 
-  async function tryAgain() {
-    try {
-      await supabase.rpc("retry_vendor_search", { p_order_id: order.id });
-      Alert.alert("Searching", "We are looking again.");
-    } catch {
-      Alert.alert("Try again", "We will keep looking. Please check back in a moment.");
-    }
-  }
+  const tryAgain = retrySearch;
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.cream }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>

@@ -3,6 +3,7 @@ import { ListSkeleton } from "@/components/skeleton";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Photo } from "@/components/photo";
+import { ZoomPhoto } from "@/components/zoom-photo";
 import { supabase } from "@/lib/supabase";
 import { colors, fonts, radius } from "@/lib/theme";
 import { confirmDialog } from "@/components/confirm";
@@ -118,19 +119,19 @@ export default function AdminRiders() {
                 </View>
                 {r.photo_url ? (
                   <View style={{ borderRadius: 12, overflow: "hidden", marginBottom: 10 }}>
-                    <Photo uri={r.photo_url} name={r.full_name} height={200} />
+                    <ZoomPhoto uri={r.photo_url} name={r.full_name} height={200} />
                   </View>
                 ) : null}
                 {(licenceUrl(r, "FRONT") || licenceUrl(r, "BACK")) && (
                   <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
                     {licenceUrl(r, "FRONT") ? (
                       <View style={{ flex: 1, borderRadius: 10, overflow: "hidden" }}>
-                        <Photo uri={licenceUrl(r, "FRONT")} name="Front" height={120} />
+                        <ZoomPhoto uri={licenceUrl(r, "FRONT")} name="ID front" height={120} />
                       </View>
                     ) : null}
                     {licenceUrl(r, "BACK") ? (
                       <View style={{ flex: 1, borderRadius: 10, overflow: "hidden" }}>
-                        <Photo uri={licenceUrl(r, "BACK")} name="Back" height={120} />
+                        <ZoomPhoto uri={licenceUrl(r, "BACK")} name="ID back" height={120} />
                       </View>
                     ) : null}
                   </View>

@@ -31,8 +31,12 @@ export default function HomeAdmin() {
   const [platform, setPlatform] = useState("");
   const [bike, setBike] = useState("");
   const [moto, setMoto] = useState("");
-  // Banners
-  const [banners, setBanners] = useState<any[]>([]);
+  // Promotion (one static banner on Home)
+  const [promotion, setPromotion] = useState<any>(null);
+  // Legal links shown in the app under Profile > About
+  const [termsUrl, setTermsUrl] = useState("");
+  const [privacyUrl, setPrivacyUrl] = useState("");
+  const [cookiesUrl, setCookiesUrl] = useState("");
 
   async function load() {
     const { data } = await supabase.from("settings").select("*").eq("id", 1).single();
@@ -46,9 +50,12 @@ export default function HomeAdmin() {
       setPromoOn(data.promo_enabled !== false);
       setPromoTitle(data.promo_title || "");
       setPromoSub(data.promo_subtitle || "");
+      setTermsUrl(data.terms_url || "");
+      setPrivacyUrl(data.privacy_url || "");
+      setCookiesUrl(data.cookies_url || "");
     }
-    const { data: b } = await supabase.from("banners").select("*").order("sort_order");
-    setBanners(b || []);
+    const { data: p } = await supabase.from("promotion").select("*").eq("id", 1).maybeSingle();
+    setPromotion(p || null);
   }
 
   useEffect(() => {
@@ -84,49 +91,37 @@ export default function HomeAdmin() {
     else Alert.alert("Saved");
   }
 
-  async function saveBanner(id: string | null, v: BannerValues) {
+  async function savePromotion(_id: string | null, v: BannerValues) {
     if (!v.title.trim()) {
-      Alert.alert("Banner", "Add the banner text.");
+      Alert.alert("Promotion", "Add the promotion text.");
       return false;
     }
-    const row = {
+    const { error } = await supabase.from("promotion").upsert({
+      id: 1,
       title: v.title.trim(),
       subtitle: v.subtitle.trim() || null,
       amount: v.amount.trim() ? Number(v.amount) : null,
       image_url: v.image,
       is_active: v.active,
-    };
-    const { error } = id
-      ? await supabase.from("banners").update(row).eq("id", id)
-      : await supabase.from("banners").insert({ ...row, sort_order: banners.length + 1 });
+      updated_at: new Date().toISOString(),
+    });
     if (error) {
-      Alert.alert("Banner", error.message);
+      Alert.alert("Promotion", error.message);
       return false;
     }
     await load();
+    Alert.alert("Saved", "Customers see the new promotion next time Home opens.");
     return true;
   }
 
-  async function deleteBanner(id: string) {
-    const ok = await confirmDialog({
-      title: "Delete banner?",
-      message: "Are you sure you want to delete this banner?",
-      confirmLabel: "Delete",
-      destructive: true,
-    });
-    if (!ok) return;
-    const { error } = await supabase.from("banners").delete().eq("id", id);
-    if (error) Alert.alert("Banner", error.message);
-    load();
-  }
-
-  async function move(idx: number, dir: -1 | 1) {
-    const j = idx + dir;
-    if (j < 0 || j >= banners.length) return;
-    const next = [...banners];
-    [next[idx], next[j]] = [next[j], next[idx]];
-    await Promise.all(next.map((b, i) => supabase.from("banners").update({ sort_order: i + 1 }).eq("id", b.id)));
-    load();
+  async function saveLegal() {
+    const clean = (v: string) => v.trim() || null;
+    const { error } = await supabase
+      .from("settings")
+      .update({ terms_url: clean(termsUrl), privacy_url: clean(privacyUrl), cookies_url: clean(cookiesUrl) })
+      .eq("id", 1);
+    if (error) Alert.alert("Legal links", error.message);
+    else Alert.alert("Saved", "The links open from Profile > About.");
   }
 
   if (loading) return <View style={{ flex: 1, backgroundColor: colors.adminBg, padding: 16 }}><FormSkeleton /></View>;
@@ -135,19 +130,14 @@ export default function HomeAdmin() {
     <ScrollView style={{ flex: 1, backgroundColor: colors.adminBg }} contentContainerStyle={{ padding: 20, paddingBottom: 48 }}>
       <Text style={{ fontFamily: fonts.display, fontSize: 28, color: colors.adminText }}>Home</Text>
 
-      <Text style={heading}>Banners</Text>
-      {banners.map((b, i) => (
-        <BannerForm
-          key={b.id + String(b.sort_order)}
-          initial={b}
-          onSave={(v) => saveBanner(b.id, v)}
-          onDelete={() => deleteBanner(b.id)}
-          onUp={i > 0 ? () => move(i, -1) : undefined}
-          onDown={i < banners.length - 1 ? () => move(i, 1) : undefined}
-        />
-      ))}
-      <Text style={label}>New banner</Text>
-      <BannerForm key={"new" + banners.length} onSave={(v) => saveBanner(null, v)} />
+      <Text style={heading}>Promotion</Text>
+      <Text style={label}>One fixed banner at the top of Home. It does not move.</Text>
+      <BannerForm
+        key={promotion?.updated_at || "empty"}
+        initial={promotion || { is_active: true }}
+        saveLabel="Save promotion"
+        onSave={(v) => savePromotion(null, v)}
+      />
 
       <Text style={heading}>Home text</Text>
       <Text style={label}>Line under the logo</Text>
@@ -169,6 +159,16 @@ export default function HomeAdmin() {
       <View style={{ height: 6 }} />
       <PrimaryButton label="Save home text" onPress={saveHomeText} />
 
+      <Text style={heading}>Legal links</Text>
+      <Text style={label}>Terms and Conditions link</Text>
+      <Field value={termsUrl} onChangeText={setTermsUrl} placeholder="https://..." autoCapitalize="none" keyboardType="url" />
+      <Text style={label}>Privacy Policy link</Text>
+      <Field value={privacyUrl} onChangeText={setPrivacyUrl} placeholder="https://..." autoCapitalize="none" keyboardType="url" />
+      <Text style={label}>Cookie Policy link</Text>
+      <Field value={cookiesUrl} onChangeText={setCookiesUrl} placeholder="https://..." autoCapitalize="none" keyboardType="url" />
+      <View style={{ height: 10 }} />
+      <PrimaryButton label="Save legal links" onPress={saveLegal} />
+
       <Text style={heading}>Fees</Text>
       <Field value={platform} onChangeText={setPlatform} placeholder="Platform fee" keyboardType="decimal-pad" />
       <View style={{ height: 10 }} />
@@ -187,15 +187,11 @@ type BannerValues = { title: string; subtitle: string; amount: string; image: st
 function BannerForm({
   initial,
   onSave,
-  onDelete,
-  onUp,
-  onDown,
+  saveLabel,
 }: {
   initial?: any;
   onSave: (v: BannerValues) => Promise<boolean>;
-  onDelete?: () => void;
-  onUp?: () => void;
-  onDown?: () => void;
+  saveLabel?: string;
 }) {
   const [title, setTitle] = useState(initial?.title || "");
   const [subtitle, setSubtitle] = useState(initial?.subtitle || "");
@@ -203,6 +199,9 @@ function BannerForm({
   const [image, setImage] = useState<string | null>(initial?.image_url || null);
   const [active, setActive] = useState(initial ? initial.is_active !== false : true);
   const isNew = !initial;
+  const onDelete: (() => void) | undefined = undefined;
+  const onUp: (() => void) | undefined = undefined;
+  const onDown: (() => void) | undefined = undefined;
 
   return (
     <View
@@ -248,7 +247,7 @@ function BannerForm({
         </View>
       ) : null}
       <PrimaryButton
-        label={isNew ? "Add banner" : "Save banner"}
+        label={saveLabel || (isNew ? "Add banner" : "Save banner")}
         onPress={async () => {
           const ok = await onSave({ title, subtitle, amount, image, active });
           if (ok && isNew) {

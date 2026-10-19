@@ -97,14 +97,14 @@ export default function CustomerTabs() {
         }}
       />
 
-      {/* Secondary screens: no tab icon + hide bottom bar */}
-      <Tabs.Screen name="markets" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
-      <Tabs.Screen name="settings" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
+      {/* Secondary screens: no tab icon. Markets, Account and Notifications keep the bottom bar; the rest hide it. */}
+      <Tabs.Screen name="markets" options={{ href: null }} />
+      <Tabs.Screen name="settings" options={{ href: null }} />
       <Tabs.Screen name="market/[id]" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
       <Tabs.Screen name="meal/[id]" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
       <Tabs.Screen name="delivery" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
       <Tabs.Screen name="checkout" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
-      <Tabs.Screen name="notifications" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
     </Tabs>
   );
 }

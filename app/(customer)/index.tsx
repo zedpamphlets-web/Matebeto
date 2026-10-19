@@ -2,8 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -20,6 +18,7 @@ import { HomeSkeleton } from "@/components/skeleton";
 import { OfflineNotice } from "@/components/offline-notice";
 import { OfflineBanner } from "@/components/offline-banner";
 import { NotificationBell } from "@/components/notification-bell";
+import { CompleteAccountPrompt } from "@/components/complete-account-prompt";
 import { MkScreen } from "@/components/mk";
 import { supabase } from "@/lib/supabase";
 import { fonts, ui } from "@/lib/theme";
@@ -29,9 +28,6 @@ import { useCachedLoad } from "@/lib/offline-cache";
 const W = Dimensions.get("window").width;
 const PAD = 16;
 const GAP = 12;
-const BANNER_GAP = 10;
-const BANNER_W = W - PAD * 2 - 22; // a slice of the next banner stays visible
-const BANNER_STEP = BANNER_W + BANNER_GAP;
 const CARD_W = (W - PAD * 2 - GAP) / 2;
 const DEFAULT_TAGLINE = "Good Food. Closer to You.";
 const DEFAULT_CITY = "Lusaka";
@@ -43,24 +39,9 @@ const DEFAULT_BANNER = {
 };
 
 export default function Home() {
-  const [bannerIndex, setBannerIndex] = useState(0);
-  const priceAnim = useRef(new Animated.Value(0)).current;
-  const titleAnim = useRef(new Animated.Value(0)).current;
   const locAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(priceAnim, { toValue: -8, duration: 900, useNativeDriver: true }),
-        Animated.timing(priceAnim, { toValue: 0, duration: 900, useNativeDriver: true }),
-      ])
-    ).start();
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(titleAnim, { toValue: 6, duration: 900, useNativeDriver: true }),
-        Animated.timing(titleAnim, { toValue: 0, duration: 900, useNativeDriver: true }),
-      ])
-    ).start();
     Animated.loop(
       Animated.sequence([
         Animated.timing(locAnim, { toValue: 1, duration: 180, useNativeDriver: true }),
@@ -68,15 +49,14 @@ export default function Home() {
         Animated.timing(locAnim, { toValue: 0, duration: 180, useNativeDriver: true }),
       ])
     ).start();
-  }, [priceAnim, titleAnim, locAnim]);
-  const bannerRef = useRef<ScrollView>(null);
+  }, [locAnim]);
 
   // Each list keeps a saved copy on the phone, so with no internet the menu still shows.
   const marketsQ = useCachedLoad<any[]>("home.markets", () =>
     supabase.from("markets").select("*").eq("is_active", true).order("sort_order")
   );
-  const bannersQ = useCachedLoad<any[]>("home.banners", () =>
-    supabase.from("banners").select("*").eq("is_active", true).order("sort_order")
+  const promoQ = useCachedLoad<any>("home.promotion", () =>
+    supabase.from("promotion").select("*").eq("id", 1).maybeSingle()
   );
 
   const settingsQ = useCachedLoad<any>("home.settings", () =>
@@ -84,7 +64,7 @@ export default function Home() {
   );
 
   const markets = marketsQ.data || [];
-  const banners = bannersQ.data || [];
+  const promotion = promoQ.data && promoQ.data.is_active !== false ? promoQ.data : null;
   const cfg = settingsQ.data || {};
   const tagline: string = cfg.home_tagline || DEFAULT_TAGLINE;
   const city: string = cfg.home_city || DEFAULT_CITY;
@@ -98,36 +78,17 @@ export default function Home() {
 
   const retry = useCallback(() => {
     marketsQ.reload();
-    bannersQ.reload();
+    promoQ.reload();
     settingsQ.reload();
-  }, [marketsQ.reload, bannersQ.reload, settingsQ.reload]);
+  }, [marketsQ.reload, promoQ.reload, settingsQ.reload]);
 
-  // Banners are managed in Admin (Home tab). With none set, the approved Matebeto banner shows.
-  const slides: { key: string; uri: string | null; title: string; subtitle: string; amount: any }[] = banners.length
-    ? banners.map((b) => ({
-        key: b.id,
-        uri: b.image_url,
-        title: b.title || "",
-        subtitle: b.subtitle || "",
-        amount: b.amount,
-      }))
-    : [{ key: "default", uri: null, title: DEFAULT_BANNER.title, subtitle: DEFAULT_BANNER.subtitle, amount: null }];
-
-  useEffect(() => {
-    if (slides.length < 2 || loading) return;
-    const t = setInterval(() => {
-      setBannerIndex((i) => {
-        const next = (i + 1) % slides.length;
-        bannerRef.current?.scrollTo({ x: next * BANNER_STEP, animated: true });
-        return next;
-      });
-    }, 10000);
-    return () => clearInterval(t);
-  }, [slides.length, loading]);
-
-  function onBannerScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
-    setBannerIndex(Math.round(e.nativeEvent.contentOffset.x / BANNER_STEP));
-  }
+  // One static promotion, edited in Admin (Home tab > Promotion). With none set, the approved Matebeto banner shows.
+  const banner = {
+    uri: promotion?.image_url || null,
+    title: promotion ? promotion.title || "" : DEFAULT_BANNER.title,
+    subtitle: promotion ? promotion.subtitle || "" : DEFAULT_BANNER.subtitle,
+    amount: promotion ? promotion.amount : null,
+  };
 
   return (
     <MkScreen>
@@ -143,52 +104,27 @@ export default function Home() {
           <NotificationBell />
         </View>
 
-        {/* Banner */}
-        <View>
-          <ScrollView
-            ref={bannerRef}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            onScroll={onBannerScroll}
-            scrollEventThrottle={16}
-            decelerationRate="fast"
-            snapToInterval={BANNER_STEP}
-            snapToAlignment="start"
-            contentContainerStyle={{ paddingHorizontal: PAD }}
-          >
-            {slides.map((sl) => (
-              <View key={sl.key} style={[styles.banner, { width: BANNER_W, marginRight: BANNER_GAP, backgroundColor: ui.banner }]}>
-                {sl.uri ? (
-                  <>
-                    <Image source={{ uri: sl.uri }} style={styles.bannerFood} contentFit="cover" />
-                    <LinearGradient
-                      colors={[ui.banner, "rgba(64,20,43,0)"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.bannerFade}
-                    />
-                  </>
-                ) : null}
-                <View style={styles.bannerCopy}>
-                  {sl.title ? (
-                    <Animated.Text style={[styles.bannerTitle, { transform: [{ translateY: titleAnim }] }]}>{sl.title}</Animated.Text>
-                  ) : null}
-                  {sl.amount != null ? (
-                    <Animated.Text style={[styles.bannerAmount, { transform: [{ translateY: priceAnim }] }]}>{formatKw(Number(sl.amount))}</Animated.Text>
-                  ) : null}
-                  {sl.subtitle ? <Text style={styles.bannerSub}>{sl.subtitle}</Text> : null}
-                  <View style={styles.bannerRule} />
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-          {slides.length > 1 ? (
-            <View style={styles.dots}>
-              {slides.map((s, i) => (
-                <View key={s.key} style={[styles.dot, i === bannerIndex && styles.dotOn]} />
-              ))}
+        {/* Promotion: one static banner, it does not move */}
+        <View style={{ paddingHorizontal: PAD }}>
+          <View style={[styles.banner, { backgroundColor: ui.banner }]}>
+            {banner.uri ? (
+              <>
+                <Image source={{ uri: banner.uri }} style={styles.bannerFood} contentFit="cover" />
+                <LinearGradient
+                  colors={[ui.banner, "rgba(64,20,43,0)"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.bannerFade}
+                />
+              </>
+            ) : null}
+            <View style={styles.bannerCopy}>
+              {banner.title ? <Text style={styles.bannerTitle}>{banner.title}</Text> : null}
+              {banner.amount != null ? <Text style={styles.bannerAmount}>{formatKw(Number(banner.amount))}</Text> : null}
+              {banner.subtitle ? <Text style={styles.bannerSub}>{banner.subtitle}</Text> : null}
+              <View style={styles.bannerRule} />
             </View>
-          ) : null}
+          </View>
         </View>
 
         {/* Markets */}
@@ -247,6 +183,7 @@ export default function Home() {
           )}
         </View>
       </ScrollView>
+      <CompleteAccountPrompt />
     </MkScreen>
   );
 }

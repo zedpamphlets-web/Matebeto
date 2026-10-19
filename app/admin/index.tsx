@@ -27,6 +27,7 @@ export default function AdminDashboard() {
       supabase
         .from("orders")
         .select("status,payment_status")
+        .in("payment_status", ["paid", "refund_pending", "refunded"])
         .then(({ data }) => {
           const rows = data || [];
           setOpen(rows.filter((o: any) => !["COMPLETED", "CANCELLED"].includes(o.status)).length);

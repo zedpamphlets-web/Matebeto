@@ -65,6 +65,9 @@ export default function MenuDrawer() {
     rows.push({ label: "Admin", icon: "shield-outline", onPress: () => router.push("/admin") });
   }
 
+  rows.push({ label: "Help", icon: "help-circle-outline", onPress: () => router.push("/help") });
+  rows.push({ label: "About", icon: "information-circle-outline", onPress: () => router.push("/about") });
+
   rows.push({
     label: "Log out",
     icon: "log-out-outline",

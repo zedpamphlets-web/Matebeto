@@ -9,6 +9,7 @@ import { PlayfairDisplay_400Regular_Italic } from "@expo-google-fonts/playfair-d
 import * as SplashScreen from "expo-splash-screen";
 import { BrandSplash } from "@/components/brand-splash";
 import { ConfirmHost } from "@/components/confirm";
+import { AppErrorBoundary } from "@/components/error-boundary";
 import { startPush } from "@/lib/push";
 import { colors } from "@/lib/theme";
 
@@ -30,6 +31,23 @@ export default function Root() {
 
   useEffect(() => startPush(), []);
 
+  // After the app has opened, an unexpected error in a button or request is logged instead of closing the app.
+  useEffect(() => {
+    try {
+      const utils = (globalThis as any).ErrorUtils;
+      if (!utils?.setGlobalHandler) return;
+      const previous = utils.getGlobalHandler?.();
+      utils.setGlobalHandler((error: unknown) => {
+        console.warn("[app] unexpected error:", error);
+      });
+      return () => {
+        if (previous) utils.setGlobalHandler(previous);
+      };
+    } catch {
+      return;
+    }
+  }, []);
+
   if (!loaded && !error) {
     return <BrandSplash staticBrand />;
   }
@@ -38,6 +56,7 @@ export default function Root() {
     <>
       <StatusBar style="dark" />
       <ConfirmHost />
+      <AppErrorBoundary>
       <Stack
         screenOptions={{
           headerShown: false,
@@ -64,6 +83,7 @@ export default function Root() {
           }}
         />
       </Stack>
+      </AppErrorBoundary>
     </>
   );
 }

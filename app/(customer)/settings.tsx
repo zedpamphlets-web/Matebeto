@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { router, useFocusEffect } from "expo-router";
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { MkField, MkHeader, MkScreen, RedButton } from "@/components/mk";
 import { LoadingScreen } from "@/components/spinner";
@@ -8,6 +8,7 @@ import { confirmDialog } from "@/components/confirm";
 import { LOGIN_ROUTE, currentProfile, signOutApp } from "@/lib/session";
 import { EMPTY_ACCOUNT, loadAccount, saveAccount, type AccountDetails } from "@/lib/profile";
 import { LIPILA_PROVIDERS } from "@/lib/lipila";
+import { supabase } from "@/lib/supabase";
 import { fonts, ui } from "@/lib/theme";
 
 const hasDetails = (d: AccountDetails) =>
@@ -22,6 +23,10 @@ export default function Settings() {
   const [admin, setAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [note, setNote] = useState("");
+  const { edit } = useLocalSearchParams<{ edit?: string }>();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [confirmPhone, setConfirmPhone] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -31,7 +36,7 @@ export default function Settings() {
         if (!alive) return;
         setForm(details);
         setSaved(details);
-        setEditing(!hasDetails(details)); // nothing saved yet: open the form; otherwise show the card
+        setEditing(!hasDetails(details) || edit === "1"); // nothing saved yet (or sent here to complete it): open the form; otherwise show the card
         setLoginPhone(String(session.user?.phone || session.profile?.phone || ""));
         setRider(session.rider);
         setAdmin(!!session.admin);
@@ -40,7 +45,7 @@ export default function Settings() {
       return () => {
         alive = false;
       };
-    }, [])
+    }, [edit])
   );
 
   function set<K extends keyof AccountDetails>(key: K, value: AccountDetails[K]) {
@@ -74,6 +79,37 @@ export default function Settings() {
     if (!ok) return;
     await signOutApp();
     router.replace(LOGIN_ROUTE);
+  }
+
+  async function deleteAccount() {
+    if (!confirmPhone.trim() || deleting) return;
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.rpc("delete_my_account", { p_phone: confirmPhone.trim() });
+      if (error) throw error;
+      if (data?.ok) {
+        setDeleteOpen(false);
+        await signOutApp();
+        Alert.alert("Account deleted", "Your data has been deleted from Matebeto.");
+        router.replace(LOGIN_ROUTE);
+        return;
+      }
+      const reason = String(data?.reason || "");
+      Alert.alert(
+        "Could not delete",
+        reason === "PHONE_MISMATCH"
+          ? "That phone number does not match this account."
+          : reason === "ADMIN_ACCOUNT"
+          ? "Admin accounts cannot be deleted from the app."
+          : reason === "IN_PROGRESS"
+          ? "You still have an order or a refund in progress. Please try again when it is finished."
+          : "Please try again."
+      );
+    } catch (e: any) {
+      Alert.alert("Could not delete", e?.message || "Check your internet connection and try again.");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   if (loading) {
@@ -176,7 +212,47 @@ export default function Settings() {
         {!rider ? <Row label="Apply to become a rider" icon="bicycle-outline" onPress={() => router.push("/auth/rider-apply")} /> : null}
         {admin ? <Row label="Admin" icon="shield-outline" onPress={() => router.push("/admin")} /> : null}
         <Row label="Log out" icon="log-out-outline" onPress={logout} danger />
+
+        <Text style={s.dangerTitle}>Danger zone</Text>
+        <View style={s.dangerBox}>
+          <Text style={s.dangerText}>Deleting your account removes all your data on Matebeto. This cannot be undone.</Text>
+          <Pressable
+            onPress={() => {
+              setConfirmPhone("");
+              setDeleteOpen(true);
+            }}
+            style={s.dangerBtn}
+          >
+            <Ionicons name="trash-outline" size={18} color={ui.red} />
+            <Text style={s.dangerBtnText}>Delete my account</Text>
+          </Pressable>
+        </View>
       </ScrollView>
+
+      <Modal visible={deleteOpen} transparent animationType="fade" onRequestClose={() => setDeleteOpen(false)}>
+        <View style={s.overlay}>
+          <View style={s.dialog}>
+            <Text style={s.dialogTitle}>Delete your account?</Text>
+            <Text style={s.dialogText}>Please, we will delete all your data on Matebeto.</Text>
+            <Text style={[s.dialogText, { marginTop: 10 }]}>Enter your phone number to confirm.</Text>
+            <View style={{ width: "100%", marginTop: 12 }}>
+              <MkField value={confirmPhone} onChangeText={setConfirmPhone} placeholder="Your phone number" keyboardType="phone-pad" />
+            </View>
+            <View style={s.dialogRow}>
+              <Pressable onPress={() => setDeleteOpen(false)} style={s.dialogCancel} disabled={deleting}>
+                <Text style={s.dialogCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={deleteAccount}
+                disabled={deleting || !confirmPhone.trim()}
+                style={[s.dialogDelete, (!confirmPhone.trim() || deleting) && { opacity: 0.5 }]}
+              >
+                {deleting ? <ActivityIndicator color="#fff" /> : <Text style={s.dialogDeleteText}>Delete</Text>}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </MkScreen>
   );
 }
@@ -205,6 +281,31 @@ function Row({ label, icon, onPress, danger }: { label: string; icon: keyof type
 }
 
 const s = StyleSheet.create({
+  dangerTitle: { fontFamily: fonts.title, fontSize: 15, color: ui.red, marginTop: 30, marginBottom: 8 },
+  dangerBox: { borderWidth: 1, borderColor: "#F3C5CB", backgroundColor: "#FFF7F8", borderRadius: 14, padding: 14 },
+  dangerText: { fontFamily: fonts.body, fontSize: 14, lineHeight: 21, color: ui.sub },
+  dangerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 12,
+    height: 46,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: ui.red,
+    backgroundColor: "#fff",
+  },
+  dangerBtnText: { fontFamily: fonts.title, fontSize: 15, color: ui.red },
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", alignItems: "center", justifyContent: "center", padding: 24 },
+  dialog: { width: "100%", maxWidth: 380, backgroundColor: "#fff", borderRadius: 20, padding: 22, alignItems: "center" },
+  dialogTitle: { fontFamily: fonts.display, fontSize: 20, color: ui.ink, textAlign: "center" },
+  dialogText: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: ui.sub, textAlign: "center", marginTop: 8 },
+  dialogRow: { flexDirection: "row", gap: 10, marginTop: 14, width: "100%" },
+  dialogCancel: { flex: 1, height: 48, borderRadius: 14, backgroundColor: "#F5F5F7", alignItems: "center", justifyContent: "center" },
+  dialogCancelText: { fontFamily: fonts.title, fontSize: 15, color: ui.ink },
+  dialogDelete: { flex: 1, height: 48, borderRadius: 14, backgroundColor: ui.red, alignItems: "center", justifyContent: "center" },
+  dialogDeleteText: { fontFamily: fonts.title, fontSize: 15, color: "#fff" },
   group: { fontFamily: fonts.title, fontSize: 15, color: ui.ink, marginTop: 8, marginBottom: 10 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
   chip: { paddingHorizontal: 14, paddingVertical: 11, borderRadius: 12, backgroundColor: "#fff", borderWidth: 1, borderColor: ui.line },

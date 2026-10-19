@@ -32,7 +32,7 @@ export default function AdminOrders() {
     try {
       const [{ data: o }, { data: i }] = await withTimeout(
         Promise.all([
-          supabase.from("orders").select("*").order("created_at", { ascending: false }),
+          supabase.from("orders").select("*").in("payment_status", ["paid", "refund_pending", "refunded"]).order("created_at", { ascending: false }),
           supabase.from("order_items").select("*"),
         ])
       );

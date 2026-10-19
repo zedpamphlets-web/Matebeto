@@ -12,17 +12,23 @@ import { fonts, ui } from "@/lib/theme";
 import { formatKw } from "@/lib/lipila";
 import { useCachedLoad } from "@/lib/offline-cache";
 
+// Paid orders, including paid orders that were cancelled and refunded.
+const PAID_STATES = ["paid", "refund_pending", "refunded"];
+
 export default function Orders() {
   const [tab, setTab] = useState<"current" | "past">("current");
 
   const q = useCachedLoad<any[]>("orders.mine", () =>
-    supabase.from("orders").select("*").order("created_at", { ascending: false })
+    supabase
+      .from("orders")
+      .select("*")
+      .in("payment_status", PAID_STATES)
+      .order("created_at", { ascending: false })
   );
-  const rows = q.data || [];
+  // Only paid orders are listed. A failed or unfinished payment never shows here; the customer gets a notification instead.
+  const rows = (q.data || []).filter((o) => PAID_STATES.includes(o.payment_status));
 
-  const current = rows.filter(
-    (o) => !["COMPLETED", "CANCELLED", "NO_VENDOR_FOUND", "NO_RIDER_AVAILABLE"].includes(o.status) && o.payment_status !== "unpaid"
-  );
+  const current = rows.filter((o) => !["COMPLETED", "CANCELLED"].includes(o.status));
   const past = rows.filter((o) => o.status === "COMPLETED" || o.status === "CANCELLED");
   const list = tab === "current" ? current : past;
 

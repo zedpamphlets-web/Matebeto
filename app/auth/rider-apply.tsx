@@ -30,9 +30,22 @@ export default function RiderApply() {
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(false);
   const [done, setDone] = useState(false);
+  const [existing, setExisting] = useState<any>(null);
+  const [reapply, setReapply] = useState(false);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    currentProfile().then(({ preview: isPreview }) => setPreview(!!isPreview));
+    currentProfile()
+      .then(({ preview: isPreview, rider }) => {
+        setPreview(!!isPreview);
+        if (rider?.status === "APPROVED") {
+          router.replace("/(rider)");
+          return;
+        }
+        if (rider) setExisting(rider);
+      })
+      .catch(() => {})
+      .finally(() => setChecking(false));
   }, []);
 
   function nextFromStep1() {
@@ -159,6 +172,59 @@ export default function RiderApply() {
     if (step === 2) return setStep(1);
     if (step === 3) return setStep(2);
     router.back();
+  }
+
+  // Someone who already applied sees the status of that application, not an empty form.
+  if (checking) {
+    return (
+      <MkScreen>
+        <MkHeader title="Rider application" onBack={() => router.back()} />
+      </MkScreen>
+    );
+  }
+  if (existing && !reapply && step !== 4) {
+    const st = String(existing.status || "PENDING").toUpperCase();
+    const firstLine = String(existing.licence_info || "").split("\n")[0];
+    const idLabel =
+      firstLine === "NRC" ? "National Registration Card" : firstLine === "Licence" ? "Driver's licence" : firstLine === "Passport" ? "International passport" : "";
+    const title = st === "REJECTED" ? "Application not approved" : st === "SUSPENDED" ? "Account suspended" : "Application pending";
+    const sub =
+      st === "REJECTED"
+        ? "You can apply again"
+        : st === "SUSPENDED"
+        ? "Please contact support"
+        : "An admin is reviewing it";
+    const statusLabel = st === "REJECTED" ? "Not approved" : st === "SUSPENDED" ? "Suspended" : "Pending review";
+    return (
+      <MkScreen>
+        <MkHeader title="Rider application" onBack={() => router.back()} />
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
+          <View style={s.card}>
+            <View style={s.cardHead}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={s.cardTitle}>{title}</Text>
+                <Text style={s.cardSub}>{sub}</Text>
+              </View>
+              <ProgressRing percent={100} />
+            </View>
+            <View style={s.divider} />
+            <View style={s.summary}>
+              <SummaryRow label="Status" value={statusLabel} />
+              {idLabel ? <SummaryRow label="ID" value={`${idLabel} uploaded`} /> : null}
+              <SummaryRow label="Area" value={existing.address_text || "—"} />
+              <SummaryRow label="Vehicle" value={existing.vehicle_type || "—"} last />
+            </View>
+          </View>
+        </ScrollView>
+        <View style={s.footer}>
+          {st === "REJECTED" ? (
+            <Continue label="Apply again" onPress={() => setReapply(true)} />
+          ) : (
+            <Continue label="Done" onPress={() => router.replace("/(customer)")} />
+          )}
+        </View>
+      </MkScreen>
+    );
   }
 
   return (

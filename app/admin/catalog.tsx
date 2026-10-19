@@ -23,6 +23,14 @@ export default function Catalog() {
   const [categoryId, setCategoryId] = useState("");
   const [catName, setCatName] = useState("");
   const [catImage, setCatImage] = useState<string | null>(null);
+  // editing an existing meal
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [eName, setEName] = useState("");
+  const [ePrice, setEPrice] = useState("");
+  const [eDesc, setEDesc] = useState("");
+  const [eSides, setESides] = useState("");
+  const [ePrep, setEPrep] = useState("");
+  const [eCat, setECat] = useState("");
 
   async function load() {
     const [{ data: m }, { data: c }, { data: s }] = await Promise.all([
@@ -126,6 +134,52 @@ export default function Catalog() {
     load();
   }
 
+  function startEdit(m: any) {
+    setEditingId(m.id);
+    setEName(m.name || "");
+    setEPrice(m.price != null ? String(m.price) : "");
+    setEDesc(m.description || "");
+    setEPrep(m.prep_time || "");
+    setECat(m.category_id || "");
+    setESides(
+      sides
+        .filter((x) => x.meal_id === m.id)
+        .map((x) => x.name)
+        .join(", ")
+    );
+  }
+
+  async function saveEdit() {
+    if (!editingId) return;
+    if (!eName.trim() || !ePrice || Number.isNaN(Number(ePrice))) {
+      return Alert.alert("Meal", "Name and a valid price are required.");
+    }
+    const { error } = await supabase
+      .from("meals")
+      .update({
+        name: eName.trim(),
+        price: Number(ePrice),
+        description: eDesc.trim() || null,
+        category_id: eCat || null,
+        prep_time: ePrep.trim() || null,
+      })
+      .eq("id", editingId);
+    if (error) return Alert.alert("Meal", error.message);
+
+    const names = eSides
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean);
+    const { error: delError } = await supabase.from("meal_sides").delete().eq("meal_id", editingId);
+    if (delError) return Alert.alert("Sides", delError.message);
+    if (names.length) {
+      const { error: insError } = await supabase.from("meal_sides").insert(names.map((n) => ({ meal_id: editingId, name: n })));
+      if (insError) return Alert.alert("Sides", insError.message);
+    }
+    setEditingId(null);
+    load();
+  }
+
   async function deleteMeal(id: string) {
     const ok = await confirmDialog({
       title: "Delete meal?",
@@ -135,7 +189,8 @@ export default function Catalog() {
     });
     if (!ok) return;
     const { error } = await supabase.from("meals").delete().eq("id", id);
-    if (error) Alert.alert("Meal", error.message);
+    if (error) Alert.alert("Could not delete", "This meal could not be deleted. Ask the developer to run the latest Supabase update, or hide the meal instead.\n\n" + error.message);
+    else if (editingId === id) setEditingId(null);
     load();
   }
 
@@ -197,6 +252,37 @@ export default function Catalog() {
           <Text style={{ color: colors.adminMuted, fontFamily: fonts.body, marginBottom: 8 }}>
             {sides.filter((s) => s.meal_id === m.id).map((s) => s.name).join(", ") || "No sides"}
           </Text>
+          {editingId === m.id ? (
+            <View style={{ marginBottom: 10 }}>
+              <Field value={eName} onChangeText={setEName} placeholder="Meal name" />
+              <View style={{ height: 8 }} />
+              <Field value={ePrice} onChangeText={setEPrice} placeholder="Price K" keyboardType="decimal-pad" />
+              <View style={{ height: 8 }} />
+              <Field value={eDesc} onChangeText={setEDesc} placeholder="Description" />
+              <View style={{ height: 8 }} />
+              <Field value={eSides} onChangeText={setESides} placeholder="Included sides, comma separated" />
+              <View style={{ height: 8 }} />
+              <Field value={ePrep} onChangeText={setEPrep} placeholder="Preparation time (optional)" />
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginVertical: 10 }}>
+                {categories.map((c) => {
+                  const on = eCat === c.id;
+                  return (
+                    <Pressable key={c.id} onPress={() => setECat(c.id)} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: on ? "#FFF8E1" : "#fff", borderWidth: 2, borderColor: on ? "#F4B400" : "#EBEBEF" }}>
+                      <Text style={{ fontFamily: on ? fonts.title : fonts.body, color: "#1C1B26" }}>{c.name}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <PrimaryButton label="Save changes" onPress={saveEdit} />
+              <Pressable onPress={() => setEditingId(null)} style={{ marginTop: 10, alignItems: "center" }}>
+                <Text style={{ fontFamily: fonts.bodySemi, color: colors.adminMuted }}>Cancel</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable onPress={() => startEdit(m)} style={{ marginBottom: 8 }}>
+              <Text style={{ fontFamily: fonts.bodySemi, color: ui.red }}>Edit meal, price and sides</Text>
+            </Pressable>
+          )}
           <PhotoPicker folder={`meals/${m.id}`} uri={m.image_url} name={m.name} onChange={(url) => saveMealPhoto(m, url)} height={110} />
           <Pressable onPress={() => toggle(m, "is_featured")} style={{ marginTop: 4 }}>
             <Text style={{ fontFamily: fonts.bodySemi, color: ui.red }}>
