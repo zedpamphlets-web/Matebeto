@@ -79,8 +79,6 @@ export default function CustomerTabs() {
             color: "#fff",
             fontFamily: fonts.bodySemi,
           },
-          // the basket screen has its own back arrow, as in the approved layout
-          tabBarStyle: HIDDEN_TAB_BAR,
           tabBarIcon: ({ color, focused }) => (
             <TabIcon name={focused ? "bag-handle" : "bag-handle-outline"} color={color} />
           ),
@@ -97,7 +95,7 @@ export default function CustomerTabs() {
         }}
       />
 
-      {/* Secondary screens: no tab icon. Markets, Account and Notifications keep the bottom bar; the rest hide it. */}
+      {/* Secondary screens: no tab icon. Markets, Account, Notifications and the Basket keep the bottom bar; the rest hide it. */}
       <Tabs.Screen name="markets" options={{ href: null }} />
       <Tabs.Screen name="settings" options={{ href: null }} />
       <Tabs.Screen name="market/[id]" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />

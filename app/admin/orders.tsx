@@ -19,9 +19,18 @@ function isProblem(o: any) {
   return PROBLEM_STATUSES.includes(o.status) || o.payment_status === "refund_pending";
 }
 
+function payoutLabel(status: string) {
+  if (status === "SENT") return "Sent";
+  if (status === "PROCESSING") return "Sending";
+  if (status === "FAILED") return "Failed";
+  if (status === "MANUAL") return "Pay by hand";
+  return "Waiting";
+}
+
 export default function AdminOrders() {
   const [rows, setRows] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
+  const [payouts, setPayouts] = useState<any[]>([]);
   const [problemsOnly, setProblemsOnly] = useState(false);
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
@@ -30,14 +39,16 @@ export default function AdminOrders() {
     setLoading(true);
     setOffline(false);
     try {
-      const [{ data: o }, { data: i }] = await withTimeout(
+      const [{ data: o }, { data: i }, { data: pay }] = await withTimeout(
         Promise.all([
           supabase.from("orders").select("*").in("payment_status", ["paid", "refund_pending", "refunded"]).order("created_at", { ascending: false }),
           supabase.from("order_items").select("*"),
+          supabase.from("payouts").select("*"),
         ])
       );
       setRows(o || []);
       setItems(i || []);
+      setPayouts(pay || []);
       setLoading(false);
     } catch {
       const online = await isOnline();
@@ -61,6 +72,13 @@ export default function AdminOrders() {
     if (error) Alert.alert("Action failed", error.message);
     else if (data && data.ok === false) Alert.alert("Not done", data.reason || "Not allowed in this state.");
     else if (done) Alert.alert("Done", done);
+    load();
+  }
+
+  async function action2(fn: string, payoutId: string) {
+    const { error } = await supabase.rpc(fn, { p_payout: payoutId });
+    if (error) Alert.alert("Payout", error.message);
+    else Alert.alert("Queued", "It will be sent again within a minute.");
     load();
   }
 
@@ -127,6 +145,21 @@ export default function AdminOrders() {
                 <Text key={i.id} style={{ fontFamily: fonts.body, marginTop: 2 }}>
                   {i.quantity} × {i.meal_name}
                 </Text>
+              ))}
+
+            {payouts
+              .filter((p) => p.order_id === o.id)
+              .map((p) => (
+                <View key={p.id} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
+                  <Text style={{ fontFamily: fonts.body, color: ui.sub }}>
+                    {p.payee_type === "vendor" ? "Vendor" : "Rider"} payout {formatKw(p.amount)} · {payoutLabel(p.status)}
+                  </Text>
+                  {p.status === "FAILED" || p.status === "MANUAL" ? (
+                    <Pressable onPress={() => action2("admin_retry_payout", p.id)} style={chip}>
+                      <Text style={{ fontFamily: fonts.bodySemi, color: ui.red }}>Retry payout</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
               ))}
 
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 }}>

@@ -37,3 +37,23 @@ The app side re-saves the phone token every time the app opens. If nothing arriv
 ## Buttons (matches the approved mock-up)
 Red buttons (#D6263A), white outline for secondary actions, red selected chips/tabs/checkboxes, soft pink for strips. Login Continue/Verify, welcome buttons, rider Continue, camera buttons and retry buttons all use it.
 Notifications now sits below the status bar with the standard back header (the old one overlapped the clock).
+
+## Boss's rider flow (2026-10-21)
+Run `supabase/migrations/20261021000000_rider_job_card.sql`, redeploy `send-push` (or paste `docs/send-push-dashboard.ts`), then make a new build.
+- New delivery request (popup on the rider home, the request card, and the phone push): Origin (market), Delivery (area), Amount (trip price). Accept or Decline. Nothing else is revealed before accepting.
+- After accepting: VENDOR (name, number with call button, market, order number) and DELIVERY (name, number with call button, address, notes).
+- At the vendor: type the order number the vendor shows, tap Collected. A wrong number does not move the order (checked on the server).
+- Delivery: call the customer, enter the customer's OTP, Complete delivery.
+- Refund on failed payments stays admin-only (Admin > Orders > Mark refunded).
+- NOT built yet: paying vendor and rider instantly when the OTP is entered. Needs Lipila payout details (see docs/FIXES_AND_SETUP.md section 7).
+
+## Paying the vendor and rider straight to mobile money (2026-10-22)
+Built from Lipila's published SDK docs. It has NOT been tried against Lipila. Test with a K1 order first.
+1. Run `supabase/migrations/20261022000000_payouts.sql`.
+2. Deploy `send-payouts` (Verify JWT OFF) and redeploy `run-timeouts`.
+3. Admin > Vendors: set each vendor's "Mobile money number for payments" (if empty, their phone/WhatsApp is used). Riders are paid to the phone number on their application.
+4. Do a K1 test order end to end. Check Edge Functions > send-payouts > Logs and the payouts table. In Admin > Orders each completed order shows "Vendor/Rider payout ... Sent/Failed". A failed one has a "Retry payout" button.
+5. Only then turn it on: `update public.settings set payouts_enabled = true;`
+Amounts (still to be confirmed by the boss): vendor gets the food total, rider gets the delivery fee, Matebeto keeps the platform fee.
+The account the money leaves from is your Lipila wallet, so it must hold enough balance.
+If Lipila rejects the request, compare the body in `_shared/payouts.ts` with the disbursement page of your Lipila dashboard docs.

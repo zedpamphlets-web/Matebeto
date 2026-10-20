@@ -1,5 +1,6 @@
-import { useCallback, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Alert, AppState, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, Vibration, View } from "react-native";
+import * as Notifications from "expo-notifications";
 import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
@@ -7,12 +8,44 @@ import { LOGIN_ROUTE, currentProfile, signOutApp } from "@/lib/session";
 import { LoadingScreen } from "@/components/spinner";
 import { confirmDialog } from "@/components/confirm";
 import { MkScreen, RedButton } from "@/components/mk";
+import { OfferSummary, fetchJobCard, type JobCard } from "@/components/job-card";
+import { startRiderSearch } from "@/lib/orders";
 import { fonts, ui } from "@/lib/theme";
 
 export default function RiderHome() {
   const [rider, setRider] = useState<any>(null);
   const [offers, setOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const seenOffers = useRef<Set<string> | null>(null);
+
+  const [cards, setCards] = useState<Record<string, JobCard>>({});
+  const [popup, setPopup] = useState<any | null>(null);
+  const [acting, setActing] = useState(false);
+
+  function announceJob(offer: any) {
+    Vibration.vibrate([0, 300, 150, 300]);
+    setPopup(offer);
+  }
+
+  async function respond(offer: any, yes: boolean) {
+    if (acting) return;
+    setActing(true);
+    const { error } = await supabase.rpc("rider_respond", { p_order: offer.order_id, p_accept: yes });
+    setActing(false);
+    if (error) {
+      setPopup(null);
+      Alert.alert("Could not respond", error.message);
+      load();
+      return;
+    }
+    setPopup(null);
+    if (yes) {
+      router.push(`/(rider)/job/${offer.order_id}` as never);
+    } else {
+      await startRiderSearch(String(offer.order_id)).catch(() => null);
+      load();
+    }
+  }
 
   async function load() {
     const { rider } = await currentProfile();
@@ -27,13 +60,48 @@ export default function RiderHome() {
       .eq("rider_id", rider.id)
       .eq("status", "OFFERED")
       .order("created_at", { ascending: false });
-    setOffers(data || []);
+    const list = data || [];
+    if (seenOffers.current === null) {
+      seenOffers.current = new Set(list.map((o: any) => o.id));
+    } else {
+      const fresh = list.filter((o: any) => !seenOffers.current!.has(o.id));
+      fresh.forEach((o: any) => seenOffers.current!.add(o.id));
+      if (fresh.length) announceJob(fresh[0]);
+    }
+    setOffers(list);
     setLoading(false);
+    // the card shows market, area and trip price (nothing else until the job is accepted)
+    const got = await Promise.all(list.map(async (o: any) => [o.order_id, await fetchJobCard(o.order_id)] as const));
+    setCards((prev) => {
+      const next = { ...prev };
+      got.forEach(([id, c]) => {
+        if (c) next[String(id)] = c;
+      });
+      return next;
+    });
   }
 
+  // Check for new jobs while this screen is open, when the app comes back, and when a push arrives.
   useFocusEffect(
     useCallback(() => {
       load();
+      const timer = setInterval(() => load().catch(() => {}), 12000);
+      const appState = AppState.addEventListener("change", (state) => {
+        if (state === "active") load().catch(() => {});
+      });
+      let received: { remove: () => void } | undefined;
+      try {
+        received = Notifications.addNotificationReceivedListener(() => {
+          setTimeout(() => load().catch(() => {}), 1200);
+        });
+      } catch {
+        // polling still keeps the list fresh
+      }
+      return () => {
+        clearInterval(timer);
+        appState.remove();
+        received?.remove();
+      };
     }, [])
   );
 
@@ -129,13 +197,11 @@ export default function RiderHome() {
         ) : (
           offers.map((off) => (
             <Pressable key={off.id} onPress={() => router.push(`/(rider)/job/${off.orders.id}`)} style={s.offer}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.offerTitle}>Order #{off.orders.order_number}</Text>
-                <Text style={s.offerMeta} numberOfLines={2}>
-                  {off.orders.delivery_type} · {off.orders.delivery_address?.text}
-                </Text>
+              <View style={s.offerHead}>
+                <Text style={s.offerTitle}>New delivery</Text>
+                <Text style={s.offerNum}>Order #{off.orders.order_number}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={ui.hint} />
+              <OfferSummary card={cards[String(off.order_id)]} order={off.orders} />
             </Pressable>
           ))
         )}
@@ -151,6 +217,24 @@ export default function RiderHome() {
           <Text style={[s.rowText, { color: ui.red }]}>Log out</Text>
         </Pressable>
       </ScrollView>
+
+      <Modal visible={!!popup} transparent animationType="slide" onRequestClose={() => setPopup(null)}>
+        <View style={s.backdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setPopup(null)} />
+          <View style={s.sheet}>
+            <View style={s.grab} />
+            <Text style={s.sheetTitle}>New delivery</Text>
+            <Text style={s.sheetNum}>Order #{popup?.orders?.order_number}</Text>
+            <View style={{ marginTop: 10 }}>
+              <OfferSummary card={popup ? cards[String(popup.order_id)] : null} order={popup?.orders} />
+            </View>
+            <RedButton label="Accept" onPress={() => respond(popup, true)} style={{ marginTop: 16 }} />
+            <Pressable onPress={() => respond(popup, false)} style={s.declineBtn}>
+              <Text style={s.declineText}>Decline</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </MkScreen>
   );
 }
@@ -180,9 +264,17 @@ const s = StyleSheet.create({
   section: { fontFamily: fonts.title, fontSize: 17, color: ui.ink, marginTop: 26, marginBottom: 10 },
   empty: { alignItems: "center", paddingVertical: 28, borderWidth: 1, borderColor: ui.line, borderRadius: 16, gap: 8 },
   emptyText: { fontFamily: fonts.body, fontSize: 14.5, color: ui.sub },
-  offer: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: ui.line, borderRadius: 14, padding: 16, marginBottom: 10, backgroundColor: "#fff" },
+  offer: { borderWidth: 1, borderColor: ui.line, borderRadius: 16, paddingHorizontal: 16, paddingTop: 14, marginBottom: 12, backgroundColor: "#fff" },
+  offerHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  offerNum: { fontFamily: fonts.bodySemi, fontSize: 13.5, color: ui.sub },
+  backdrop: { flex: 1, backgroundColor: "rgba(17,17,24,0.45)", justifyContent: "flex-end" },
+  sheet: { backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 28 },
+  grab: { alignSelf: "center", width: 44, height: 5, borderRadius: 3, backgroundColor: "#E3E2E8", marginBottom: 14 },
+  sheetTitle: { fontFamily: fonts.display, fontSize: 24, color: ui.ink, letterSpacing: -0.4 },
+  sheetNum: { fontFamily: fonts.body, fontSize: 14.5, color: ui.sub, marginTop: 2 },
+  declineBtn: { alignItems: "center", paddingVertical: 16 },
+  declineText: { fontFamily: fonts.title, fontSize: 15.5, color: ui.sub },
   offerTitle: { fontFamily: fonts.title, fontSize: 16, color: ui.ink },
-  offerMeta: { fontFamily: fonts.body, fontSize: 13.5, color: ui.sub, marginTop: 3, textTransform: "capitalize" },
   rule: { height: 1, backgroundColor: ui.line, marginTop: 20 },
   row: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: ui.line },
   rowText: { flex: 1, fontFamily: fonts.title, fontSize: 16, color: ui.ink },

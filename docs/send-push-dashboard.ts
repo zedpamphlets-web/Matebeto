@@ -4,14 +4,15 @@ const jsonHeaders = { "Content-Type": "application/json" };
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: jsonHeaders });
 
 const CUSTOMER: Record<string, { title: string; body: string }> = {
-  VENDOR_OFFERED: { title: "Vendor offered", body: "A food partner has been offered your order." },
-  VENDOR_ACCEPTED: { title: "Vendor accepted", body: "A vendor accepted your order and is preparing it." },
-  RIDER_ASSIGNED: { title: "Rider found", body: "A rider is going to collect your order." },
-  OUT_FOR_DELIVERY: { title: "Rider on the way", body: "Your rider is on the way with your order." },
-  COMPLETED: { title: "Delivered", body: "Your order has been delivered." },
+  VENDOR_OFFERED: { title: "Looking for Chef", body: "We are looking for a chef for your order." },
+  VENDOR_ACCEPTED: { title: "Chef confirmed", body: "Your chef confirmed and is preparing your order." },
+  RIDER_ASSIGNED: { title: "Rider confirmed", body: "A rider is going to collect your order." },
+  PICKED_UP: { title: "Order confirmed", body: "Your rider and chef matched the order number." },
+  OUT_FOR_DELIVERY: { title: "Rider coming", body: "Your rider is coming with your order." },
+  COMPLETED: { title: "Delivery complete", body: "Your order has been delivered." },
   CANCELLED: { title: "Order cancelled", body: "Your order was cancelled." },
-  NO_VENDOR_FOUND: { title: "Vendor not found", body: "We could not find a vendor. Open the order and tap Try again." },
-  NO_RIDER_AVAILABLE: { title: "Rider not found", body: "No rider is free right now. Open the order and tap Try again." },
+  NO_VENDOR_FOUND: { title: "Still looking for a chef", body: "We have not found a chef yet. Open the order and tap Try again." },
+  NO_RIDER_AVAILABLE: { title: "Still looking for a rider", body: "No rider is free right now. Open the order and tap Try again." },
   PAYMENT_FAILED: { title: "Payment failed", body: "Your payment did not go through and you were not charged." },
 };
 
@@ -113,10 +114,29 @@ async function buildBatches(db: any, payload: any): Promise<Batch[] | { skipped:
   if (kind === "rider_offer") {
     const { data: rider } = await db.from("riders").select("user_id").eq("id", payload.riderId).maybeSingle();
     if (!rider?.user_id) return { skipped: "NO_RIDER_USER" };
+    // Origin (market), Delivery (area), Amount (trip price): nothing else before the rider accepts
+    let body = "A delivery has been offered to you.";
+    try {
+      const { data: o } = await db.from("orders").select("market_id, customer_id, delivery_fee, delivery_address").eq("id", orderId).maybeSingle();
+      if (o) {
+        const { data: m } = await db.from("markets").select("name").eq("id", o.market_id).maybeSingle();
+        const { data: pr } = await db.from("profiles").select("location_area").eq("user_id", o.customer_id).maybeSingle();
+        const addr = String((o.delivery_address as any)?.text || "");
+        const area = String(pr?.location_area || "").trim() || addr.split(",").pop()?.trim() || "";
+        const parts = [
+          m?.name ? `Origin: ${m.name}` : "",
+          area ? `Delivery: ${area}` : "",
+          o.delivery_fee != null ? `Amount: K${Number(o.delivery_fee).toFixed(2)}` : "",
+        ].filter(Boolean);
+        if (parts.length) body = parts.join(" · ");
+      }
+    } catch {
+      // keep the plain text
+    }
     return [{
       userIds: [rider.user_id],
       title: "New delivery",
-      body: "A delivery has been offered to you.",
+      body,
       path: orderId ? `/(rider)/job/${orderId}` : "/(rider)",
       orderId,
     }];

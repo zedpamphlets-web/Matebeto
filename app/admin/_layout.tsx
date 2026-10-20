@@ -50,6 +50,7 @@ export default function AdminLayout() {
         <Stack.Screen name="catalog" options={{ title: "Menu" }} />
         <Stack.Screen name="vendors" options={{ title: "Vendors" }} />
         <Stack.Screen name="riders" options={{ title: "Riders" }} />
+        <Stack.Screen name="earnings" options={{ title: "Earnings" }} />
       </Stack>
     </>
   );

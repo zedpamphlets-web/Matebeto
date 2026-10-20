@@ -1,29 +1,29 @@
 import { useCallback, useState } from "react";
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, router, useFocusEffect } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { fonts, ui } from "@/lib/theme";
 import { Field } from "@/components/ui";
 import { LoadingScreen } from "@/components/spinner";
 import { MkHeader, MkScreen, RedButton, goBack } from "@/components/mk";
 import { OfflineNotice } from "@/components/offline-notice";
-import { formatKw } from "@/lib/lipila";
+import { InfoBlock, OfferSummary, fetchJobCard, type JobCard } from "@/components/job-card";
 import { startRiderSearch } from "@/lib/orders";
 
 /**
- * Rider delivery, exactly as the client described it:
- *   1. Compare the order number with the vendor's order, then tap "Collected".
- *   2. Call the customer.
- *   3. When the food is handed over, enter the customer's OTP. That completes the delivery.
- * No other steps and no other buttons.
+ * Rider delivery, as the boss described it:
+ *   Request:    Origin (market), Delivery (area), Amount (trip price). Accept or decline.
+ *   Accepted:   VENDOR (name, number, market, order number) and DELIVERY (name, number, address, notes).
+ *   At vendor:  call the vendor, compare order numbers, type the number and tap Collected.
+ *   Delivery:   call the customer; when the food is handed over, enter the customer's OTP to finish.
  */
 export default function Job() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [order, setOrder] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
-  const [vendor, setVendor] = useState<any>(null);
+  const [card, setCard] = useState<JobCard | null>(null);
   const [otp, setOtp] = useState("");
+  const [pickupNumber, setPickupNumber] = useState("");
   const [failed, setFailed] = useState(false);
 
   const load = useCallback(async () => {
@@ -34,12 +34,9 @@ export default function Job() {
       return;
     }
     setOrder(o);
+    setCard(await fetchJobCard(String(id)));
     const { data: its } = await supabase.from("order_items").select("*").eq("order_id", id);
     setItems(its || []);
-    if (o?.vendor_id) {
-      const { data: name } = await supabase.rpc("order_vendor_name", { p_order: id });
-      setVendor({ name: name || "Vendor" });
-    }
   }, [id]);
 
   useFocusEffect(
@@ -60,21 +57,11 @@ export default function Job() {
   }
 
   async function collected() {
-    const { error } = await supabase.rpc("confirm_pickup", { p_order: id });
-    if (error) return Alert.alert("Could not mark collected", error.message);
+    if (!pickupNumber.trim()) return Alert.alert("Order number", "Type the order number the vendor shows you.");
+    const { error } = await supabase.rpc("confirm_pickup", { p_order: id, p_number: pickupNumber.trim() });
+    if (error) return Alert.alert("Could not confirm", error.message);
+    setPickupNumber("");
     await load();
-  }
-
-  async function callCustomer() {
-    const { data, error } = await supabase.rpc("rider_customer_phone", { p_order: id });
-    const number = String(data || "").trim();
-    if (error || !number) {
-      return Alert.alert("No number found", "We could not get the customer's number. Check your connection and try again.");
-    }
-    const url = `tel:${number.replace(/[^\d+]/g, "")}`;
-    const ok = await Linking.canOpenURL(url).catch(() => false);
-    if (!ok) return Alert.alert("Call the customer", number);
-    await Linking.openURL(url);
   }
 
   async function complete() {
@@ -118,39 +105,30 @@ export default function Job() {
   const toCollect = order.status === "RIDER_ASSIGNED";
   const delivering = ["PICKED_UP", "OUT_FOR_DELIVERY", "CUSTOMER_NOT_HOME"].includes(order.status);
 
+  const vendorRows = [
+    { label: "Vendor name", value: card?.vendor_name },
+    { label: "Vendor number", value: card?.vendor_phone, call: card?.vendor_phone },
+    { label: "Market", value: card?.market_name },
+    { label: "Order number", value: `#${order.order_number}` },
+  ];
+  const deliveryRows = [
+    { label: "Name", value: card?.customer_name },
+    { label: "Number", value: card?.customer_phone, call: card?.customer_phone },
+    { label: "Address", value: card?.address },
+    { label: "Notes", value: card?.notes },
+  ];
+
   return (
     <MkScreen>
       <MkHeader title="Delivery" onBack={() => goBack("/(rider)")} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-        <View style={s.numberCard}>
-          <Text style={s.numberLabel}>Order number</Text>
-          <Text style={s.number}>#{order.order_number}</Text>
-        </View>
-
-        <View style={s.card}>
-          <Row icon="storefront-outline" title="Collect from" value={vendor?.name || "Vendor"} />
-          <Row icon="location-outline" title="Deliver to" value={order.delivery_address?.text || "Customer address"} />
-          <Row icon="bicycle" title="Delivery" value={order.delivery_type} last />
-        </View>
-
-        <View style={[s.card, { marginTop: 12 }]}>
-          <Text style={s.cardTitle}>Items</Text>
-          {items.map((it) => (
-            <View key={it.id} style={s.itemRow}>
-              <Text style={s.itemQty}>{it.quantity}×</Text>
-              <Text style={s.itemName}>{it.meal_name}</Text>
-            </View>
-          ))}
-          <View style={s.totalRow}>
-            <Text style={s.totalLabel}>Total</Text>
-            <Text style={s.totalValue}>{formatKw(order.total)}</Text>
-          </View>
-        </View>
-
-        <View style={{ height: 18 }} />
-
         {offered && (
           <>
+            <View style={s.card}>
+              <Text style={s.cardTitle}>New delivery</Text>
+              <OfferSummary card={card} order={order} />
+            </View>
+            <View style={{ height: 18 }} />
             <RedButton label="Accept" onPress={() => accept(true)} />
             <Pressable onPress={() => accept(false)} style={s.decline}>
               <Text style={s.declineText}>Decline</Text>
@@ -160,17 +138,24 @@ export default function Job() {
 
         {toCollect && (
           <>
-            <Text style={s.hint}>At the vendor, check that their order number is #{order.order_number}. Then tap Collected.</Text>
-            <RedButton label={`Collected · #${order.order_number}`} onPress={collected} />
+            <InfoBlock title="Vendor" rows={vendorRows} />
+            <InfoBlock title="Delivery" rows={deliveryRows} />
+            <Items items={items} />
+
+            <Text style={[s.step, { marginTop: 22 }]}>Check the order number</Text>
+            <Text style={s.hint}>Call the vendor and compare order numbers. Type the number the vendor shows, then tap Collected.</Text>
+            <Field value={pickupNumber} onChangeText={(t) => setPickupNumber(t.replace(/\D/g, ""))} placeholder="Order number" keyboardType="number-pad" />
+            <View style={{ height: 12 }} />
+            <RedButton label="Collected" onPress={collected} />
           </>
         )}
 
         {delivering && (
           <>
-            <Text style={s.step}>Call the customer</Text>
-            <RedButton label="Call customer" icon="call" onPress={callCustomer} />
+            <InfoBlock title="Delivery" rows={deliveryRows} />
+            <Items items={items} />
 
-            <Text style={[s.step, { marginTop: 24 }]}>Enter the customer's code</Text>
+            <Text style={[s.step, { marginTop: 22 }]}>Enter the customer's code</Text>
             <Text style={s.hint}>When you hand over the food, the customer gives you their code.</Text>
             <Field value={otp} onChangeText={(t) => setOtp(t.replace(/\D/g, ""))} placeholder="Customer code" keyboardType="number-pad" />
             <View style={{ height: 12 }} />
@@ -188,14 +173,18 @@ export default function Job() {
   );
 }
 
-function Row({ icon, title, value, last }: { icon: keyof typeof Ionicons.glyphMap; title: string; value: string; last?: boolean }) {
+function Items({ items }: { items: any[] }) {
+  if (!items.length) return null;
   return (
-    <View style={[s.row, !last && s.rowRule]}>
-      <Ionicons name={icon} size={20} color={ui.red} style={{ marginTop: 2 }} />
-      <View style={{ flex: 1 }}>
-        <Text style={s.rowTitle}>{title}</Text>
-        <Text style={s.rowValue}>{value}</Text>
-      </View>
+    <View style={[s.card, { marginTop: 12 }]}>
+      <Text style={s.cardTitle}>Items</Text>
+      {items.map((it) => (
+        <View key={it.id} style={s.itemRow}>
+          <Text style={s.itemQty}>{it.quantity}×</Text>
+          <Text style={s.itemName}>{it.meal_name}</Text>
+        </View>
+      ))}
+      <View style={{ height: 8 }} />
     </View>
   );
 }

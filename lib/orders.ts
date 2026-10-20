@@ -44,12 +44,13 @@ export async function startRiderSearch(orderId: string) {
 
 export const TRACK_STEPS = [
   { key: "CREATED", label: "Order received" },
-  { key: "SEARCHING_VENDOR", label: "Finding your food partner" },
-  { key: "VENDOR_ACCEPTED", label: "Vendor confirmed" },
+  { key: "SEARCHING_VENDOR", label: "Looking for Chef" },
+  { key: "VENDOR_ACCEPTED", label: "Chef confirmed" },
   { key: "PREPARING", label: "Preparing your order" },
-  { key: "RIDER_ASSIGNED", label: "Rider on the way" },
-  { key: "OUT_FOR_DELIVERY", label: "Out for delivery" },
-  { key: "COMPLETED", label: "Delivered" },
+  { key: "RIDER_ASSIGNED", label: "Rider confirmed" },
+  { key: "PICKED_UP", label: "Order confirmed" },
+  { key: "OUT_FOR_DELIVERY", label: "Rider coming" },
+  { key: "COMPLETED", label: "Delivery complete" },
 ];
 
 export function stepDone(status: string, key: string) {
@@ -64,9 +65,9 @@ export function stepDone(status: string, key: string) {
     PREPARING: 3,
     RIDER_ASSIGNED: 4,
     PICKED_UP: 5,
-    OUT_FOR_DELIVERY: 5,
-    OTP_VERIFIED: 6,
-    COMPLETED: 6,
+    OUT_FOR_DELIVERY: 6,
+    OTP_VERIFIED: 7,
+    COMPLETED: 7,
   };
   const keyRank: Record<string, number> = {
     CREATED: 0,
@@ -74,8 +75,9 @@ export function stepDone(status: string, key: string) {
     VENDOR_ACCEPTED: 2,
     PREPARING: 3,
     RIDER_ASSIGNED: 4,
-    OUT_FOR_DELIVERY: 5,
-    COMPLETED: 6,
+    PICKED_UP: 5,
+    OUT_FOR_DELIVERY: 6,
+    COMPLETED: 7,
   };
   return (rank[status] ?? -1) >= (keyRank[key] ?? 99);
 }

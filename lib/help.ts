@@ -62,7 +62,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
       {
         id: "track",
         q: "How do I track my order?",
-        a: "Open My Orders and tap your order. You will see each step: order received, vendor confirmed, preparing, rider on the way, out for delivery and delivered. We also send notifications as things change.",
+        a: "Open My Orders and tap your order. You will see each step: order received, looking for a chef, chef confirmed, preparing your order, rider confirmed, order confirmed, rider coming and delivery complete. We also send notifications as things change.",
       },
       {
         id: "bike-moto",
@@ -82,7 +82,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
       {
         id: "no-vendor-rider",
         q: "No vendor or no rider was found",
-        a: "You will get a notification. Open the order and tap Try again, and we will search again. If it still fails, you can cancel the order or contact support.",
+        a: "You will get a notification saying we are still looking. Open the order and tap Try again, and we will search again. We also search again by ourselves when a new chef becomes available. If it still fails, you can cancel the order or contact support.",
       },
       {
         id: "cancel",
@@ -111,9 +111,14 @@ export const HELP_CATEGORIES: HelpCategory[] = [
         a: "Once approved, open Rider mode and go online. You will get a notification when a delivery is offered to you. You can accept or decline it.",
       },
       {
+        id: "rider-vendor",
+        q: "How do I know which vendor to go to?",
+        a: "After you accept a delivery, the job shows the vendor's name, their market and a Call vendor button. Use these details only to collect the order.",
+      },
+      {
         id: "rider-complete",
         q: "How do I complete a delivery?",
-        a: "At the vendor, check that the order number matches and confirm pickup. At the customer, ask for their delivery code and enter it in the app. Earnings follow a delivery that has been verified with the code.",
+        a: "At the vendor, compare order numbers and type the number the vendor shows you to confirm pickup. At the customer, ask for their delivery code and enter it in the app. Earnings follow a delivery that has been verified with the code.",
       },
     ],
   },

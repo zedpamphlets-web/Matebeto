@@ -64,6 +64,12 @@ export default function AdminDashboard() {
       badge: problems,
     },
     {
+      title: "Earnings",
+      text: "Platform fees and payouts",
+      icon: "wallet-outline",
+      href: "/admin/earnings",
+    },
+    {
       title: "Home screen",
       icon: "home-outline",
       href: "/admin/settings",

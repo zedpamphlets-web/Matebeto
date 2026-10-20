@@ -1,5 +1,6 @@
 import { corsHeaders, serviceClient, requireServer, json } from "../_shared/lipila.ts";
 import { confirmPayment, notifyVendor } from "../_shared/payments.ts";
+import { sendPendingPayouts } from "../_shared/payouts.ts";
 
 // Run every minute (see docs/FIXES_AND_SETUP.md). Server only.
 //   1. process_timeouts(): vendor/rider timeouts, stuck orders, customer-not-home wait
@@ -45,6 +46,13 @@ Deno.serve(async (req) => {
     }
   }
   out.payments_checked = checked;
+
+  // 4. payouts that were created but not sent yet (the database also sends them the moment an order completes)
+  try {
+    out.payouts = await sendPendingPayouts(db);
+  } catch (e) {
+    out.payouts = `error: ${(e as Error).message}`;
+  }
 
   return json({ ok: true, ...out });
 });

@@ -15,6 +15,8 @@ export default function Vendors() {
   const [name, setName] = useState("");
   const [contact, setContact] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [payout, setPayout] = useState("");
+  const [payoutEdit, setPayoutEdit] = useState<Record<string, string>>({});
   const [marketId, setMarketId] = useState("");
 
   async function load() {
@@ -44,6 +46,7 @@ export default function Vendors() {
       contact_name: contact.trim() || null,
       whatsapp: whatsapp.trim(),
       phone: whatsapp.trim(),
+      payout_number: payout.trim() || null,
       market_id: marketId,
       is_active: true,
       is_available: true,
@@ -52,6 +55,20 @@ export default function Vendors() {
     setName("");
     setContact("");
     setWhatsapp("");
+    setPayout("");
+    load();
+  }
+
+  async function savePayout(v: any) {
+    const value = (payoutEdit[v.id] ?? v.payout_number ?? "").trim();
+    const { error } = await supabase.from("vendors").update({ payout_number: value || null }).eq("id", v.id);
+    if (error) return Alert.alert("Payout number", error.message);
+    setPayoutEdit((m) => {
+      const n = { ...m };
+      delete n[v.id];
+      return n;
+    });
+    Alert.alert("Saved", "Payments for this vendor go to this number.");
     load();
   }
 
@@ -82,6 +99,8 @@ export default function Vendors() {
       <Field value={contact} onChangeText={setContact} placeholder="Contact person" />
       <View style={{ height: 8 }} />
       <Field value={whatsapp} onChangeText={setWhatsapp} placeholder="WhatsApp 2609..." />
+      <View style={{ height: 8 }} />
+      <Field value={payout} onChangeText={setPayout} placeholder="Mobile money number for payments (optional)" keyboardType="phone-pad" />
       <Text style={{ marginVertical: 8, color: colors.adminMuted, fontFamily: fonts.body }}>Market</Text>
       {markets.map((m) => (
         <Pressable key={m.id} onPress={() => setMarketId(m.id)}>
@@ -100,6 +119,18 @@ export default function Vendors() {
           <Text style={{ color: colors.adminMuted, fontFamily: fonts.body }}>
             {v.markets?.name} · {v.whatsapp}
           </Text>
+          <Text style={{ marginTop: 10, fontFamily: fonts.bodySemi }}>Mobile money number for payments</Text>
+          <Field
+            value={payoutEdit[v.id] ?? v.payout_number ?? ""}
+            onChangeText={(t) => setPayoutEdit((m) => ({ ...m, [v.id]: t }))}
+            placeholder={v.phone || v.whatsapp || "2609..."}
+            keyboardType="phone-pad"
+          />
+          {payoutEdit[v.id] !== undefined && payoutEdit[v.id] !== (v.payout_number ?? "") ? (
+            <Pressable onPress={() => savePayout(v)} style={{ marginTop: 6 }}>
+              <Text style={{ fontFamily: fonts.bodySemi, color: colors.customerDeep }}>Save number</Text>
+            </Pressable>
+          ) : null}
           <Pressable onPress={() => toggle(v, "is_available")} style={{ marginTop: 8 }}>
             <Text style={{ fontFamily: fonts.bodySemi, color: colors.customerDeep }}>
               {v.is_available ? "Available for orders" : "Unavailable"}

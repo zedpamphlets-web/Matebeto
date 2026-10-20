@@ -76,16 +76,16 @@ export default function OrderTrack() {
       const { data, error } = await supabase.rpc("customer_retry_order", { p_order: id });
       if (error) throw error;
       if (data?.ok === false && data?.reason === "NO_VENDOR_FOUND") {
-        Alert.alert("No vendor yet", "We could not find a vendor this time. You can try again in a moment, or cancel the order for a refund.");
+        Alert.alert("Still looking for a chef", "We have not found a chef yet. Please tap Try again in a moment.");
       } else if (data?.ok === false && data?.reason === "NO_RIDER_AVAILABLE") {
         Alert.alert(
-          "No matching rider",
-          "No rider of the type you chose is online right now. Wait a moment and try again, or contact support. The vehicle type will not be swapped."
+          "Still looking for a rider",
+          "No rider of the type you chose is online right now. Please tap Try again in a moment."
         );
       } else if (data?.ok === false && data?.reason === "NOT_RETRYABLE") {
         // the order has already moved on
       } else {
-        Alert.alert("Searching", data?.searching === "rider" ? "We are looking for a rider." : "We are looking for a vendor.");
+        Alert.alert("Searching", data?.searching === "rider" ? "We are looking for a rider." : "We are looking for a chef.");
       }
     } catch (e: any) {
       Alert.alert("Could not search", e?.message || "Please try again.");
@@ -130,9 +130,9 @@ export default function OrderTrack() {
 
   let notice: string | null = null;
   if (order.status === "NO_VENDOR_FOUND") {
-    notice = "Matebeto could not find a suitable vendor. Tap Try again to search once more, or cancel for a refund.";
+    notice = "We are still looking for a chef for your order. Tap Try again to search again.";
   } else if (order.status === "NO_RIDER_AVAILABLE") {
-    notice = `No ${order.delivery_type} rider is online right now. Your food partner has your order. Try again in a moment.${support}`;
+    notice = `We are still looking for a ${order.delivery_type} rider. Your chef has your order. Tap Try again to search again.${support}`;
   } else if (order.status === "SUPPORT_REQUIRED") {
     notice = `Our support team is looking after your delivery.${support}`;
   } else if (order.status === "CUSTOMER_NOT_HOME") {
@@ -157,7 +157,7 @@ export default function OrderTrack() {
           color={failed ? colors.danger : colors.good}
         />
         <Text style={{ fontFamily: fonts.display, fontSize: 24, marginTop: 8, color: colors.ink }}>
-          {delivered ? "Delivered" : failed ? "We need a moment" : "Order placed"}
+          {delivered ? "Delivery complete" : failed ? "We need a moment" : "Order placed"}
         </Text>
         <Text style={{ fontFamily: fonts.title, fontSize: 16, color: colors.muted, marginTop: 2 }}>Order #{order.order_number}</Text>
       </View>
