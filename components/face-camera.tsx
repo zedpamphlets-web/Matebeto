@@ -31,7 +31,7 @@ export function FaceCamera({
     setBusy(true);
     try {
       const pic = await cameraRef.current.takePictureAsync({
-        quality: 0.72,
+        quality: 0.3,
         base64: true,
         skipProcessing: true,
       });

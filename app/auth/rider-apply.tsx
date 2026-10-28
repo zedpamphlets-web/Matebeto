@@ -66,8 +66,8 @@ export default function RiderApply() {
       if (!perm.granted) return Alert.alert("Photos", "Allow photo access to choose a document.");
     }
     const res = source === "camera"
-      ? await ImagePicker.launchCameraAsync({ quality: 0.7, base64: true })
-      : await ImagePicker.launchImageLibraryAsync({ quality: 0.7, base64: true });
+      ? await ImagePicker.launchCameraAsync({ quality: 0.3, base64: true })
+      : await ImagePicker.launchImageLibraryAsync({ quality: 0.3, base64: true });
     if (res.canceled || !res.assets?.[0]) return;
     const a = res.assets[0];
     if (side === "front") { setFront(a.uri); setFrontB64(a.base64 || undefined); }
@@ -101,9 +101,15 @@ export default function RiderApply() {
       let frontUrl = front;
       let backUrl = back;
       if (isSupabaseConfigured && !preview) {
-        if (photoB64) photoUrl = (await uploadBase64("riders", photoB64, "image/jpeg")) || photoUri;
-        if (frontB64) frontUrl = (await uploadBase64("riders", frontB64, "image/jpeg")) || front;
-        if (backB64) backUrl = (await uploadBase64("riders", backB64, "image/jpeg")) || back;
+        // Upload all three photos at the same time instead of one after another.
+        const [p1, p2, p3] = await Promise.all([
+          photoB64 ? uploadBase64("riders", photoB64, "image/jpeg") : Promise.resolve(null),
+          frontB64 ? uploadBase64("riders", frontB64, "image/jpeg") : Promise.resolve(null),
+          backB64 ? uploadBase64("riders", backB64, "image/jpeg") : Promise.resolve(null),
+        ]);
+        if (p1) photoUrl = p1;
+        if (p2) frontUrl = p2;
+        if (p3) backUrl = p3;
       }
       const packed = [
         docType,
