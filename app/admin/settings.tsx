@@ -33,6 +33,7 @@ export default function HomeAdmin() {
   const [moto, setMoto] = useState("");
   // Promotion (one static banner on Home)
   const [promotion, setPromotion] = useState<any>(null);
+  const [meals, setMeals] = useState<any[]>([]);
   // Legal links shown in the app under Profile > About
   const [termsUrl, setTermsUrl] = useState("");
   const [privacyUrl, setPrivacyUrl] = useState("");
@@ -56,6 +57,8 @@ export default function HomeAdmin() {
     }
     const { data: p } = await supabase.from("promotion").select("*").eq("id", 1).maybeSingle();
     setPromotion(p || null);
+    const { data: mealRows } = await supabase.from("meals").select("id,name").eq("is_available", true).order("name");
+    setMeals(mealRows || []);
   }
 
   useEffect(() => {
@@ -103,6 +106,7 @@ export default function HomeAdmin() {
       amount: v.amount.trim() ? Number(v.amount) : null,
       image_url: v.image,
       is_active: v.active,
+      meal_id: v.mealId || null,
       updated_at: new Date().toISOString(),
     });
     if (error) {
@@ -135,6 +139,7 @@ export default function HomeAdmin() {
       <BannerForm
         key={promotion?.updated_at || "empty"}
         initial={promotion || { is_active: true }}
+        meals={meals}
         saveLabel="Save promotion"
         onSave={(v) => savePromotion(null, v)}
       />
@@ -182,22 +187,32 @@ export default function HomeAdmin() {
   );
 }
 
-type BannerValues = { title: string; subtitle: string; amount: string; image: string | null; active: boolean };
+type BannerValues = {
+  title: string;
+  subtitle: string;
+  amount: string;
+  image: string | null;
+  active: boolean;
+  mealId: string | null;
+};
 
 function BannerForm({
   initial,
   onSave,
   saveLabel,
+  meals = [],
 }: {
   initial?: any;
   onSave: (v: BannerValues) => Promise<boolean>;
   saveLabel?: string;
+  meals?: { id: string; name: string }[];
 }) {
   const [title, setTitle] = useState(initial?.title || "");
   const [subtitle, setSubtitle] = useState(initial?.subtitle || "");
   const [amount, setAmount] = useState(initial?.amount != null ? String(initial.amount) : "");
   const [image, setImage] = useState<string | null>(initial?.image_url || null);
   const [active, setActive] = useState(initial ? initial.is_active !== false : true);
+  const [mealId, setMealId] = useState<string | null>(initial?.meal_id || null);
   const isNew = !initial;
   const onDelete: (() => void) | undefined = undefined;
   const onUp: (() => void) | undefined = undefined;
@@ -240,8 +255,26 @@ function BannerForm({
       <Field value={amount} onChangeText={setAmount} placeholder="e.g. 85" keyboardType="decimal-pad" />
       <Text style={label}>Food photo (shown on the right)</Text>
       <PhotoPicker folder="banner" uri={image} name="Banner photo" onChange={setImage} height={110} />
+      <Text style={label}>Opens this meal when customer taps the banner (optional)</Text>
+      <Pressable onPress={() => setMealId(null)} style={{ paddingVertical: 4 }}>
+        <Text style={{ fontFamily: fonts.body, color: !mealId ? colors.customerDeep : colors.muted }}>
+          {!mealId ? "●" : "○"} No meal link
+        </Text>
+      </Pressable>
+      {meals.map((m) => (
+        <Pressable key={m.id} onPress={() => setMealId(m.id)} style={{ paddingVertical: 4 }}>
+          <Text
+            style={{
+              fontFamily: fonts.body,
+              color: mealId === m.id ? colors.customerDeep : colors.muted,
+            }}
+          >
+            {mealId === m.id ? "●" : "○"} {m.name}
+          </Text>
+        </Pressable>
+      ))}
       {!isNew ? (
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10, marginTop: 8 }}>
           <Text style={{ fontFamily: fonts.bodySemi, color: colors.adminText }}>Show on Home</Text>
           <Switch value={active} onValueChange={setActive} trackColor={{ true: ui.red }} />
         </View>
@@ -249,12 +282,13 @@ function BannerForm({
       <PrimaryButton
         label={saveLabel || (isNew ? "Add banner" : "Save banner")}
         onPress={async () => {
-          const ok = await onSave({ title, subtitle, amount, image, active });
+          const ok = await onSave({ title, subtitle, amount, image, active, mealId });
           if (ok && isNew) {
             setTitle("");
             setSubtitle("");
             setAmount("");
             setImage(null);
+            setMealId(null);
           }
         }}
       />

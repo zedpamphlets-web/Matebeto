@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { colors, fonts, radius } from "@/lib/theme";
 import { Field } from "@/components/ui";
 import { AdminButton as PrimaryButton } from "@/components/admin-ui";
+import { PhotoPicker } from "@/components/photo-picker";
 
 export default function Vendors() {
   const [rows, setRows] = useState<any[]>([]);
@@ -16,6 +17,8 @@ export default function Vendors() {
   const [contact, setContact] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [payout, setPayout] = useState("");
+  const [stand, setStand] = useState("");
+  const [image, setImage] = useState<string | null>(null);
   const [payoutEdit, setPayoutEdit] = useState<Record<string, string>>({});
   const [marketId, setMarketId] = useState("");
 
@@ -39,7 +42,7 @@ export default function Vendors() {
 
   async function add() {
     if (!name.trim() || !whatsapp.trim() || !marketId) {
-      return Alert.alert("Vendor", "Name, WhatsApp and market are required.");
+      return Alert.alert("Restaurant", "Name, WhatsApp and market are required.");
     }
     const { error } = await supabase.from("vendors").insert({
       name: name.trim(),
@@ -48,14 +51,18 @@ export default function Vendors() {
       phone: whatsapp.trim(),
       payout_number: payout.trim() || null,
       market_id: marketId,
+      stand_number: stand.trim() || null,
+      image_url: image || null,
       is_active: true,
       is_available: true,
     });
-    if (error) return Alert.alert("Vendor", error.message);
+    if (error) return Alert.alert("Restaurant", error.message);
     setName("");
     setContact("");
     setWhatsapp("");
     setPayout("");
+    setStand("");
+    setImage(null);
     load();
   }
 
@@ -68,13 +75,28 @@ export default function Vendors() {
       delete n[v.id];
       return n;
     });
-    Alert.alert("Saved", "Payments for this vendor go to this number.");
+    Alert.alert("Saved", "Payments for this restaurant go to this number.");
+    load();
+  }
+
+  async function saveImage(v: any, url: string | null) {
+    const { error } = await supabase.from("vendors").update({ image_url: url }).eq("id", v.id);
+    if (error) return Alert.alert("Photo", error.message);
+    load();
+  }
+
+  async function saveStand(v: any, value: string) {
+    const { error } = await supabase
+      .from("vendors")
+      .update({ stand_number: value.trim() || null })
+      .eq("id", v.id);
+    if (error) return Alert.alert("Stand", error.message);
     load();
   }
 
   async function toggle(v: any, field: "is_available" | "is_active") {
     const { error } = await supabase.from("vendors").update({ [field]: !v[field] }).eq("id", v.id);
-    if (error) Alert.alert("Vendor", error.message);
+    if (error) Alert.alert("Restaurant", error.message);
     load();
   }
 
@@ -83,42 +105,106 @@ export default function Vendors() {
       const { error } = await supabase.from("vendor_meals").delete().eq("vendor_id", vendorId).eq("meal_id", mealId);
       if (error) Alert.alert("Menu", error.message);
     } else {
-      const { error } = await supabase.from("vendor_meals").insert({ vendor_id: vendorId, meal_id: mealId, is_available: true });
+      const { error } = await supabase
+        .from("vendor_meals")
+        .insert({ vendor_id: vendorId, meal_id: mealId, is_available: true });
       if (error) Alert.alert("Menu", error.message);
     }
     load();
   }
 
-  if (loading && rows.length === 0) return <View style={{ flex: 1, backgroundColor: colors.adminBg, padding: 16 }}><ListSkeleton /></View>;
+  if (loading && rows.length === 0)
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.adminBg, padding: 16 }}>
+        <ListSkeleton />
+      </View>
+    );
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.adminBg }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      <Text style={{ fontFamily: fonts.title, fontSize: 18, color: colors.adminText }}>Add vendor</Text>
-      <Field value={name} onChangeText={setName} placeholder="Vendor name" />
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.adminBg }}
+      contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+    >
+      <Text style={{ fontFamily: fonts.title, fontSize: 18, color: colors.adminText }}>
+        Add restaurant
+      </Text>
+      <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.adminMuted, marginBottom: 8 }}>
+        Restaurants appear under their market for customers.
+      </Text>
+      <Field value={name} onChangeText={setName} placeholder="Restaurant name" />
       <View style={{ height: 8 }} />
       <Field value={contact} onChangeText={setContact} placeholder="Contact person" />
       <View style={{ height: 8 }} />
       <Field value={whatsapp} onChangeText={setWhatsapp} placeholder="WhatsApp 2609..." />
       <View style={{ height: 8 }} />
-      <Field value={payout} onChangeText={setPayout} placeholder="Mobile money number for payments (optional)" keyboardType="phone-pad" />
+      <Field value={stand} onChangeText={setStand} placeholder="Stand number (e.g. 12)" />
+      <View style={{ height: 8 }} />
+      <Field
+        value={payout}
+        onChangeText={setPayout}
+        placeholder="Mobile money number for payments (optional)"
+        keyboardType="phone-pad"
+      />
+      <Text style={{ marginVertical: 8, color: colors.adminMuted, fontFamily: fonts.body }}>
+        Restaurant photo
+      </Text>
+      <PhotoPicker folder="vendors" uri={image} name={name || "Restaurant"} onChange={setImage} />
       <Text style={{ marginVertical: 8, color: colors.adminMuted, fontFamily: fonts.body }}>Market</Text>
       {markets.map((m) => (
         <Pressable key={m.id} onPress={() => setMarketId(m.id)}>
-          <Text style={{ fontFamily: marketId === m.id ? fonts.title : fonts.body, marginBottom: 4, color: marketId === m.id ? colors.customerDeep : colors.ink }}>
+          <Text
+            style={{
+              fontFamily: marketId === m.id ? fonts.title : fonts.body,
+              marginBottom: 4,
+              color: marketId === m.id ? colors.customerDeep : colors.ink,
+            }}
+          >
             {m.name}
           </Text>
         </Pressable>
       ))}
       <View style={{ height: 10 }} />
-      <PrimaryButton label="Save vendor" onPress={add} />
+      <PrimaryButton label="Save restaurant" onPress={add} />
       <View style={{ height: 16 }} />
-      {rows.length === 0 && <Text style={{ color: colors.adminMuted, fontFamily: fonts.body }}>No vendors yet.</Text>}
+      {rows.length === 0 && (
+        <Text style={{ color: colors.adminMuted, fontFamily: fonts.body }}>No restaurants yet.</Text>
+      )}
       {rows.map((v) => (
-        <View key={v.id} style={{ backgroundColor: colors.adminCard, borderWidth: 1, borderColor: colors.adminCardBorder, borderRadius: radius.md, padding: 12, marginBottom: 8 }}>
+        <View
+          key={v.id}
+          style={{
+            backgroundColor: colors.adminCard,
+            borderWidth: 1,
+            borderColor: colors.adminCardBorder,
+            borderRadius: radius.md,
+            padding: 12,
+            marginBottom: 8,
+          }}
+        >
           <Text style={{ fontFamily: fonts.title, color: colors.adminText }}>{v.name}</Text>
           <Text style={{ color: colors.adminMuted, fontFamily: fonts.body }}>
-            {v.markets?.name} · {v.whatsapp}
+            {v.markets?.name}
+            {v.stand_number ? ` · Stand ${v.stand_number}` : ""} · {v.whatsapp}
           </Text>
+          <Text style={{ marginTop: 10, fontFamily: fonts.bodySemi }}>Photo</Text>
+          <PhotoPicker
+            folder={`vendors/${v.id}`}
+            uri={v.image_url}
+            name={v.name}
+            onChange={(url) => saveImage(v, url)}
+            height={100}
+          />
+          <Text style={{ marginTop: 8, fontFamily: fonts.bodySemi }}>Stand number</Text>
+          <Field
+            value={v.stand_number || ""}
+            onChangeText={(t) => {
+              setRows((list) => list.map((row) => (row.id === v.id ? { ...row, stand_number: t } : row)));
+            }}
+            placeholder="e.g. 12"
+          />
+          <Pressable onPress={() => saveStand(v, v.stand_number || "")} style={{ marginTop: 6 }}>
+            <Text style={{ fontFamily: fonts.bodySemi, color: colors.customerDeep }}>Save stand</Text>
+          </Pressable>
           <Text style={{ marginTop: 10, fontFamily: fonts.bodySemi }}>Mobile money number for payments</Text>
           <Field
             value={payoutEdit[v.id] ?? v.payout_number ?? ""}
@@ -136,14 +222,18 @@ export default function Vendors() {
               {v.is_available ? "Available for orders" : "Unavailable"}
             </Text>
           </Pressable>
-          <Text style={{ marginTop: 10, fontFamily: fonts.bodySemi }}>Meals this vendor can fulfil</Text>
+          <Text style={{ marginTop: 10, fontFamily: fonts.bodySemi }}>Meals this restaurant can fulfil</Text>
           {meals.length === 0 && (
             <Text style={{ color: colors.adminMuted, fontFamily: fonts.body }}>Add meals in Menu first.</Text>
           )}
           {meals.map((meal) => {
             const on = links.some((l) => l.vendor_id === v.id && l.meal_id === meal.id);
             return (
-              <Pressable key={meal.id} onPress={() => toggleMeal(v.id, meal.id, on)} style={{ paddingVertical: 4 }}>
+              <Pressable
+                key={meal.id}
+                onPress={() => toggleMeal(v.id, meal.id, on)}
+                style={{ paddingVertical: 4 }}
+              >
                 <Text style={{ fontFamily: fonts.body, color: on ? colors.customerDeep : colors.muted }}>
                   {on ? "✓" : "○"} {meal.name}
                 </Text>

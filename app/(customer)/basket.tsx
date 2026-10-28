@@ -17,7 +17,13 @@ import { isOnline, withTimeout } from "@/lib/network";
 const ETA = "25 – 35 mins";
 
 export default function Basket() {
-  const [basket, setBasket] = useState<BasketState>({ marketId: null, marketName: null, items: [] });
+  const [basket, setBasket] = useState<BasketState>({
+    marketId: null,
+    marketName: null,
+    vendorId: null,
+    vendorName: null,
+    items: [],
+  });
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
   // Starting delivery fee (bicycle). The final fee is confirmed once the delivery type is chosen.
@@ -75,7 +81,13 @@ export default function Basket() {
     });
     if (!ok) return;
     await clearBasket();
-    setBasket({ marketId: null, marketName: null, items: [] });
+    setBasket({
+      marketId: null,
+      marketName: null,
+      vendorId: null,
+      vendorName: null,
+      items: [],
+    });
   }
 
   const subtotal = foodTotal(basket.items);
@@ -87,6 +99,11 @@ export default function Basket() {
     <MkScreen edges={["top", "bottom"]}>
       <MkHeader
         title="Your Basket"
+        subtitle={
+          basket.vendorName
+            ? `${basket.vendorName}${basket.marketName ? ` (${basket.marketName})` : ""}`
+            : basket.marketName || undefined
+        }
         onBack={() => goBack("/(customer)")}
         right={
           hasItems ? (

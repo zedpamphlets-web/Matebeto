@@ -1,87 +1,57 @@
-import { useEffect, useRef, useState } from "react";
 import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Photo } from "@/components/photo";
-import { LinearGradient } from "expo-linear-gradient";
-import { BackStrip, HeartButton, MkHeader, MkScreen } from "@/components/mk";
+import { HeartButton, MkHeader, MkScreen } from "@/components/mk";
 import { supabase } from "@/lib/supabase";
 import { useCachedLoad } from "@/lib/offline-cache";
 import { LoadingScreen } from "@/components/spinner";
 import { OfflineNotice } from "@/components/offline-notice";
 import { OfflineBanner } from "@/components/offline-banner";
+import { EmptyState } from "@/components/empty-state";
 import { fonts, ui } from "@/lib/theme";
-import { kw, marketShortName } from "@/lib/format";
+import { marketShortName } from "@/lib/format";
 import { useFavourite } from "@/lib/favourites";
 
-const W = Dimensions.get("window").width;
 const PAD = 16;
-const GAP = 12;
-const TILE_W = (W - PAD * 2 - GAP) / 2;
 
-export default function Market() {
+export default function MarketRestaurants() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [opening, setOpening] = useState(false);
-  const [active, setActive] = useState<string | null>(null);
-  const scroller = useRef<ScrollView>(null);
-  const listY = useRef(0);
 
   const marketQ = useCachedLoad<any>(`market.${id}`, () =>
     supabase.from("markets").select("*").eq("id", id).maybeSingle()
   );
-  const catsQ = useCachedLoad<any[]>("categories.all", () =>
-    supabase.from("categories").select("*").order("sort_order")
+  const vendorsQ = useCachedLoad<any[]>(`market.${id}.restaurants`, () =>
+    supabase
+      .from("vendors")
+      .select("*")
+      .eq("market_id", id)
+      .eq("is_active", true)
+      .order("name")
   );
-  const mealsQ = useCachedLoad<any[]>("meals.available", () =>
-    supabase.from("meals").select("*").eq("is_available", true)
-  );
+
   const market = marketQ.data;
-  const categories = catsQ.data || [];
-  const meals = mealsQ.data || [];
-  const loading = catsQ.loading || mealsQ.loading;
-  const failed = catsQ.failed && mealsQ.failed;
-  const stale = catsQ.stale || mealsQ.stale;
+  const restaurants = vendorsQ.data || [];
+  const loading = marketQ.loading || vendorsQ.loading;
+  const failed = marketQ.failed && vendorsQ.failed;
+  const stale = marketQ.stale || vendorsQ.stale;
   const fav = useFavourite("market", id);
   const name = marketShortName(market?.name);
+  const dist =
+    market?.distance_km != null && market?.distance_km !== ""
+      ? `${Number(market.distance_km)} km`
+      : null;
 
   const retry = () => {
     marketQ.reload();
-    catsQ.reload();
-    mealsQ.reload();
+    vendorsQ.reload();
   };
-
-  const shown = active ? meals.filter((m) => m.category_id === active) : [];
-
-  function openMeal(mealId: string) {
-    setOpening(true);
-    setTimeout(() => {
-      router.push({
-        pathname: "/(customer)/meal/[id]",
-        params: { id: mealId, marketId: String(id), marketName: market?.name },
-      });
-      setTimeout(() => setOpening(false), 400);
-    }, 250);
-  }
-
-  // A category with a single meal opens that meal straight away; otherwise its meals are listed below.
-  function pickCategory(catId: string) {
-    const inCat = meals.filter((m) => m.category_id === catId);
-    if (inCat.length === 1) {
-      openMeal(inCat[0].id);
-      return;
-    }
-    setActive(catId);
-  }
-
-  useEffect(() => {
-    if (active) setTimeout(() => scroller.current?.scrollTo({ y: Math.max(0, listY.current - 12), animated: true }), 80);
-  }, [active]);
 
   return (
     <MkScreen>
       <MkHeader
-        title={name || "Market"}
-        subtitle="Food Market"
+        title={name || "Restaurants"}
+        subtitle={dist ? `${name || "Market"} · ${dist}` : "Food Market"}
         right={<HeartButton on={fav.on} onPress={fav.toggle} />}
       />
       {failed ? (
@@ -90,99 +60,131 @@ export default function Market() {
         <LoadingScreen />
       ) : (
         <ScrollView
-          ref={scroller}
-          contentContainerStyle={{ paddingHorizontal: PAD, paddingBottom: 20 }}
+          contentContainerStyle={{ paddingHorizontal: PAD, paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
         >
           {stale ? <OfflineBanner /> : null}
-          <View style={styles.banner}>
-            <Photo
-              uri={market?.image_url}
-              name={market?.name}
-              height={104}
-            />
-          </View>
 
-          <Text style={styles.h}>Our Menu</Text>
-          <Text style={styles.sub}>Freshly prepared meals from {name || "this market"}.</Text>
-
-          {categories.length === 0 ? <Text style={styles.empty}>No categories yet.</Text> : null}
-          <View style={styles.grid}>
-            {categories.map((c) => (
-              <Pressable
-                key={c.id}
-                onPress={() => pickCategory(c.id)}
-                style={[styles.tile, active === c.id && { borderColor: ui.red }]}
-              >
-                <View style={{ height: Math.round(TILE_W * 0.78), overflow: "hidden" }}>
-                  <Photo uri={c.image_url} name={c.name} height={Math.round(TILE_W * 0.78)} hideLabel />
-                  <LinearGradient colors={["transparent", "rgba(0,0,0,0.65)"]} style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "50%" }} />
-                  <View style={{ position: "absolute", left: 8, right: 8, bottom: 8 }}>
-                    <Text style={{ fontFamily: fonts.title, fontSize: 13, color: "#fff" }} numberOfLines={1}>{c.name}</Text>
-                  </View>
-                </View>
-              </Pressable>
-            ))}
-          </View>
-
-          {active && shown.length === 0 ? <Text style={styles.empty}>No meals in this category yet.</Text> : null}
-          {active && shown.length > 0 ? (
-            <View onLayout={(e) => (listY.current = e.nativeEvent.layout.y)} style={{ marginTop: 22 }}>
-              <Text style={styles.listTitle}>{categories.find((c) => c.id === active)?.name}</Text>
-              {shown.map((meal, i) => (
-                <Pressable
-                  key={meal.id}
-                  onPress={() => openMeal(meal.id)}
-                  style={[styles.meal, i < shown.length - 1 && styles.mealRule]}
-                >
-                  <View style={{ flex: 1, paddingRight: 14 }}>
-                    <Text style={styles.mealName} numberOfLines={2}>{meal.name}</Text>
-                    {meal.description ? (
-                      <Text numberOfLines={2} style={styles.mealDesc}>{meal.description}</Text>
-                    ) : null}
-                    <Text style={styles.mealPrice}>{kw(meal.price)}</Text>
-                  </View>
-                  <View style={styles.mealPhoto}>
-                    <Photo uri={meal.image_url} name={meal.name} height={84} width={112} hideLabel />
-                  </View>
-                </Pressable>
-              ))}
+          <View style={styles.marketBanner}>
+            <Photo uri={market?.image_url} name={market?.name} height={120} />
+            <View style={styles.marketBannerOverlay}>
+              <Ionicons name="location" size={14} color="#fff" />
+              <Text style={styles.marketBannerText} numberOfLines={1}>
+                {market?.name || "Market"}
+                {restaurants.length > 0
+                  ? ` · ${restaurants.length} restaurant${restaurants.length === 1 ? "" : "s"}`
+                  : ""}
+              </Text>
             </View>
-          ) : null}
+          </View>
+
+          <Text style={styles.h}>Restaurants</Text>
+          <Text style={styles.sub}>Choose a restaurant in {name || "this market"}.</Text>
+
+          {restaurants.length === 0 ? (
+            <EmptyState icon="storefront" color={ui.red} title="No restaurants yet" />
+          ) : (
+            restaurants.map((r) => {
+              const open = r.is_available !== false;
+              return (
+                <Pressable
+                  key={r.id}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(customer)/restaurant/[id]",
+                      params: {
+                        id: r.id,
+                        marketId: String(id),
+                        marketName: market?.name || "",
+                      },
+                    })
+                  }
+                  style={styles.row}
+                >
+                  <View style={styles.avatar}>
+                    <Photo uri={r.image_url} name={r.name} height={64} hideLabel />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.rowName} numberOfLines={1}>
+                      {r.name}
+                    </Text>
+                    <View style={styles.metaLine}>
+                      {r.stand_number ? (
+                        <Text style={styles.meta}>Stand {r.stand_number}</Text>
+                      ) : null}
+                      {dist ? (
+                        <Text style={styles.meta}>
+                          {r.stand_number ? " · " : ""}
+                          {dist}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <View style={styles.statusRow}>
+                      <View
+                        style={[
+                          styles.dot,
+                          { backgroundColor: open ? "#1F9D55" : ui.hint },
+                        ]}
+                      />
+                      <Text style={[styles.status, !open && { color: ui.hint }]}>
+                        {open ? "Open" : "Closed"}
+                      </Text>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={ui.hint} />
+                </Pressable>
+              );
+            })
+          )}
         </ScrollView>
       )}
-      <BackStrip label="Back to Markets" onPress={() => router.back()} />
-    
-      {opening ? (
-        <View style={StyleSheet.absoluteFill}>
-          <LoadingScreen />
-        </View>
-      ) : null}
     </MkScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  banner: { borderRadius: 12, overflow: "hidden" },
-  h: { fontFamily: fonts.title, fontSize: 18, color: ui.ink, marginTop: 18 },
-  sub: { fontFamily: fonts.body, fontSize: 12, color: ui.sub, marginTop: 3, marginBottom: 14 },
-  empty: { fontFamily: fonts.body, color: ui.sub, marginTop: 8 },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: GAP },
-  tile: {
-    width: TILE_W,
-    backgroundColor: "#fff",
-    borderRadius: 12,
+  marketBanner: {
+    borderRadius: 14,
     overflow: "hidden",
+    marginBottom: 16,
+    height: 120,
+  },
+  marketBannerOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  marketBannerText: { fontFamily: fonts.bodySemi, fontSize: 13, color: "#fff", flex: 1 },
+  h: { fontFamily: fonts.title, fontSize: 17, color: ui.ink },
+  sub: { fontFamily: fonts.body, fontSize: 12.5, color: ui.sub, marginTop: 4, marginBottom: 14 },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: ui.line,
+    borderRadius: 14,
+    padding: 10,
+    marginBottom: 10,
   },
-  tileBody: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 10, height: 38 },
-  tileName: { fontFamily: fonts.title, fontSize: 13, color: ui.ink, flex: 1 },
-  listTitle: { fontFamily: fonts.display, fontSize: 22, color: ui.ink, marginBottom: 6, letterSpacing: -0.4 },
-  meal: { flexDirection: "row", alignItems: "center", paddingVertical: 16 },
-  mealRule: { borderBottomWidth: 1, borderBottomColor: ui.line },
-  mealPhoto: { borderRadius: 10, overflow: "hidden" },
-  mealName: { fontFamily: fonts.title, fontSize: 16, color: ui.ink },
-  mealDesc: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: ui.sub, marginTop: 4 },
-  mealPrice: { fontFamily: fonts.title, fontSize: 15, color: ui.ink, marginTop: 8 },
+  avatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: ui.field,
+  },
+  rowName: { fontFamily: fonts.title, fontSize: 15, color: ui.ink },
+  metaLine: { flexDirection: "row", flexWrap: "wrap", marginTop: 2 },
+  meta: { fontFamily: fonts.body, fontSize: 12, color: ui.sub },
+  statusRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 },
+  dot: { width: 7, height: 7, borderRadius: 4 },
+  status: { fontFamily: fonts.bodySemi, fontSize: 11.5, color: "#1F9D55" },
 });

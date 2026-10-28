@@ -110,13 +110,20 @@ export default function Home() {
     vendorsQ.reload();
   }, [marketsQ.reload, promoQ.reload, settingsQ.reload, vendorsQ.reload]);
 
-  // Admin-managed promotion banner (image + copy). No fake restaurant data.
+  // Admin-managed promotion banner. If a meal is linked, tapping opens that meal.
   const banner = {
     uri: promotion?.image_url || null,
     title: promotion ? promotion.title || "" : DEFAULT_BANNER.title,
     subtitle: promotion ? promotion.subtitle || "" : DEFAULT_BANNER.subtitle,
     amount: promotion ? promotion.amount : null,
+    mealId: promotion?.meal_id || null,
   };
+
+  function openBanner() {
+    if (banner.mealId) {
+      router.push({ pathname: "/(customer)/meal/[id]", params: { id: String(banner.mealId) } });
+    }
+  }
 
   return (
     <MkScreen>
@@ -141,9 +148,13 @@ export default function Home() {
           <NotificationBell />
         </View>
 
-        {/* Featured / promotion banner — content from Admin, not invented */}
+        {/* Featured / promotion banner — Admin image + optional linked meal */}
         <View style={{ paddingHorizontal: PAD }}>
-          <View style={[styles.banner, { backgroundColor: ui.banner }]}>
+          <Pressable
+            onPress={openBanner}
+            disabled={!banner.mealId}
+            style={[styles.banner, { backgroundColor: ui.banner }]}
+          >
             {banner.uri ? (
               <>
                 <Image source={{ uri: banner.uri }} style={styles.bannerFood} contentFit="cover" />
@@ -161,9 +172,13 @@ export default function Home() {
                 <Text style={styles.bannerAmount}>{formatKw(Number(banner.amount))}</Text>
               ) : null}
               {banner.subtitle ? <Text style={styles.bannerSub}>{banner.subtitle}</Text> : null}
-              <View style={styles.bannerRule} />
+              {banner.mealId ? (
+                <Text style={styles.bannerCta}>Tap to view menu</Text>
+              ) : (
+                <View style={styles.bannerRule} />
+              )}
             </View>
-          </View>
+          </Pressable>
         </View>
 
         {/* Markets grid */}
@@ -286,6 +301,12 @@ const styles = StyleSheet.create({
   bannerSub: { color: "#F3E7EC", fontFamily: fonts.body, fontSize: 10, marginTop: 10 },
   bannerRule: { width: 38, height: 3, borderRadius: 2, backgroundColor: ui.amber, marginTop: 6 },
   bannerAmount: { color: ui.amber, fontFamily: fonts.title, fontSize: 15, marginTop: 6 },
+  bannerCta: {
+    color: ui.amber,
+    fontFamily: fonts.bodySemi,
+    fontSize: 12,
+    marginTop: 10,
+  },
   section: { fontFamily: fonts.title, fontSize: 17, color: ui.ink, marginTop: 18, marginBottom: 12 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: GAP },
   card: {
