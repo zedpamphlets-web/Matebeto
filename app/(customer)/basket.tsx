@@ -237,6 +237,6 @@ const s = StyleSheet.create({
   cTitle: { fontFamily: fonts.title, fontSize: 14, color: ui.ink },
   cText: { fontFamily: fonts.body, fontSize: 12, color: ui.sub, marginTop: 2 },
   cSub: { fontFamily: fonts.body, fontSize: 11, color: ui.hint, marginTop: 1 },
-  change: { fontFamily: fonts.bodySemi, fontSize: 12.5, color: "#1F9D55" },
+  change: { fontFamily: fonts.bodySemi, fontSize: 12.5, color: ui.red },
   footer: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10, backgroundColor: "#fff" },
 });

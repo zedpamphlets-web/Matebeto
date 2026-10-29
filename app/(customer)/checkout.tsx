@@ -114,7 +114,7 @@ export default function Checkout() {
           {LIPILA_PROVIDERS.map((p) => {
             const on = provider === p.id;
             return (
-              <Pressable key={p.id} onPress={() => setProvider(p.id)} style={[s.chip, on && { borderColor: ui.btn, backgroundColor: "#EAF4EF" }]}>
+              <Pressable key={p.id} onPress={() => setProvider(p.id)} style={[s.chip, on && { borderColor: ui.btn, backgroundColor: ui.redSoft }]}>
                 <Text style={s.chipText}>{p.label}</Text>
               </Pressable>
             );
@@ -153,7 +153,7 @@ const s = StyleSheet.create({
   card: { backgroundColor: "#F8F8F9", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", marginTop: 14, marginBottom: 8 },
   cTitle: { fontFamily: fonts.title, fontSize: 14, color: ui.ink },
   cText: { fontFamily: fonts.body, fontSize: 12, color: ui.sub, marginTop: 2 },
-  change: { fontFamily: fonts.bodySemi, fontSize: 12.5, color: "#1F9D55" },
+  change: { fontFamily: fonts.bodySemi, fontSize: 12.5, color: ui.red },
   chips: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   chip: { paddingHorizontal: 14, paddingVertical: 11, borderRadius: 12, backgroundColor: "#fff", borderWidth: 1.5, borderColor: ui.line },
   chipText: { fontFamily: fonts.bodySemi, color: ui.ink },

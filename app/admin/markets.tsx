@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { colors, fonts, radius, ui } from "@/lib/theme";
 import { Field } from "@/components/ui";
 import { AdminButton as PrimaryButton } from "@/components/admin-ui";
+import * as Location from "expo-location";
 import { PhotoPicker } from "@/components/photo-picker";
 import { confirmDialog } from "@/components/confirm";
 
@@ -111,8 +112,8 @@ export default function AdminMarkets() {
       <Text style={{ fontFamily: fonts.title, fontSize: 18, marginBottom: 4, color: colors.adminText }}>Add market</Text>
       <Field value={name} onChangeText={setName} placeholder="Market name (e.g. Longacres)" />
       <Field value={distance} onChangeText={setDistance} placeholder="Distance in km (optional, e.g. 2.1)" keyboardType="decimal-pad" />
-      <Field value={lat} onChangeText={setLat} placeholder="Latitude (optional, e.g. -15.4167)" keyboardType="numbers-and-punctuation" />
-      <Field value={lng} onChangeText={setLng} placeholder="Longitude (optional, e.g. 28.2833)" keyboardType="numbers-and-punctuation" />
+      <Field value={lat} onChangeText={(t) => splitPair(t, setLat, setLng, "lat")} placeholder="Latitude (optional, e.g. -15.4167)" keyboardType="numbers-and-punctuation" />
+      <Field value={lng} onChangeText={(t) => splitPair(t, setLat, setLng, "lng")} placeholder="Longitude (optional, e.g. 28.2833)" keyboardType="numbers-and-punctuation" />
       <PhotoPicker folder="markets" uri={image} name={name || "Market"} onChange={setImage} />
       <PrimaryButton label="Save market" onPress={add} />
       <View style={{ height: 18 }} />
@@ -130,6 +131,28 @@ export default function AdminMarkets() {
       ))}
     </ScrollView>
   );
+}
+
+/** Google Maps gives "-15.4167, 28.2833": pasting that into either box fills both. */
+function splitPair(text: string, setLat: (v: string) => void, setLng: (v: string) => void, which: "lat" | "lng") {
+  const m = text.match(/(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)/);
+  if (m) {
+    setLat(m[1]);
+    setLng(m[2]);
+  } else (which === "lat" ? setLat : setLng)(text);
+}
+
+/** Admin standing at the market taps this to fill the exact coordinates. */
+async function fillFromPhone(setLat: (v: string) => void, setLng: (v: string) => void) {
+  try {
+    const perm = await Location.requestForegroundPermissionsAsync();
+    if (perm.status !== "granted") return Alert.alert("Location", "Allow location access to use this.");
+    const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+    setLat(pos.coords.latitude.toFixed(6));
+    setLng(pos.coords.longitude.toFixed(6));
+  } catch (e: any) {
+    Alert.alert("Location", e?.message || "Could not get the location. Is GPS on?");
+  }
 }
 
 function MarketCard({
@@ -172,9 +195,12 @@ function MarketCard({
       <Text style={label}>Distance in km</Text>
       <Field value={distance} onChangeText={setDistance} placeholder="e.g. 2.1 (used only if location is off)" keyboardType="decimal-pad" />
       <Text style={label}>Map location (gives customers their real distance)</Text>
-      <Field value={lat} onChangeText={setLat} placeholder="Latitude, e.g. -15.4167" keyboardType="numbers-and-punctuation" />
+      <Field value={lat} onChangeText={(t) => splitPair(t, setLat, setLng, "lat")} placeholder="Latitude, e.g. -15.4167" keyboardType="numbers-and-punctuation" />
       <View style={{ height: 6 }} />
-      <Field value={lng} onChangeText={setLng} placeholder="Longitude, e.g. 28.2833" keyboardType="numbers-and-punctuation" />
+      <Field value={lng} onChangeText={(t) => splitPair(t, setLat, setLng, "lng")} placeholder="Longitude, e.g. 28.2833" keyboardType="numbers-and-punctuation" />
+      <Pressable onPress={() => fillFromPhone(setLat, setLng)} style={{ paddingVertical: 8 }}>
+        <Text style={{ fontFamily: fonts.bodySemi, color: colors.customerDeep }}>📍 Use my current location (stand at the market)</Text>
+      </Pressable>
       <PhotoPicker folder={`markets/${m.id}`} uri={m.image_url} name={m.name} onChange={onImage} />
       <PrimaryButton label="Save details" onPress={() => onSave(name, distance, lat, lng)} />
       <View style={{ flexDirection: "row", gap: 18, marginTop: 12 }}>

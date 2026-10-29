@@ -48,7 +48,7 @@ export default function ChooseRider() {
             <Pressable
               key={t.id}
               onPress={() => setDelivery(t.id)}
-              style={[styles.option, on && { borderColor: ui.btn, backgroundColor: "#EAF4EF" }]}
+              style={[styles.option, on && { borderColor: ui.btn, backgroundColor: ui.redSoft }]}
             >
               <View style={[styles.optionIcon, on && { backgroundColor: ui.btn }]}>
                 <Ionicons name={t.icon} size={22} color={on ? "#fff" : ui.btn} />
@@ -87,7 +87,7 @@ export default function ChooseRider() {
 
 const styles = StyleSheet.create({
   option: { backgroundColor: "#fff", borderRadius: 14, padding: 16, marginBottom: 12, borderWidth: 1.5, borderColor: ui.line, flexDirection: "row", alignItems: "center", gap: 14 },
-  optionIcon: { width: 46, height: 46, borderRadius: 23, backgroundColor: "#EAF4EF", alignItems: "center", justifyContent: "center" },
+  optionIcon: { width: 46, height: 46, borderRadius: 23, backgroundColor: ui.redSoft, alignItems: "center", justifyContent: "center" },
   optionTitle: { fontFamily: fonts.title, fontSize: 16, color: ui.ink },
   optionHint: { fontFamily: fonts.body, fontSize: 12, color: ui.sub, marginTop: 3 },
   optionFee: { fontFamily: fonts.display, fontSize: 16, color: ui.red },

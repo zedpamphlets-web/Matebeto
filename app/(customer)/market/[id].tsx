@@ -67,7 +67,7 @@ export default function Market() {
                 style={[s.row, i < list.length - 1 && s.rule]}
               >
                 <View style={s.photo}>
-                  <Photo uri={r.image_url} name={r.name} height={78} width={78} hideLabel />
+                  <Photo uri={r.image_url} name={r.name} height={104} width={104} hideLabel />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.name} numberOfLines={1}>{r.name}</Text>
@@ -106,9 +106,9 @@ const s = StyleSheet.create({
   bannerText: { position: "absolute", left: 14, right: 14, bottom: 12 },
   bannerName: { fontFamily: fonts.display, fontSize: 19, color: "#fff" },
   bannerSub: { fontFamily: fonts.bodySemi, fontSize: 12, color: "#fff", marginTop: 2 },
-  row: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 14 },
+  row: { flexDirection: "row", alignItems: "center", gap: 14, height: 128 },
   rule: { borderBottomWidth: 1, borderBottomColor: ui.line },
-  photo: { width: 78, height: 78, borderRadius: 12, overflow: "hidden", flexShrink: 0, backgroundColor: ui.field },
+  photo: { width: 104, height: 104, borderRadius: 14, overflow: "hidden", flexShrink: 0, backgroundColor: ui.field },
   name: { fontFamily: fonts.title, fontSize: 15.5, color: ui.ink },
   meta: { fontFamily: fonts.body, fontSize: 12, color: ui.sub, marginTop: 2 },
   line: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
