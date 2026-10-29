@@ -149,10 +149,11 @@ export default function Home() {
               <>
                 <Image source={{ uri: banner.uri }} style={styles.bannerFood} contentFit="cover" />
                 <LinearGradient
-                  colors={[ui.banner, "rgba(64,20,43,0)"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.bannerFade}
+                  colors={["rgba(64,20,43,0.92)", "rgba(64,20,43,0.55)", "rgba(64,20,43,0)"]}
+                  locations={[0, 0.5, 1]}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={StyleSheet.absoluteFill}
                 />
               </>
             ) : null}
@@ -200,27 +201,24 @@ export default function Home() {
                       onPress={() => router.push(`/(customer)/market/${m.id}`)}
                       style={styles.card}
                     >
-                      <View style={{ height: Math.round(CARD_W * 0.72), overflow: "hidden" }}>
-                        <Photo uri={m.image_url} name={m.name} height={Math.round(CARD_W * 0.72)} hideLabel />
-                        <LinearGradient
-                          colors={["transparent", "rgba(0,0,0,0.65)"]}
-                          style={StyleSheet.absoluteFill}
-                        />
-                        <View style={styles.onImage}>
-                          <Text style={styles.onImageName} numberOfLines={1}>{m.name}</Text>
+                      <Photo uri={m.image_url} name={m.name} height={Math.round(CARD_W * 0.62)} hideLabel />
+                      <View style={styles.cardBody}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.cardName} numberOfLines={1}>{m.name}</Text>
                           {distanceText(marketDistanceKm(m, me)) ? (
                             <View style={styles.metaRow}>
-                              <Ionicons name="location-sharp" size={11} color={ui.amber} />
-                              <Text style={styles.metaText} numberOfLines={1}>{distanceText(marketDistanceKm(m, me))}</Text>
+                              <Ionicons name="location-sharp" size={12} color={ui.red} />
+                              <Text style={styles.cardMeta} numberOfLines={1}>{distanceText(marketDistanceKm(m, me))}</Text>
                             </View>
                           ) : null}
                           <View style={styles.metaRow}>
-                            <Ionicons name="storefront" size={11} color={ui.amber} />
-                            <Text style={styles.metaText} numberOfLines={1}>
+                            <Ionicons name="storefront-outline" size={12} color={ui.sub} />
+                            <Text style={styles.cardMeta} numberOfLines={1}>
                               {countLabel(vendorCount(m.id), "active vendor", "active vendors")}
                             </Text>
                           </View>
                         </View>
+                        <Ionicons name="chevron-forward" size={16} color={ui.hint} />
                       </View>
                     </Pressable>
                   ))}
@@ -273,12 +271,10 @@ const styles = StyleSheet.create({
   bannerLabel: { color: "#F3E7EC", fontFamily: fonts.bodySemi, fontSize: 11, marginBottom: 2 },
   bannerBtn: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: ui.amber, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 7, marginTop: 10 },
   bannerBtnText: { fontFamily: fonts.bodySemi, fontSize: 11.5, color: ui.ink },
-  metaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
-  metaText: { fontFamily: fonts.body, fontSize: 10.5, color: "#fff", flexShrink: 1 },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
   promoLink: { fontFamily: fonts.bodySemi, fontSize: 11.5, color: ui.amber, marginRight: 2 },
-  bannerFood: { position: "absolute", top: 0, right: 0, bottom: 0, width: "56%" },
-  bannerFade: { position: "absolute", top: 0, bottom: 0, left: "40%", width: 60 },
-  bannerCopy: { flex: 1, justifyContent: "center", paddingHorizontal: 18, maxWidth: "58%" },
+  bannerFood: { ...StyleSheet.absoluteFillObject },
+  bannerCopy: { flex: 1, justifyContent: "center", paddingHorizontal: 18, maxWidth: "64%" },
   bannerTitle: { color: "#fff", fontFamily: fonts.title, fontSize: 18, lineHeight: 23 },
   bannerSub: { color: "#F3E7EC", fontFamily: fonts.body, fontSize: 10, marginTop: 10 },
   bannerRule: { width: 38, height: 3, borderRadius: 2, backgroundColor: ui.amber, marginTop: 6 },
@@ -294,12 +290,15 @@ const styles = StyleSheet.create({
     width: CARD_W,
     borderRadius: 14,
     overflow: "hidden",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: ui.line,
   },
   onImage: { position: "absolute", left: 10, right: 10, bottom: 10 },
   onImageName: { fontFamily: fonts.title, fontSize: 14, color: "#fff" },
   cardBody: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 9 },
-  cardName: { fontFamily: fonts.title, fontSize: 12.5, color: ui.ink },
-  cardMeta: { fontFamily: fonts.body, fontSize: 10.5, color: ui.sub, marginTop: 1 },
+  cardName: { fontFamily: fonts.title, fontSize: 14, color: ui.ink },
+  cardMeta: { fontFamily: fonts.body, fontSize: 11.5, color: ui.sub, flexShrink: 1 },
   promo: {
     marginTop: 18,
     backgroundColor: "#FFFFFF",

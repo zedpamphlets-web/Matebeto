@@ -108,7 +108,7 @@ const s = StyleSheet.create({
   bannerSub: { fontFamily: fonts.bodySemi, fontSize: 12, color: "#fff", marginTop: 2 },
   row: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 14 },
   rule: { borderBottomWidth: 1, borderBottomColor: ui.line },
-  photo: { borderRadius: 12, overflow: "hidden" },
+  photo: { width: 78, height: 78, borderRadius: 12, overflow: "hidden", flexShrink: 0, backgroundColor: ui.field },
   name: { fontFamily: fonts.title, fontSize: 15.5, color: ui.ink },
   meta: { fontFamily: fonts.body, fontSize: 12, color: ui.sub, marginTop: 2 },
   line: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },

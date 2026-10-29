@@ -2,22 +2,24 @@ import { useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
 import { fonts, ui } from "@/lib/theme";
 import { kw } from "@/lib/format";
 import { MkField, MkHeader, MkScreen, RedButton } from "@/components/mk";
 import { loadAccount, deliveryAddressFrom } from "@/lib/profile";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function DeliveryType() {
+/** Step 2 after the basket: choose the rider and where to deliver. Fees come from the Admin dashboard. */
+export default function ChooseRider() {
   const [delivery, setDelivery] = useState<"bicycle" | "motorbike">("bicycle");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
-  const [fees, setFees] = useState({ bicycle_delivery_fee: 15, motorbike_delivery_fee: 25 });
+  const [fees, setFees] = useState<{ bicycle: number; motorbike: number } | null>(null);
 
   useEffect(() => {
-    supabase.from("settings").select("*").eq("id", 1).single().then(({ data }) => data && setFees(data));
-    // start from the location saved on the account (plot, area, street), so nobody types it twice
+    supabase.from("settings").select("*").eq("id", 1).maybeSingle().then(({ data }) => {
+      if (data) setFees({ bicycle: Number(data.bicycle_delivery_fee), motorbike: Number(data.motorbike_delivery_fee) });
+    });
     (async () => {
       // what the customer chose last wins; else the saved account address
       const t = await AsyncStorage.getItem("matebeto.delivery");
@@ -32,25 +34,13 @@ export default function DeliveryType() {
   }, []);
 
   const options = [
-    {
-      id: "bicycle" as const,
-      icon: "bicycle" as const,
-      title: "Bicycle",
-      hint: "Slower · Cheaper",
-      fee: fees.bicycle_delivery_fee,
-    },
-    {
-      id: "motorbike" as const,
-      icon: "speedometer" as const,
-      title: "Motorbike",
-      hint: "Faster · More expensive",
-      fee: fees.motorbike_delivery_fee,
-    },
+    { id: "bicycle" as const, icon: "bicycle" as const, title: "Bicycle", hint: "Slower · Cheaper", fee: fees?.bicycle },
+    { id: "motorbike" as const, icon: "speedometer" as const, title: "Motorbike", hint: "Faster · More expensive", fee: fees?.motorbike },
   ];
 
   return (
     <MkScreen>
-      <MkHeader title="Delivery" />
+      <MkHeader title="Choose Rider" />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
         {options.map((t) => {
           const on = delivery === t.id;
@@ -58,16 +48,16 @@ export default function DeliveryType() {
             <Pressable
               key={t.id}
               onPress={() => setDelivery(t.id)}
-              style={[styles.option, on && { borderColor: ui.red, backgroundColor: ui.redSoft }]}
+              style={[styles.option, on && { borderColor: ui.btn, backgroundColor: "#EAF4EF" }]}
             >
-              <View style={[styles.optionIcon, on && { backgroundColor: ui.red }]}>
-                <Ionicons name={t.icon} size={22} color={on ? "#fff" : ui.red} />
+              <View style={[styles.optionIcon, on && { backgroundColor: ui.btn }]}>
+                <Ionicons name={t.icon} size={22} color={on ? "#fff" : ui.btn} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.optionTitle}>{t.title}</Text>
                 <Text style={styles.optionHint}>{t.hint}</Text>
               </View>
-              <Text style={styles.optionFee}>{kw(t.fee)}</Text>
+              <Text style={styles.optionFee}>{t.fee == null ? "" : kw(t.fee)}</Text>
             </Pressable>
           );
         })}
@@ -78,7 +68,7 @@ export default function DeliveryType() {
       </ScrollView>
       <View style={styles.footer}>
         <RedButton
-          label="Save"
+          label="Continue"
           chevron
           onPress={async () => {
             if (!address.trim()) {
@@ -87,7 +77,7 @@ export default function DeliveryType() {
             }
             await AsyncStorage.setItem("matebeto.delivery", delivery);
             await AsyncStorage.setItem("matebeto.address", JSON.stringify({ text: address, notes }));
-            router.back();
+            router.push("/(customer)/checkout");
           }}
         />
       </View>
@@ -96,28 +86,11 @@ export default function DeliveryType() {
 }
 
 const styles = StyleSheet.create({
-  option: {
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1.5,
-    borderColor: ui.line,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  optionIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: ui.redSoft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  option: { backgroundColor: "#fff", borderRadius: 14, padding: 16, marginBottom: 12, borderWidth: 1.5, borderColor: ui.line, flexDirection: "row", alignItems: "center", gap: 14 },
+  optionIcon: { width: 46, height: 46, borderRadius: 23, backgroundColor: "#EAF4EF", alignItems: "center", justifyContent: "center" },
   optionTitle: { fontFamily: fonts.title, fontSize: 16, color: ui.ink },
   optionHint: { fontFamily: fonts.body, fontSize: 12, color: ui.sub, marginTop: 3 },
   optionFee: { fontFamily: fonts.display, fontSize: 16, color: ui.red },
   h: { fontFamily: fonts.title, fontSize: 15, color: ui.ink, marginTop: 8, marginBottom: 10 },
-  footer: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8, backgroundColor: "#fff" },
+  footer: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10, backgroundColor: "#fff" },
 });

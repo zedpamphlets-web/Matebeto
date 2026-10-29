@@ -169,7 +169,7 @@ export default function MealDetail() {
                 </Text>
               </View>
               <Pressable onPress={() => router.back()} style={s.outline}>
-                <Ionicons name="arrow-back" size={17} color={ui.red} />
+                <Ionicons name="arrow-back" size={17} color={ui.btn} />
                 <Text style={s.outlineText}>Continue Shopping</Text>
               </Pressable>
               <RedButton label="Continue to Checkout" chevron onPress={() => router.push("/(customer)/basket")} style={{ marginTop: 10 }} />
@@ -198,6 +198,6 @@ const s = StyleSheet.create({
   totalValue: { fontFamily: fonts.display, fontSize: 18, color: ui.ink },
   added: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#EAF7EF", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, marginTop: 14, marginBottom: 12 },
   addedText: { fontFamily: fonts.bodySemi, fontSize: 13, color: "#14663A", flex: 1 },
-  outline: { height: 54, borderRadius: 14, borderWidth: 1.5, borderColor: ui.red, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
-  outlineText: { fontFamily: fonts.title, fontSize: 15, color: ui.red },
+  outline: { height: 54, borderRadius: 14, borderWidth: 1.5, borderColor: ui.btn, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  outlineText: { fontFamily: fonts.title, fontSize: 15, color: ui.btn },
 });

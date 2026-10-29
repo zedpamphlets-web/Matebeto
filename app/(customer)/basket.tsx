@@ -26,7 +26,7 @@ export default function Basket() {
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
   const [paying, setPaying] = useState(false);
-  const [fees, setFees] = useState<Fees>({ platform_fee: 15, bicycle_delivery_fee: 15, motorbike_delivery_fee: 25, transaction_fee_percent: 0 });
+  const [fees, setFees] = useState<Fees>({ platform_fee: 0, bicycle_delivery_fee: 0, motorbike_delivery_fee: 0, transaction_fee_percent: 0 });
   const [delivery, setDelivery] = useState<"bicycle" | "motorbike">("bicycle");
   const [address, setAddress] = useState({ text: "", notes: "" });
   const [provider, setProvider] = useState<LipilaProvider>("mtn");
@@ -109,37 +109,6 @@ export default function Basket() {
   const total = items + platform + deliveryFee + txn;
   const providerLabel = LIPILA_PROVIDERS.find((p) => p.id === provider)?.label || "Mobile Money";
 
-  async function pay() {
-    const mk = basket.marketId;
-    if (!mk || !hasItems) return;
-    if (!address.text.trim()) {
-      Alert.alert("Delivery address", "Add where we should deliver.");
-      router.push("/(customer)/delivery");
-      return;
-    }
-    if (!phone.trim()) {
-      Alert.alert("Payment method", "Add the mobile money number you will pay with.");
-      router.push("/(customer)/checkout");
-      return;
-    }
-    setPaying(true);
-    try {
-      const order = await createOrder({
-        marketId: mk,
-        vendorId: basket.vendorId,
-        deliveryType: delivery,
-        address,
-        items: basket.items,
-      });
-      await clearBasket();
-      router.replace(`/payment/${order.id}?provider=${provider}&phone=${encodeURIComponent(phone)}`);
-    } catch (e: any) {
-      Alert.alert("Payment", e.message || "Could not start payment.");
-    } finally {
-      setPaying(false);
-    }
-  }
-
   const sub = hasItems ? [basket.vendorName, marketShortName(basket.marketName)].filter(Boolean).join(" (") + (basket.vendorName && basket.marketName ? ")" : "") : undefined;
 
   return (
@@ -196,34 +165,20 @@ export default function Basket() {
             <View style={s.sumRule} />
             <SumRow label={`Items Total (${count} ${count === 1 ? "item" : "items"})`} value={kw(items)} />
             <SumRow label="Platform Fee" value={kw(platform)} />
-            <SumRow label="Delivery Fee" value={kw(deliveryFee)} />
-            {txn > 0 ? <SumRow label={`Transaction Charge (${fees.transaction_fee_percent}%)`} value={kw(txn)} /> : null}
+            <SumRow label="Delivery Fee" value="Choose rider next" />
 
             <View style={s.totalBand}>
-              <Text style={s.totalLabel}>Total</Text>
-              <Text style={s.totalValue}>{kw(total)}</Text>
+              <Text style={s.totalLabel}>Subtotal</Text>
+              <Text style={s.totalValue}>{kw(items + platform)}</Text>
             </View>
 
-            <InfoCard
-              icon="location-outline"
-              title="Delivery Address"
-              text={address.text || "Add a delivery address"}
-              sub={delivery === "bicycle" ? "Bicycle delivery" : "Motorbike delivery"}
-              onChange={() => router.push("/(customer)/delivery")}
-            />
-            <InfoCard
-              icon="card-outline"
-              title="Payment Method"
-              text={phone ? `${providerLabel} · ${phone}` : "Add a mobile money number"}
-              onChange={() => router.push("/(customer)/checkout")}
-            />
           </>
         )}
       </ScrollView>
 
       {hasItems && !loading && !offline ? (
         <View style={s.footer}>
-          <RedButton label={`Pay Now · ${kw(total)}`} icon="lock-closed-outline" onPress={pay} loading={paying} />
+          <RedButton label="Continue" chevron onPress={() => router.push("/(customer)/delivery")} />
         </View>
       ) : null}
     </MkScreen>
@@ -256,6 +211,11 @@ function InfoCard({ icon, title, text, sub, onChange }: { icon: keyof typeof Ion
 }
 
 const s = StyleSheet.create({
+  riderH: { fontFamily: fonts.title, fontSize: 14, color: ui.ink, marginHorizontal: 16, marginTop: 16 },
+  riderRow: { flexDirection: "row", gap: 10, marginHorizontal: 16, marginTop: 8 },
+  riderChip: { flex: 1, borderWidth: 1.5, borderColor: ui.line, borderRadius: 12, paddingVertical: 10, alignItems: "center", gap: 2, backgroundColor: "#fff" },
+  riderText: { fontFamily: fonts.bodySemi, fontSize: 13, color: ui.ink },
+  riderFee: { fontFamily: fonts.body, fontSize: 11.5, color: ui.sub },
   hair: { height: 1, backgroundColor: ui.line },
   row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 16 },
   photo: { borderRadius: 10, overflow: "hidden" },

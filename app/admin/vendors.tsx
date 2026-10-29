@@ -64,6 +64,7 @@ export default function Vendors() {
     if (price !== null && (isNaN(price) || price < 0)) return Alert.alert("Price", "Enter a valid price.");
     const { error } = await supabase.from("vendor_meals").update({ price }).eq("vendor_id", v.id).eq("meal_id", mealId);
     if (error) return Alert.alert("Price", error.message);
+    Alert.alert("Saved", "This restaurant's price is updated.");
     setPriceEdit((m) => {
       const n = { ...m };
       delete n[key];
@@ -189,11 +190,8 @@ export default function Vendors() {
           <Field value={infoVal(v, "rating_count")} onChangeText={(t) => setInfoVal(v, "rating_count", t)} placeholder="Number of ratings, e.g. 120" keyboardType="number-pad" />
           <View style={{ height: 6 }} />
           <Field value={infoVal(v, "description")} onChangeText={(t) => setInfoVal(v, "description", t)} placeholder="Short description" />
-          {info[v.id] ? (
-            <Pressable onPress={() => saveInfo(v)} style={{ marginTop: 6 }}>
-              <Text style={{ fontFamily: fonts.bodySemi, color: colors.customerDeep }}>Save restaurant details</Text>
-            </Pressable>
-          ) : null}
+          <View style={{ height: 10 }} />
+          <PrimaryButton label="Save restaurant details" onPress={() => saveInfo(v)} />
           <Text style={{ marginTop: 14, fontFamily: fonts.bodySemi }}>Mobile money number for payments</Text>
           <Field
             value={payoutEdit[v.id] ?? v.payout_number ?? ""}
@@ -237,11 +235,9 @@ export default function Vendors() {
                       placeholder={`Price in K (empty = ${Number(meal.price)})`}
                       keyboardType="decimal-pad"
                     />
-                    {priceEdit[key] !== undefined && priceEdit[key] !== (link.price == null ? "" : String(link.price)) ? (
-                      <Pressable onPress={() => saveMealPrice(v, meal.id, Number(meal.price))} style={{ marginTop: 4, marginBottom: 6 }}>
-                        <Text style={{ fontFamily: fonts.bodySemi, color: colors.customerDeep }}>Save price</Text>
-                      </Pressable>
-                    ) : null}
+                    <Pressable onPress={() => saveMealPrice(v, meal.id, Number(meal.price))} style={{ marginTop: 6, marginBottom: 6, backgroundColor: colors.customerDeep, borderRadius: 10, paddingVertical: 10, alignItems: "center" }}>
+                      <Text style={{ fontFamily: fonts.bodySemi, color: "#fff" }}>Save price</Text>
+                    </Pressable>
                     <View style={{ height: 6 }} />
                     <PhotoPicker folder={`restaurants/${v.id}/meals`} uri={link.image_url} name={meal.name} onChange={(url) => saveMealPhoto(v, meal.id, url)} height={90} />
                   </View>

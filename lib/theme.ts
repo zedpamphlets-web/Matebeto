@@ -53,6 +53,8 @@ export const ui = {
   sub: "#6B6A78",
   hint: "#8E8D99",
   red: "#D6263A",
+  /** Action buttons on the ordering screens (matches the client mockup). */
+  btn: "#14654A",
   redDeep: "#B81F31",
   redSoft: "#FBF0EC",
   redLine: "#F4D9D6",

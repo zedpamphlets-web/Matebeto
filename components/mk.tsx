@@ -122,7 +122,7 @@ export function RedButton({
 
 export function Checkbox({ on }: { on: boolean }) {
   return (
-    <View style={[s.check, on && { backgroundColor: ui.red, borderColor: ui.red }]}>
+    <View style={[s.check, on && { backgroundColor: ui.btn, borderColor: ui.btn }]}>
       {on ? <Ionicons name="checkmark" size={15} color="#fff" /> : null}
     </View>
   );
@@ -177,7 +177,7 @@ export function MkStepper({
       <Text style={[s.stepNum, small && { minWidth: 22 }]}>{value}</Text>
       <Pressable
         onPress={() => onChange(value + 1)}
-        style={[s.stepBtn, { width: d, height: d, borderRadius: d / 2, backgroundColor: ui.red }]}
+        style={[s.stepBtn, { width: d, height: d, borderRadius: d / 2, backgroundColor: ui.btn }]}
         hitSlop={6}
         accessibilityLabel="More"
       >
@@ -202,7 +202,7 @@ const s = StyleSheet.create({
     gap: 10,
   },
   stripText: { fontFamily: fonts.title, fontSize: 14, color: ui.red },
-  redBtn: { height: 54, borderRadius: 14, backgroundColor: ui.red, justifyContent: "center" },
+  redBtn: { height: 54, borderRadius: 14, backgroundColor: ui.btn, justifyContent: "center" },
   redBtnInner: { flexDirection: "row", alignItems: "center", paddingHorizontal: 18 },
   redBtnSide: { width: 28, justifyContent: "center" },
   redBtnText: { flex: 1, textAlign: "center", color: "#fff", fontFamily: fonts.title, fontSize: 15 },
