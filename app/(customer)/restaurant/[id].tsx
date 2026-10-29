@@ -1,193 +1,127 @@
-import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Photo } from "@/components/photo";
-import { MkHeader, MkScreen } from "@/components/mk";
-import { supabase } from "@/lib/supabase";
-import { useCachedLoad } from "@/lib/offline-cache";
+import { EmptyState } from "@/components/empty-state";
+import { HeartButton, MkHeader, MkScreen } from "@/components/mk";
 import { LoadingScreen } from "@/components/spinner";
 import { OfflineNotice } from "@/components/offline-notice";
 import { OfflineBanner } from "@/components/offline-banner";
-import { EmptyState } from "@/components/empty-state";
+import { supabase } from "@/lib/supabase";
+import { useCachedLoad } from "@/lib/offline-cache";
+import { useFavourite } from "@/lib/favourites";
+import { loadRestaurantMenu, loadRestaurants, NSHIMA_LINE, standLabel, type MenuMeal, type Restaurant } from "@/lib/restaurants";
+import { kwShort, marketShortName } from "@/lib/format";
+import { Dimensions } from "react-native";
 import { fonts, ui } from "@/lib/theme";
-import { kw } from "@/lib/format";
 
 const W = Dimensions.get("window").width;
 const PAD = 16;
 const GAP = 12;
 const TILE_W = (W - PAD * 2 - GAP) / 2;
 
+/** Screen 3: one restaurant's own menu and prices. */
 export default function RestaurantMenu() {
-  const { id, marketId, marketName } = useLocalSearchParams<{
-    id: string;
-    marketId?: string;
-    marketName?: string;
-  }>();
+  const { id } = useLocalSearchParams<{ id: string }>();
 
-  const vendorQ = useCachedLoad<any>(`restaurant.${id}`, () =>
-    supabase.from("vendors").select("*, markets(name, distance_km)").eq("id", id).maybeSingle()
-  );
-  const linksQ = useCachedLoad<any[]>(`restaurant.${id}.meals`, () =>
-    supabase
-      .from("vendor_meals")
-      .select("meal_id, is_available, meals(*)")
-      .eq("vendor_id", id)
-      .eq("is_available", true)
-  );
+  const restQ = useCachedLoad<Restaurant[]>("restaurants.all", () => loadRestaurants(null));
+  const menuQ = useCachedLoad<MenuMeal[]>(`restaurant.${id}.menu`, () => loadRestaurantMenu(String(id)));
+  const rest = (restQ.data || []).find((r) => r.id === id);
+  const [market, setMarket] = useState<any>(null);
+  useEffect(() => {
+    if (!rest?.market_id) return;
+    supabase.from("markets").select("id,name").eq("id", rest.market_id).maybeSingle().then(({ data }) => setMarket(data));
+  }, [rest?.market_id]);
+  const meals = menuQ.data || [];
+  const fav = useFavourite("restaurant", id);
 
-  const vendor = vendorQ.data;
-  const meals = (linksQ.data || [])
-    .map((row: any) => row.meals)
-    .filter((m: any) => m && m.is_available !== false);
-  const loading = vendorQ.loading || linksQ.loading;
-  const failed = vendorQ.failed && linksQ.failed;
-  const stale = vendorQ.stale || linksQ.stale;
-  const marketLabel =
-    marketName || vendor?.markets?.name || vendor?.market_name || "Market";
-  const open = vendor?.is_available !== false;
+  const loading = restQ.loading || menuQ.loading;
+  const failed = restQ.failed && menuQ.failed;
 
-  const retry = () => {
-    vendorQ.reload();
-    linksQ.reload();
-  };
-
-  function openMeal(mealId: string) {
+  function openMeal(m: MenuMeal) {
     router.push({
       pathname: "/(customer)/meal/[id]",
-      params: {
-        id: mealId,
-        marketId: String(marketId || vendor?.market_id || ""),
-        marketName: String(marketLabel),
-        vendorId: String(id),
-        vendorName: String(vendor?.name || ""),
-      },
+      params: { id: m.meal_id, vendorId: String(id), vendorName: rest?.name || "", marketId: rest?.market_id || "", marketName: market?.name || "" },
     });
   }
 
   return (
     <MkScreen>
       <MkHeader
-        title={vendor?.name || "Restaurant"}
-        subtitle={
-          vendor?.stand_number
-            ? `Stand ${vendor.stand_number} · ${marketLabel}`
-            : marketLabel
-        }
+        title={rest?.name || "Restaurant"}
+        subtitle={[standLabel(rest?.stand_number), marketShortName(market?.name)].filter(Boolean).join(" · ")}
+        right={<HeartButton on={fav.on} onPress={fav.toggle} />}
       />
       {failed ? (
-        <OfflineNotice onRetry={retry} />
+        <OfflineNotice onRetry={() => { restQ.reload(); menuQ.reload(); }} />
       ) : loading ? (
         <LoadingScreen />
       ) : (
-        <ScrollView
-          contentContainerStyle={{ paddingHorizontal: PAD, paddingBottom: 24 }}
-          showsVerticalScrollIndicator={false}
-        >
-          {stale ? <OfflineBanner /> : null}
-
-          <View style={styles.hero}>
-            <Photo
-              uri={vendor?.image_url}
-              name={vendor?.name}
-              height={160}
-            />
-          </View>
-
-          <Text style={styles.name}>{vendor?.name}</Text>
-          <View style={styles.chips}>
-            {vendor?.stand_number ? (
-              <View style={styles.chip}>
-                <Ionicons name="storefront-outline" size={13} color={ui.sub} />
-                <Text style={styles.chipText}>Stand {vendor.stand_number}</Text>
+        <ScrollView contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+          {restQ.stale || menuQ.stale ? <OfflineBanner /> : null}
+          <Photo uri={rest?.image_url} name={rest?.name} height={150} hideLabel />
+          <View style={{ paddingHorizontal: PAD }}>
+            {rest?.description ? <Text style={s.desc}>{rest.description}</Text> : null}
+            <View style={s.chips}>
+              {rest?.rating ? (
+                <View style={s.chip}>
+                  <Ionicons name="star" size={13} color={ui.amber} />
+                  <Text style={s.chipText}>
+                    {Number(rest.rating).toFixed(1)}
+                    {rest.rating_count ? ` (${rest.rating_count})` : ""}
+                  </Text>
+                </View>
+              ) : null}
+              {rest?.cuisine ? (
+                <View style={s.chip}>
+                  <Ionicons name="restaurant-outline" size={13} color={ui.sub} />
+                  <Text style={s.chipText}>{rest.cuisine}</Text>
+                </View>
+              ) : null}
+              <View style={s.chip}>
+                <View style={[s.dot, { backgroundColor: rest?.is_open === false ? ui.hint : "#1F9D55" }]} />
+                <Text style={s.chipText}>{rest?.is_open === false ? "Closed" : "Open"}</Text>
               </View>
-            ) : null}
-            <View style={styles.chip}>
-              <View
-                style={[styles.dot, { backgroundColor: open ? "#1F9D55" : ui.hint }]}
-              />
-              <Text style={[styles.chipText, open && { color: "#1F9D55" }]}>
-                {open ? "Open" : "Closed"}
-              </Text>
             </View>
-          </View>
 
-          <Text style={styles.h}>Our Meals</Text>
-          <Text style={styles.sub}>Prepared and served with nshima.</Text>
-
-          {meals.length === 0 ? (
-            <EmptyState icon="restaurant" color={ui.red} title="No meals on this menu yet" />
-          ) : (
-            <View style={styles.grid}>
-              {meals.map((m: any) => (
-                <Pressable
-                  key={m.id}
-                  onPress={() => openMeal(m.id)}
-                  style={styles.tile}
-                >
-                  <View style={{ height: Math.round(TILE_W * 0.72), overflow: "hidden" }}>
-                    <Photo
-                      uri={m.image_url}
-                      name={m.name}
-                      height={Math.round(TILE_W * 0.72)}
-                      hideLabel
-                    />
-                  </View>
-                  <View style={styles.tileBody}>
-                    <Text style={styles.tileName} numberOfLines={1}>
-                      {m.name}
-                    </Text>
-                    <Text style={styles.tileDesc} numberOfLines={1}>
-                      Prepared and served with nshima.
-                    </Text>
-                    <View style={styles.tileFoot}>
-                      <Text style={styles.tilePrice}>{kw(m.price)}</Text>
-                      <Ionicons name="chevron-forward" size={16} color={ui.hint} />
+            <Text style={s.h}>Our Meals</Text>
+            {meals.length === 0 ? <Text style={s.empty}>No meals on the menu yet.</Text> : null}
+            <View style={s.grid}>
+              {meals.map((m) => (
+                <Pressable key={m.meal_id} onPress={() => openMeal(m)} style={s.tile}>
+                  <Photo uri={m.image_url} name={m.name} height={Math.round(TILE_W * 0.72)} hideLabel />
+                  <View style={s.tileBody}>
+                    <Text style={s.mealName} numberOfLines={1}>{m.name}</Text>
+                    <Text style={s.mealDesc} numberOfLines={2}>{NSHIMA_LINE}</Text>
+                    <View style={s.priceRow}>
+                      <Text style={s.price}>{kwShort(m.price)}</Text>
+                      <Ionicons name="chevron-forward" size={15} color={ui.ink} />
                     </View>
                   </View>
                 </Pressable>
               ))}
             </View>
-          )}
+          </View>
         </ScrollView>
       )}
     </MkScreen>
   );
 }
 
-const styles = StyleSheet.create({
-  hero: { borderRadius: 14, overflow: "hidden", marginBottom: 12 },
-  name: { fontFamily: fonts.title, fontSize: 20, color: ui.ink },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8, marginBottom: 16 },
-  chip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: ui.field,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  chipText: { fontFamily: fonts.bodySemi, fontSize: 12, color: ui.sub },
-  dot: { width: 7, height: 7, borderRadius: 4 },
-  h: { fontFamily: fonts.title, fontSize: 17, color: ui.ink },
-  sub: { fontFamily: fonts.body, fontSize: 12.5, color: ui.sub, marginTop: 4, marginBottom: 14 },
+const s = StyleSheet.create({
+  desc: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: ui.sub, marginTop: 12 },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
+  chip: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: ui.field, borderRadius: 16, paddingHorizontal: 11, paddingVertical: 6 },
+  chipText: { fontFamily: fonts.bodySemi, fontSize: 12, color: ui.ink },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  h: { fontFamily: fonts.title, fontSize: 17, color: ui.ink, marginTop: 20, marginBottom: 12 },
+  empty: { fontFamily: fonts.body, color: ui.sub },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: GAP },
-  tile: {
-    width: TILE_W,
-    borderRadius: 14,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: ui.line,
-    backgroundColor: "#fff",
-  },
+  tile: { width: TILE_W, backgroundColor: "#fff", borderRadius: 12, overflow: "hidden", borderWidth: 1, borderColor: ui.line },
   tileBody: { padding: 10 },
-  tileName: { fontFamily: fonts.title, fontSize: 14, color: ui.ink },
-  tileDesc: { fontFamily: fonts.body, fontSize: 11, color: ui.sub, marginTop: 2 },
-  tileFoot: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 8,
-  },
-  tilePrice: { fontFamily: fonts.title, fontSize: 14, color: ui.red },
+  mealName: { fontFamily: fonts.title, fontSize: 14, color: ui.ink },
+  mealDesc: { fontFamily: fonts.body, fontSize: 10.5, lineHeight: 14, color: ui.sub, marginTop: 3 },
+  priceRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 },
+  price: { fontFamily: fonts.title, fontSize: 15, color: ui.red },
 });

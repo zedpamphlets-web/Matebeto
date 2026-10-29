@@ -1,140 +1,99 @@
-import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { Photo } from "@/components/photo";
-import { HeartButton, MkHeader, MkScreen } from "@/components/mk";
-import { supabase } from "@/lib/supabase";
-import { useCachedLoad } from "@/lib/offline-cache";
+import { EmptyState } from "@/components/empty-state";
+import { MkHeader, MkScreen } from "@/components/mk";
 import { LoadingScreen } from "@/components/spinner";
 import { OfflineNotice } from "@/components/offline-notice";
 import { OfflineBanner } from "@/components/offline-banner";
-import { EmptyState } from "@/components/empty-state";
+import { supabase } from "@/lib/supabase";
+import { useCachedLoad } from "@/lib/offline-cache";
+import { loadRestaurants, standLabel, type Restaurant } from "@/lib/restaurants";
+import { marketDistanceKm, useCoords } from "@/lib/location";
+import { countLabel, distanceText, marketShortName } from "@/lib/format";
 import { fonts, ui } from "@/lib/theme";
-import { marketShortName } from "@/lib/format";
-import { useFavourite } from "@/lib/favourites";
 
-const PAD = 16;
-
-export default function MarketRestaurants() {
+/** Screen 2: restaurants in the chosen market. No search: customers browse the list. */
+export default function Market() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const me = useCoords();
 
   const marketQ = useCachedLoad<any>(`market.${id}`, () =>
     supabase.from("markets").select("*").eq("id", id).maybeSingle()
   );
-  const vendorsQ = useCachedLoad<any[]>(`market.${id}.restaurants`, () =>
-    supabase
-      .from("vendors")
-      .select("*")
-      .eq("market_id", id)
-      .eq("is_active", true)
-      .order("name")
-  );
-
+  const listQ = useCachedLoad<Restaurant[]>(`restaurants.${id}`, () => loadRestaurants(String(id)));
   const market = marketQ.data;
-  const restaurants = vendorsQ.data || [];
-  const loading = marketQ.loading || vendorsQ.loading;
-  const failed = marketQ.failed && vendorsQ.failed;
-  const stale = marketQ.stale || vendorsQ.stale;
-  const fav = useFavourite("market", id);
+  const list = listQ.data || [];
   const name = marketShortName(market?.name);
-  const dist =
-    market?.distance_km != null && market?.distance_km !== ""
-      ? `${Number(market.distance_km)} km`
-      : null;
+  const km = distanceText(marketDistanceKm(market, me));
 
   const retry = () => {
     marketQ.reload();
-    vendorsQ.reload();
+    listQ.reload();
   };
 
   return (
     <MkScreen>
-      <MkHeader
-        title={name || "Restaurants"}
-        subtitle={dist ? `${name || "Market"} · ${dist}` : "Food Market"}
-        right={<HeartButton on={fav.on} onPress={fav.toggle} />}
-      />
-      {failed ? (
+      <MkHeader title="Restaurants" />
+      {listQ.failed ? (
         <OfflineNotice onRetry={retry} />
-      ) : loading ? (
+      ) : listQ.loading ? (
         <LoadingScreen />
       ) : (
-        <ScrollView
-          contentContainerStyle={{ paddingHorizontal: PAD, paddingBottom: 24 }}
-          showsVerticalScrollIndicator={false}
-        >
-          {stale ? <OfflineBanner /> : null}
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+          {listQ.stale ? <OfflineBanner /> : null}
 
-          <View style={styles.marketBanner}>
-            <Photo uri={market?.image_url} name={market?.name} height={120} />
-            <View style={styles.marketBannerOverlay}>
-              <Ionicons name="location" size={14} color="#fff" />
-              <Text style={styles.marketBannerText} numberOfLines={1}>
-                {market?.name || "Market"}
-                {restaurants.length > 0
-                  ? ` · ${restaurants.length} restaurant${restaurants.length === 1 ? "" : "s"}`
-                  : ""}
+          <View style={s.banner}>
+            <Photo uri={market?.image_url} name={market?.name} height={112} hideLabel />
+            <LinearGradient colors={["transparent", "rgba(0,0,0,0.7)"]} style={StyleSheet.absoluteFill} />
+            <View style={s.bannerText}>
+              <Text style={s.bannerName}>{name || "Market"}</Text>
+              <Text style={s.bannerSub}>
+                {countLabel(list.length, "restaurant", "restaurants")}
+                {km ? `  ·  ${km}` : ""}
               </Text>
             </View>
           </View>
 
-          <Text style={styles.h}>Restaurants</Text>
-          <Text style={styles.sub}>Choose a restaurant in {name || "this market"}.</Text>
-
-          {restaurants.length === 0 ? (
-            <EmptyState icon="storefront" color={ui.red} title="No restaurants yet" />
+          {list.length === 0 ? (
+            <EmptyState icon="restaurant" color={ui.red} title="No restaurants here yet" />
           ) : (
-            restaurants.map((r) => {
-              const open = r.is_available !== false;
-              return (
-                <Pressable
-                  key={r.id}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/(customer)/restaurant/[id]",
-                      params: {
-                        id: r.id,
-                        marketId: String(id),
-                        marketName: market?.name || "",
-                      },
-                    })
-                  }
-                  style={styles.row}
-                >
-                  <View style={styles.avatar}>
-                    <Photo uri={r.image_url} name={r.name} height={64} hideLabel />
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.rowName} numberOfLines={1}>
-                      {r.name}
-                    </Text>
-                    <View style={styles.metaLine}>
-                      {r.stand_number ? (
-                        <Text style={styles.meta}>Stand {r.stand_number}</Text>
-                      ) : null}
-                      {dist ? (
-                        <Text style={styles.meta}>
-                          {r.stand_number ? " · " : ""}
-                          {dist}
+            list.map((r, i) => (
+              <Pressable
+                key={r.id}
+                onPress={() => router.push({ pathname: "/(customer)/restaurant/[id]", params: { id: r.id } })}
+                style={[s.row, i < list.length - 1 && s.rule]}
+              >
+                <View style={s.photo}>
+                  <Photo uri={r.image_url} name={r.name} height={78} width={78} hideLabel />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.name} numberOfLines={1}>{r.name}</Text>
+                  <Text style={s.meta} numberOfLines={1}>
+                    {[standLabel(r.stand_number), km].filter(Boolean).join("  ·  ") || name}
+                  </Text>
+                  <View style={s.line}>
+                    {r.rating ? (
+                      <>
+                        <Ionicons name="star" size={12} color={ui.amber} />
+                        <Text style={s.rating}>
+                          {Number(r.rating).toFixed(1)}
+                          {r.rating_count ? ` (${r.rating_count})` : ""}
                         </Text>
-                      ) : null}
-                    </View>
-                    <View style={styles.statusRow}>
-                      <View
-                        style={[
-                          styles.dot,
-                          { backgroundColor: open ? "#1F9D55" : ui.hint },
-                        ]}
-                      />
-                      <Text style={[styles.status, !open && { color: ui.hint }]}>
-                        {open ? "Open" : "Closed"}
-                      </Text>
-                    </View>
+                      </>
+                    ) : null}
+                    {r.cuisine ? <Text style={s.meta}>{r.rating ? "  ·  " : ""}{r.cuisine}</Text> : null}
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color={ui.hint} />
-                </Pressable>
-              );
-            })
+                  <View style={s.line}>
+                    <View style={[s.dot, { backgroundColor: r.is_open ? "#1F9D55" : ui.hint }]} />
+                    <Text style={[s.meta, { color: r.is_open ? "#1F9D55" : ui.hint }]}>{r.is_open ? "Open" : "Closed"}</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={ui.hint} />
+              </Pressable>
+            ))
           )}
         </ScrollView>
       )}
@@ -142,49 +101,17 @@ export default function MarketRestaurants() {
   );
 }
 
-const styles = StyleSheet.create({
-  marketBanner: {
-    borderRadius: 14,
-    overflow: "hidden",
-    marginBottom: 16,
-    height: 120,
-  },
-  marketBannerOverlay: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  marketBannerText: { fontFamily: fonts.bodySemi, fontSize: 13, color: "#fff", flex: 1 },
-  h: { fontFamily: fonts.title, fontSize: 17, color: ui.ink },
-  sub: { fontFamily: fonts.body, fontSize: 12.5, color: ui.sub, marginTop: 4, marginBottom: 14 },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: ui.line,
-    borderRadius: 14,
-    padding: 10,
-    marginBottom: 10,
-  },
-  avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 12,
-    overflow: "hidden",
-    backgroundColor: ui.field,
-  },
-  rowName: { fontFamily: fonts.title, fontSize: 15, color: ui.ink },
-  metaLine: { flexDirection: "row", flexWrap: "wrap", marginTop: 2 },
-  meta: { fontFamily: fonts.body, fontSize: 12, color: ui.sub },
-  statusRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 },
+const s = StyleSheet.create({
+  banner: { borderRadius: 14, overflow: "hidden", marginBottom: 6 },
+  bannerText: { position: "absolute", left: 14, right: 14, bottom: 12 },
+  bannerName: { fontFamily: fonts.display, fontSize: 19, color: "#fff" },
+  bannerSub: { fontFamily: fonts.bodySemi, fontSize: 12, color: "#fff", marginTop: 2 },
+  row: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 14 },
+  rule: { borderBottomWidth: 1, borderBottomColor: ui.line },
+  photo: { borderRadius: 12, overflow: "hidden" },
+  name: { fontFamily: fonts.title, fontSize: 15.5, color: ui.ink },
+  meta: { fontFamily: fonts.body, fontSize: 12, color: ui.sub, marginTop: 2 },
+  line: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
+  rating: { fontFamily: fonts.bodySemi, fontSize: 12, color: ui.ink },
   dot: { width: 7, height: 7, borderRadius: 4 },
-  status: { fontFamily: fonts.bodySemi, fontSize: 11.5, color: "#1F9D55" },
 });

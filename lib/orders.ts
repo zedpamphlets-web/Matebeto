@@ -7,16 +7,19 @@ export type BasketItem = {
   quantity: number;
   sides: string[];
   image_url?: string;
+  /** Restaurant-specific price is already in `price`. */
 };
 
 export async function createOrder(input: {
   marketId: string;
+  vendorId?: string | null;
   deliveryType: "bicycle" | "motorbike";
   address: { text: string; notes?: string };
   items: BasketItem[];
 }) {
   const { data, error } = await supabase.rpc("create_order", {
     p_market_id: input.marketId,
+    p_vendor_id: input.vendorId || null,
     p_delivery_type: input.deliveryType,
     p_address: input.address,
     p_items: input.items.map((i) => ({

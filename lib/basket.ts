@@ -6,31 +6,24 @@ const KEY = "matebeto.basket";
 export type BasketState = {
   marketId: string | null;
   marketName: string | null;
-  /** Restaurant (vendor) — one restaurant per order */
+  /** The one restaurant this basket belongs to (V1: one restaurant per order). */
   vendorId: string | null;
   vendorName: string | null;
   items: BasketItem[];
 };
 
-const empty: BasketState = {
-  marketId: null,
-  marketName: null,
-  vendorId: null,
-  vendorName: null,
-  items: [],
-};
+export const EMPTY_BASKET: BasketState = { marketId: null, marketName: null, vendorId: null, vendorName: null, items: [] };
+const empty = EMPTY_BASKET;
 
 export async function loadBasket(): Promise<BasketState> {
   const raw = await AsyncStorage.getItem(KEY);
   if (!raw) return empty;
   const parsed = JSON.parse(raw);
   // older builds could save the text "null" as the market id
-  if (parsed.marketId === "null" || parsed.marketId === "undefined") parsed.marketId = null;
-  if (parsed.marketName === "null" || parsed.marketName === "undefined") parsed.marketName = null;
-  if (parsed.vendorId === "null" || parsed.vendorId === "undefined") parsed.vendorId = null;
-  if (parsed.vendorName === "null" || parsed.vendorName === "undefined") parsed.vendorName = null;
-  if (parsed.vendorId === undefined) parsed.vendorId = null;
-  if (parsed.vendorName === undefined) parsed.vendorName = null;
+  for (const k of ["marketId", "marketName", "vendorId", "vendorName"]) {
+    if (parsed[k] === "null" || parsed[k] === "undefined" || parsed[k] === undefined) parsed[k] = null;
+  }
+  if (!Array.isArray(parsed.items)) parsed.items = [];
   return parsed;
 }
 

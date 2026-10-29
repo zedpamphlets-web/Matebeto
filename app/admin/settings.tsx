@@ -12,7 +12,7 @@ const DEFAULTS = {
   tagline: "Good Food. Closer to You.",
   city: "Lusaka",
   marketsTitle: "Food Markets Near You",
-  promoTitle: "Great food. Great places.",
+  promoTitle: "More markets coming soon!",
 };
 
 const label = { fontFamily: fonts.bodySemi, color: colors.adminMuted, fontSize: 12, marginBottom: 6, marginTop: 4 } as const;
@@ -31,9 +31,10 @@ export default function HomeAdmin() {
   const [platform, setPlatform] = useState("");
   const [bike, setBike] = useState("");
   const [moto, setMoto] = useState("");
+  const [txnPct, setTxnPct] = useState("");
+  const [restaurants, setRestaurants] = useState<any[]>([]);
   // Promotion (one static banner on Home)
   const [promotion, setPromotion] = useState<any>(null);
-  const [meals, setMeals] = useState<any[]>([]);
   // Legal links shown in the app under Profile > About
   const [termsUrl, setTermsUrl] = useState("");
   const [privacyUrl, setPrivacyUrl] = useState("");
@@ -45,6 +46,7 @@ export default function HomeAdmin() {
       setPlatform(String(data.platform_fee));
       setBike(String(data.bicycle_delivery_fee));
       setMoto(String(data.motorbike_delivery_fee));
+      setTxnPct(data.transaction_fee_percent != null ? String(data.transaction_fee_percent) : "0");
       setTagline(data.home_tagline || "");
       setCity(data.home_city || "");
       setMarketsTitle(data.home_markets_title || "");
@@ -57,8 +59,8 @@ export default function HomeAdmin() {
     }
     const { data: p } = await supabase.from("promotion").select("*").eq("id", 1).maybeSingle();
     setPromotion(p || null);
-    const { data: mealRows } = await supabase.from("meals").select("id,name").eq("is_available", true).order("name");
-    setMeals(mealRows || []);
+    const { data: vs } = await supabase.from("vendors").select("id,name,markets(name)").eq("is_active", true).order("name");
+    setRestaurants(vs || []);
   }
 
   useEffect(() => {
@@ -82,12 +84,17 @@ export default function HomeAdmin() {
   }
 
   async function saveFees() {
+    if (txnPct.trim() && (isNaN(Number(txnPct)) || Number(txnPct) < 0 || Number(txnPct) > 20)) {
+      Alert.alert("Fees", "Transaction charge must be a percent from 0 to 20.");
+      return;
+    }
     const { error } = await supabase
       .from("settings")
       .update({
         platform_fee: Number(platform),
         bicycle_delivery_fee: Number(bike),
         motorbike_delivery_fee: Number(moto),
+        transaction_fee_percent: txnPct.trim() ? Number(txnPct) : 0,
       })
       .eq("id", 1);
     if (error) Alert.alert("Fees", error.message);
@@ -105,8 +112,10 @@ export default function HomeAdmin() {
       subtitle: v.subtitle.trim() || null,
       amount: v.amount.trim() ? Number(v.amount) : null,
       image_url: v.image,
+      vendor_id: v.vendorId,
+      label: v.label.trim() || null,
+      button_text: v.buttonText.trim() || null,
       is_active: v.active,
-      meal_id: v.mealId || null,
       updated_at: new Date().toISOString(),
     });
     if (error) {
@@ -139,7 +148,7 @@ export default function HomeAdmin() {
       <BannerForm
         key={promotion?.updated_at || "empty"}
         initial={promotion || { is_active: true }}
-        meals={meals}
+        restaurants={restaurants}
         saveLabel="Save promotion"
         onSave={(v) => savePromotion(null, v)}
       />
@@ -160,7 +169,7 @@ export default function HomeAdmin() {
       <Text style={label}>Title</Text>
       <Field value={promoTitle} onChangeText={setPromoTitle} placeholder={DEFAULTS.promoTitle} />
       <Text style={label}>Second line</Text>
-      <Field value={promoSub} onChangeText={setPromoSub} placeholder={`Your favourite food markets in ${city.trim() || DEFAULTS.city}.`} />
+      <Field value={promoSub} onChangeText={setPromoSub} placeholder={`We're adding more food markets across ${city.trim() || DEFAULTS.city}.`} />
       <View style={{ height: 6 }} />
       <PrimaryButton label="Save home text" onPress={saveHomeText} />
 
@@ -180,6 +189,9 @@ export default function HomeAdmin() {
       <Field value={bike} onChangeText={setBike} placeholder="Bicycle delivery fee" keyboardType="decimal-pad" />
       <View style={{ height: 10 }} />
       <Field value={moto} onChangeText={setMoto} placeholder="Motorbike delivery fee" keyboardType="decimal-pad" />
+      <View style={{ height: 10 }} />
+      <Text style={label}>Payment transaction charge in % (0 = not charged). Shown to customers at checkout.</Text>
+      <Field value={txnPct} onChangeText={setTxnPct} placeholder="e.g. 3.5" keyboardType="decimal-pad" />
       <View style={{ height: 12 }} />
       <PrimaryButton label="Save fees" onPress={saveFees} />
 
@@ -187,32 +199,27 @@ export default function HomeAdmin() {
   );
 }
 
-type BannerValues = {
-  title: string;
-  subtitle: string;
-  amount: string;
-  image: string | null;
-  active: boolean;
-  mealId: string | null;
-};
+type BannerValues = { title: string; subtitle: string; amount: string; image: string | null; active: boolean; vendorId: string | null; label: string; buttonText: string };
 
 function BannerForm({
   initial,
   onSave,
   saveLabel,
-  meals = [],
+  restaurants = [],
 }: {
   initial?: any;
+  restaurants?: any[];
   onSave: (v: BannerValues) => Promise<boolean>;
   saveLabel?: string;
-  meals?: { id: string; name: string }[];
 }) {
   const [title, setTitle] = useState(initial?.title || "");
   const [subtitle, setSubtitle] = useState(initial?.subtitle || "");
   const [amount, setAmount] = useState(initial?.amount != null ? String(initial.amount) : "");
   const [image, setImage] = useState<string | null>(initial?.image_url || null);
   const [active, setActive] = useState(initial ? initial.is_active !== false : true);
-  const [mealId, setMealId] = useState<string | null>(initial?.meal_id || null);
+  const [vendorId, setVendorId] = useState<string | null>(initial?.vendor_id || null);
+  const [label, setLabel] = useState(initial?.label || "");
+  const [buttonText, setButtonText] = useState(initial?.button_text || "");
   const isNew = !initial;
   const onDelete: (() => void) | undefined = undefined;
   const onUp: (() => void) | undefined = undefined;
@@ -253,28 +260,30 @@ function BannerForm({
       <Field value={subtitle} onChangeText={setSubtitle} placeholder="Fresh. Tasty. Local." />
       <Text style={label}>Amount (optional)</Text>
       <Field value={amount} onChangeText={setAmount} placeholder="e.g. 85" keyboardType="decimal-pad" />
-      <Text style={label}>Food photo (shown on the right)</Text>
-      <PhotoPicker folder="banner" uri={image} name="Banner photo" onChange={setImage} height={110} />
-      <Text style={label}>Opens this meal when customer taps the banner (optional)</Text>
-      <Pressable onPress={() => setMealId(null)} style={{ paddingVertical: 4 }}>
-        <Text style={{ fontFamily: fonts.body, color: !mealId ? colors.customerDeep : colors.muted }}>
-          {!mealId ? "●" : "○"} No meal link
+      <Text style={label}>Restaurant this banner opens (customers tap the banner to see its menu)</Text>
+      <Pressable onPress={() => setVendorId(null)} style={{ paddingVertical: 4 }}>
+        <Text style={{ fontFamily: vendorId === null ? fonts.title : fonts.body, color: vendorId === null ? ui.red : colors.adminText }}>
+          {vendorId === null ? "● " : "○ "}None (banner is not tappable)
         </Text>
       </Pressable>
-      {meals.map((m) => (
-        <Pressable key={m.id} onPress={() => setMealId(m.id)} style={{ paddingVertical: 4 }}>
-          <Text
-            style={{
-              fontFamily: fonts.body,
-              color: mealId === m.id ? colors.customerDeep : colors.muted,
-            }}
-          >
-            {mealId === m.id ? "●" : "○"} {m.name}
+      {restaurants.map((r) => (
+        <Pressable key={r.id} onPress={() => setVendorId(r.id)} style={{ paddingVertical: 4 }}>
+          <Text style={{ fontFamily: vendorId === r.id ? fonts.title : fonts.body, color: vendorId === r.id ? ui.red : colors.adminText }}>
+            {vendorId === r.id ? "● " : "○ "}
+            {r.name}
+            {r.markets?.name ? ` · ${r.markets.name}` : ""}
           </Text>
         </Pressable>
       ))}
+      <View style={{ height: 8 }} />
+      <Text style={label}>Restaurant name shown on the banner (optional, uses the restaurant's name if empty)</Text>
+      <Field value={label} onChangeText={setLabel} placeholder="e.g. Mama B's Kitchen" />
+      <Text style={label}>Button text (optional)</Text>
+      <Field value={buttonText} onChangeText={setButtonText} placeholder="Tap to view menu" />
+      <Text style={label}>Food photo (shown on the right). Use a different photo for each restaurant.</Text>
+      <PhotoPicker folder="banner" uri={image} name="Banner photo" onChange={setImage} height={110} />
       {!isNew ? (
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10, marginTop: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
           <Text style={{ fontFamily: fonts.bodySemi, color: colors.adminText }}>Show on Home</Text>
           <Switch value={active} onValueChange={setActive} trackColor={{ true: ui.red }} />
         </View>
@@ -282,13 +291,15 @@ function BannerForm({
       <PrimaryButton
         label={saveLabel || (isNew ? "Add banner" : "Save banner")}
         onPress={async () => {
-          const ok = await onSave({ title, subtitle, amount, image, active, mealId });
+          const ok = await onSave({ title, subtitle, amount, image, active, vendorId, label, buttonText });
           if (ok && isNew) {
             setTitle("");
             setSubtitle("");
             setAmount("");
             setImage(null);
-            setMealId(null);
+            setVendorId(null);
+            setLabel("");
+            setButtonText("");
           }
         }}
       />

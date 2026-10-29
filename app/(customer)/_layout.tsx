@@ -15,8 +15,6 @@ const TAB_BAR_STYLE = {
   shadowOpacity: 0,
 };
 
-const HIDDEN_TAB_BAR = { display: "none" as const };
-
 function TabIcon({
   name,
   color,
@@ -95,14 +93,14 @@ export default function CustomerTabs() {
         }}
       />
 
-      {/* Secondary screens: no tab icon. Markets, Account, Notifications and the Basket keep the bottom bar; the rest hide it. */}
+      {/* Secondary screens have no tab icon, but the bottom bar stays visible on all five ordering screens. */}
       <Tabs.Screen name="markets" options={{ href: null }} />
       <Tabs.Screen name="settings" options={{ href: null }} />
-      <Tabs.Screen name="market/[id]" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
-      <Tabs.Screen name="restaurant/[id]" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
-      <Tabs.Screen name="meal/[id]" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
-      <Tabs.Screen name="delivery" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
-      <Tabs.Screen name="checkout" options={{ href: null, tabBarStyle: HIDDEN_TAB_BAR }} />
+      <Tabs.Screen name="market/[id]" options={{ href: null }} />
+      <Tabs.Screen name="restaurant/[id]" options={{ href: null }} />
+      <Tabs.Screen name="meal/[id]" options={{ href: null }} />
+      <Tabs.Screen name="delivery" options={{ href: null }} />
+      <Tabs.Screen name="checkout" options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
     </Tabs>
   );

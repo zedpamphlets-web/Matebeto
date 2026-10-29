@@ -18,11 +18,17 @@ export default function DeliveryType() {
   useEffect(() => {
     supabase.from("settings").select("*").eq("id", 1).single().then(({ data }) => data && setFees(data));
     // start from the location saved on the account (plot, area, street), so nobody types it twice
-    loadAccount().then(({ details }) => {
+    (async () => {
+      // what the customer chose last wins; else the saved account address
+      const t = await AsyncStorage.getItem("matebeto.delivery");
+      if (t === "bicycle" || t === "motorbike") setDelivery(t);
+      const raw = await AsyncStorage.getItem("matebeto.address");
+      const chosen = raw ? JSON.parse(raw) : null;
+      const { details } = await loadAccount();
       const saved = deliveryAddressFrom(details);
-      if (saved.text) setAddress((cur) => cur || saved.text);
-      if (saved.notes) setNotes((cur) => cur || saved.notes);
-    });
+      setAddress(chosen?.text || saved.text || "");
+      setNotes(chosen?.notes ?? saved.notes ?? "");
+    })();
   }, []);
 
   const options = [
@@ -43,8 +49,8 @@ export default function DeliveryType() {
   ];
 
   return (
-    <MkScreen edges={["top", "bottom"]}>
-      <MkHeader title="Choose Delivery Type" />
+    <MkScreen>
+      <MkHeader title="Delivery" />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
         {options.map((t) => {
           const on = delivery === t.id;
@@ -72,7 +78,7 @@ export default function DeliveryType() {
       </ScrollView>
       <View style={styles.footer}>
         <RedButton
-          label="Continue"
+          label="Save"
           chevron
           onPress={async () => {
             if (!address.trim()) {
@@ -81,7 +87,7 @@ export default function DeliveryType() {
             }
             await AsyncStorage.setItem("matebeto.delivery", delivery);
             await AsyncStorage.setItem("matebeto.address", JSON.stringify({ text: address, notes }));
-            router.push("/(customer)/checkout");
+            router.back();
           }}
         />
       </View>

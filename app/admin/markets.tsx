@@ -15,6 +15,8 @@ export default function AdminMarkets() {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [distance, setDistance] = useState("");
+  const [lat, setLat] = useState("");
+  const [lng, setLng] = useState("");
   const [image, setImage] = useState<string | null>(null);
 
   async function load() {
@@ -27,32 +29,41 @@ export default function AdminMarkets() {
   }, []);
 
   const km = (v: string) => (v.trim() ? Number(v) : null);
+  const badCoord = (a: string, b: string) =>
+    (a.trim() || b.trim()) &&
+    (!a.trim() || !b.trim() || Number.isNaN(Number(a)) || Number.isNaN(Number(b)) || Math.abs(Number(a)) > 90 || Math.abs(Number(b)) > 180);
 
   async function add() {
     if (!name.trim()) return Alert.alert("Market", "Name is required.");
     if (distance.trim() && Number.isNaN(Number(distance))) return Alert.alert("Market", "Distance must be a number.");
+    if (badCoord(lat, lng)) return Alert.alert("Market", "Enter both latitude and longitude as numbers, e.g. -15.4167 and 28.2833.");
     const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
     const { error } = await supabase.from("markets").insert({
       name: name.trim(),
       slug,
       image_url: image,
       distance_km: km(distance),
+      latitude: km(lat),
+      longitude: km(lng),
       is_active: true,
       sort_order: rows.length + 1,
     });
     if (error) return Alert.alert("Market", error.message);
     setName("");
     setDistance("");
+    setLat("");
+    setLng("");
     setImage(null);
     load();
   }
 
-  async function saveDetails(m: any, newName: string, newDistance: string) {
+  async function saveDetails(m: any, newName: string, newDistance: string, newLat: string, newLng: string) {
     if (!newName.trim()) return Alert.alert("Market", "Name is required.");
     if (newDistance.trim() && Number.isNaN(Number(newDistance))) return Alert.alert("Market", "Distance must be a number.");
+    if (badCoord(newLat, newLng)) return Alert.alert("Market", "Enter both latitude and longitude as numbers, e.g. -15.4167 and 28.2833.");
     const { error } = await supabase
       .from("markets")
-      .update({ name: newName.trim(), distance_km: km(newDistance) })
+      .update({ name: newName.trim(), distance_km: km(newDistance), latitude: km(newLat), longitude: km(newLng) })
       .eq("id", m.id);
     if (error) Alert.alert("Market", error.message);
     else Alert.alert("Saved");
@@ -100,6 +111,8 @@ export default function AdminMarkets() {
       <Text style={{ fontFamily: fonts.title, fontSize: 18, marginBottom: 4, color: colors.adminText }}>Add market</Text>
       <Field value={name} onChangeText={setName} placeholder="Market name (e.g. Longacres)" />
       <Field value={distance} onChangeText={setDistance} placeholder="Distance in km (optional, e.g. 2.1)" keyboardType="decimal-pad" />
+      <Field value={lat} onChangeText={setLat} placeholder="Latitude (optional, e.g. -15.4167)" keyboardType="numbers-and-punctuation" />
+      <Field value={lng} onChangeText={setLng} placeholder="Longitude (optional, e.g. 28.2833)" keyboardType="numbers-and-punctuation" />
       <PhotoPicker folder="markets" uri={image} name={name || "Market"} onChange={setImage} />
       <PrimaryButton label="Save market" onPress={add} />
       <View style={{ height: 18 }} />
@@ -107,7 +120,7 @@ export default function AdminMarkets() {
         <MarketCard
           key={m.id + String(m.sort_order)}
           m={m}
-          onSave={(n, d) => saveDetails(m, n, d)}
+          onSave={(n, d, la, lo) => saveDetails(m, n, d, la, lo)}
           onImage={(u) => saveImage(m, u)}
           onToggle={() => toggle(m)}
           onDelete={() => deleteMarket(m.id)}
@@ -129,7 +142,7 @@ function MarketCard({
   onDown,
 }: {
   m: any;
-  onSave: (name: string, distance: string) => void;
+  onSave: (name: string, distance: string, lat: string, lng: string) => void;
   onImage: (url: string | null) => void;
   onToggle: () => void;
   onDelete: () => void;
@@ -138,6 +151,8 @@ function MarketCard({
 }) {
   const [name, setName] = useState(m.name || "");
   const [distance, setDistance] = useState(m.distance_km != null ? String(m.distance_km) : "");
+  const [lat, setLat] = useState(m.latitude != null ? String(m.latitude) : "");
+  const [lng, setLng] = useState(m.longitude != null ? String(m.longitude) : "");
   return (
     <View
       style={{
@@ -155,9 +170,13 @@ function MarketCard({
       <Text style={label}>Name</Text>
       <Field value={name} onChangeText={setName} placeholder="Market name" />
       <Text style={label}>Distance in km</Text>
-      <Field value={distance} onChangeText={setDistance} placeholder="e.g. 2.1" keyboardType="decimal-pad" />
+      <Field value={distance} onChangeText={setDistance} placeholder="e.g. 2.1 (used only if location is off)" keyboardType="decimal-pad" />
+      <Text style={label}>Map location (gives customers their real distance)</Text>
+      <Field value={lat} onChangeText={setLat} placeholder="Latitude, e.g. -15.4167" keyboardType="numbers-and-punctuation" />
+      <View style={{ height: 6 }} />
+      <Field value={lng} onChangeText={setLng} placeholder="Longitude, e.g. 28.2833" keyboardType="numbers-and-punctuation" />
       <PhotoPicker folder={`markets/${m.id}`} uri={m.image_url} name={m.name} onChange={onImage} />
-      <PrimaryButton label="Save details" onPress={() => onSave(name, distance)} />
+      <PrimaryButton label="Save details" onPress={() => onSave(name, distance, lat, lng)} />
       <View style={{ flexDirection: "row", gap: 18, marginTop: 12 }}>
         {onUp ? <Link text="Move up" onPress={onUp} /> : null}
         {onDown ? <Link text="Move down" onPress={onDown} /> : null}

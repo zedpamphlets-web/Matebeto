@@ -14,7 +14,7 @@ async function read(): Promise<string[]> {
 }
 
 /** Heart button state for a market or meal. Saved on the phone. */
-export function useFavourite(kind: "market" | "meal", id?: string | null) {
+export function useFavourite(kind: "market" | "meal" | "restaurant", id?: string | null) {
   const full = id ? `${kind}:${id}` : "";
   const [on, setOn] = useState(false);
 
