@@ -10,12 +10,12 @@ export const HELP_CATEGORIES: HelpCategory[] = [
       {
         id: "how-order",
         q: "How do I order food?",
-        a: "Open Home and choose your market. Pick a food category, then a meal. Choose your sides, set the quantity and tap Add to basket. Open your basket, add your delivery details, choose bicycle or motorbike delivery, and pay. We take care of the rest.",
+        a: "Open Home and choose your market, then a restaurant. Pick a meal, choose your sides, set the quantity and tap Add to Order. Continue to checkout, choose bicycle or motorbike delivery, and pay. We take care of the rest.",
       },
       {
         id: "choose-vendor",
-        q: "Why can't I choose the vendor?",
-        a: "You choose the food and Matebeto chooses the vendor. We find a food partner in your market who can prepare your whole order, so you don't have to search or call around.",
+        q: "Can I choose the restaurant?",
+        a: "Yes. Choose your market, then the restaurant you want. Your order goes straight to that restaurant, so you don't have to search or call around.",
       },
       {
         id: "sides-free",
@@ -24,8 +24,8 @@ export const HELP_CATEGORIES: HelpCategory[] = [
       },
       {
         id: "one-vendor",
-        q: "Can one order come from different vendors?",
-        a: "No. Each order comes from one market and one vendor, so your whole basket is prepared in one place and arrives together.",
+        q: "Can one order come from different restaurants?",
+        a: "No. Each order comes from one restaurant, so your whole basket is prepared in one place and arrives together.",
       },
     ],
   },
@@ -81,13 +81,13 @@ export const HELP_CATEGORIES: HelpCategory[] = [
       },
       {
         id: "no-vendor-rider",
-        q: "No vendor or no rider was found",
-        a: "You will get a notification saying we are still looking. Open the order and tap Try again, and we will search again. We also search again by ourselves when a new chef becomes available. If it still fails, you can cancel the order or contact support.",
+        q: "The restaurant did not accept, or no rider was found",
+        a: "If the restaurant does not accept your order in time, the order is cancelled and your money is refunded to the mobile money number you paid with. If no rider takes the order, we offer it to the next rider automatically. If it still fails, contact support.",
       },
       {
         id: "cancel",
         q: "Can I cancel my order?",
-        a: "You can cancel while we are still finding your food partner. Open your order and tap Cancel order. If you already paid, the amount is marked for a refund. After a vendor has accepted, please contact support.",
+        a: "You can cancel while we are still waiting for the restaurant. Open your order and tap Cancel order. If you already paid, the amount is refunded to your mobile money. After the restaurant has accepted, please contact support.",
       },
     ],
   },

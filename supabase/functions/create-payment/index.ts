@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     // Record the attempt BEFORE asking Lipila, so a fast callback can never be overwritten.
     const { data: marked } = await db
       .from("orders")
-      .update({ payment_status: "pending", payment_reference: paymentReference })
+      .update({ payment_status: "pending", payment_reference: paymentReference, payment_phone: String(phone) })
       .eq("id", order.id)
       .eq("status", "CREATED")
       .neq("payment_status", "paid")

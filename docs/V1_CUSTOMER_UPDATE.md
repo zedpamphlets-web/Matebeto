@@ -17,3 +17,11 @@ What changed (customer side only)
 - One restaurant per basket; adding from another restaurant asks to clear the basket first.
 - Server: create_order takes the chosen restaurant and uses its prices; only that restaurant is offered the order.
 - Untouched: vendor/rider/admin dashboards, payment, payouts, OTP, WhatsApp, refunds.
+
+## Update 2 (restaurants only, refunds, timeouts)
+1. Run `supabase/migrations/20261028000000_refunds_and_timeouts.sql`.
+2. Deploy the new edge function `send-refund` (Verify JWT ON) and redeploy `create-payment` (it now saves the number the customer paid with).
+3. Change the scheduler to run every 30 seconds so the 5 minute rider timeout hands over quickly (see answer / LIVE_SETUP_NOTES).
+4. Markets show "N restaurants". Categories are gone from Admin. Admin > Restaurants has collapsible cards.
+5. Chosen restaurant does not accept (decline, no reply in the vendor timeout, or cannot fulfil): order is cancelled and marked refund pending.
+   Admin > Orders > "Refund customer" sends the total back through Lipila to the number the customer paid with.

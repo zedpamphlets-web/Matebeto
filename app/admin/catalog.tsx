@@ -12,7 +12,6 @@ import { confirmDialog } from "@/components/confirm";
 export default function Catalog() {
   const [meals, setMeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState<any[]>([]);
   const [sides, setSides] = useState<any[]>([]);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
@@ -20,9 +19,6 @@ export default function Catalog() {
   const [image, setImage] = useState<string | null>(null);
   const [sideList, setSideList] = useState("");
   const [prep, setPrep] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [catName, setCatName] = useState("");
-  const [catImage, setCatImage] = useState<string | null>(null);
   // editing an existing meal
   const [editingId, setEditingId] = useState<string | null>(null);
   const [eName, setEName] = useState("");
@@ -30,64 +26,19 @@ export default function Catalog() {
   const [eDesc, setEDesc] = useState("");
   const [eSides, setESides] = useState("");
   const [ePrep, setEPrep] = useState("");
-  const [eCat, setECat] = useState("");
 
   async function load() {
-    const [{ data: m }, { data: c }, { data: s }] = await Promise.all([
+    const [{ data: m }, { data: s }] = await Promise.all([
       supabase.from("meals").select("*").order("name"),
-      supabase.from("categories").select("*").order("sort_order"),
       supabase.from("meal_sides").select("*"),
     ]);
     setMeals(m || []);
     setLoading(false);
-    setCategories(c || []);
     setSides(s || []);
-    if (!categoryId && c?.[0]) setCategoryId(c[0].id);
   }
   useEffect(() => {
     load();
   }, []);
-
-  async function addCategory() {
-    if (!catName.trim()) return Alert.alert("Category", "Name is required.");
-    const { error } = await supabase.from("categories").insert({
-      name: catName.trim(),
-      image_url: catImage,
-      sort_order: categories.length + 1,
-    });
-    if (error) return Alert.alert("Category", error.message);
-    setCatName("");
-    setCatImage(null);
-    load();
-  }
-
-  async function saveCategoryPhoto(c: any, url: string | null) {
-    const { error } = await supabase.from("categories").update({ image_url: url }).eq("id", c.id);
-    if (error) Alert.alert("Category", error.message);
-    load();
-  }
-
-  async function moveCategory(idx: number, dir: -1 | 1) {
-    const j = idx + dir;
-    if (j < 0 || j >= categories.length) return;
-    const next = [...categories];
-    [next[idx], next[j]] = [next[j], next[idx]];
-    await Promise.all(next.map((c, i) => supabase.from("categories").update({ sort_order: i + 1 }).eq("id", c.id)));
-    load();
-  }
-
-  async function deleteCategory(c: any) {
-    const ok = await confirmDialog({
-      title: "Delete category?",
-      message: `Are you sure you want to delete ${c.name}? Its meals stay but lose their category.`,
-      confirmLabel: "Delete",
-      destructive: true,
-    });
-    if (!ok) return;
-    const { error } = await supabase.from("categories").delete().eq("id", c.id);
-    if (error) Alert.alert("Category", error.message);
-    load();
-  }
 
   async function add() {
     if (!name.trim() || !price) return Alert.alert("Meal", "Name and price are required.");
@@ -98,7 +49,6 @@ export default function Catalog() {
         description: desc.trim() || null,
         price: Number(price),
         image_url: image,
-        category_id: categoryId || null,
         is_available: true,
         is_featured: false,
         ...(prep.trim() ? { prep_time: prep.trim() } : {}),
@@ -140,7 +90,6 @@ export default function Catalog() {
     setEPrice(m.price != null ? String(m.price) : "");
     setEDesc(m.description || "");
     setEPrep(m.prep_time || "");
-    setECat(m.category_id || "");
     setESides(
       sides
         .filter((x) => x.meal_id === m.id)
@@ -160,7 +109,6 @@ export default function Catalog() {
         name: eName.trim(),
         price: Number(ePrice),
         description: eDesc.trim() || null,
-        category_id: eCat || null,
         prep_time: ePrep.trim() || null,
       })
       .eq("id", editingId);
@@ -198,37 +146,7 @@ export default function Catalog() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.adminBg }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      <Text style={{ fontFamily: fonts.title, fontSize: 18, color: colors.adminText }}>Categories</Text>
-      <Field value={catName} onChangeText={setCatName} placeholder="Category name" />
-      <View style={{ height: 8 }} />
-      <PhotoPicker folder="categories" uri={catImage} name={catName || "Category"} onChange={setCatImage} height={110} />
-      <PrimaryButton label="Save category" onPress={addCategory} />
-      <View style={{ height: 12 }} />
-      {categories.map((c, i) => (
-        <View key={c.id} style={{ backgroundColor: colors.adminCard, borderWidth: 1, borderColor: colors.adminCardBorder, borderRadius: radius.md, padding: 12, marginBottom: 8 }}>
-          <Text style={{ fontFamily: fonts.title, marginBottom: 8, color: colors.adminText }}>{c.name}</Text>
-          <PhotoPicker folder={`categories/${c.id}`} uri={c.image_url} name={c.name} onChange={(url) => saveCategoryPhoto(c, url)} height={110} />
-          <View style={{ flexDirection: "row", gap: 18 }}>
-            {i > 0 ? <Pressable onPress={() => moveCategory(i, -1)}><Text style={{ fontFamily: fonts.bodySemi, color: ui.red }}>Move up</Text></Pressable> : null}
-            {i < categories.length - 1 ? <Pressable onPress={() => moveCategory(i, 1)}><Text style={{ fontFamily: fonts.bodySemi, color: ui.red }}>Move down</Text></Pressable> : null}
-            <View style={{ flex: 1 }} />
-            <Pressable onPress={() => deleteCategory(c)}><Text style={{ fontFamily: fonts.bodySemi, color: "#D32F2F" }}>Delete</Text></Pressable>
-          </View>
-        </View>
-      ))}
-
       <Text style={{ fontFamily: fonts.title, fontSize: 18, marginTop: 10, color: colors.adminText }}>Add meal</Text>
-      <Text style={{ fontFamily: fonts.bodySemi, marginBottom: 8, color: colors.adminText }}>Choose category</Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-        {categories.map((c) => {
-          const on = categoryId === c.id;
-          return (
-            <Pressable key={c.id} onPress={() => setCategoryId(c.id)} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: on ? "#FFF8E1" : "#fff", borderWidth: 2, borderColor: on ? "#F4B400" : "#EBEBEF" }}>
-              <Text style={{ fontFamily: on ? fonts.title : fonts.body, color: "#1C1B26" }}>{c.name}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
       <View style={{ height: 8 }} />
       <Field value={name} onChangeText={setName} placeholder="Meal name" />
       <View style={{ height: 8 }} />
@@ -263,16 +181,7 @@ export default function Catalog() {
               <Field value={eSides} onChangeText={setESides} placeholder="Included sides, comma separated" />
               <View style={{ height: 8 }} />
               <Field value={ePrep} onChangeText={setEPrep} placeholder="Preparation time (optional)" />
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginVertical: 10 }}>
-                {categories.map((c) => {
-                  const on = eCat === c.id;
-                  return (
-                    <Pressable key={c.id} onPress={() => setECat(c.id)} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: on ? "#FFF8E1" : "#fff", borderWidth: 2, borderColor: on ? "#F4B400" : "#EBEBEF" }}>
-                      <Text style={{ fontFamily: on ? fonts.title : fonts.body, color: "#1C1B26" }}>{c.name}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              <View style={{ height: 10 }} />
               <PrimaryButton label="Save changes" onPress={saveEdit} />
               <Pressable onPress={() => setEditingId(null)} style={{ marginTop: 10, alignItems: "center" }}>
                 <Text style={{ fontFamily: fonts.bodySemi, color: colors.adminMuted }}>Cancel</Text>

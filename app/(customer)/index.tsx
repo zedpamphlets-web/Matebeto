@@ -214,7 +214,7 @@ export default function Home() {
                           <View style={styles.metaRow}>
                             <Ionicons name="storefront-outline" size={12} color={ui.sub} />
                             <Text style={styles.cardMeta} numberOfLines={1}>
-                              {countLabel(vendorCount(m.id), "active vendor", "active vendors")}
+                              {countLabel(vendorCount(m.id), "restaurant", "restaurants")}
                             </Text>
                           </View>
                         </View>

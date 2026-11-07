@@ -47,8 +47,8 @@ export async function startRiderSearch(orderId: string) {
 
 export const TRACK_STEPS = [
   { key: "CREATED", label: "Order received" },
-  { key: "SEARCHING_VENDOR", label: "Looking for Chef" },
-  { key: "VENDOR_ACCEPTED", label: "Chef confirmed" },
+  { key: "SEARCHING_VENDOR", label: "Waiting for restaurant" },
+  { key: "VENDOR_ACCEPTED", label: "Restaurant confirmed" },
   { key: "PREPARING", label: "Preparing your order" },
   { key: "RIDER_ASSIGNED", label: "Rider confirmed" },
   { key: "PICKED_UP", label: "Order confirmed" },

@@ -27,6 +27,20 @@ function payoutLabel(status: string) {
   return "Waiting";
 }
 
+/** Sends the customer's money back to the number they paid with, through Lipila. */
+async function refundCustomer(orderId: string): Promise<string> {
+  const { data, error } = await supabase.functions.invoke("send-refund", { body: { orderId } });
+  if (error) {
+    let msg = error.message;
+    try {
+      const body = await (error as any).context?.json?.();
+      if (body?.error) msg = body.error;
+    } catch {}
+    throw new Error(msg);
+  }
+  return `Refund of ${formatKw(data?.amount)} sent to ${data?.sentTo}.`;
+}
+
 export default function AdminOrders() {
   const [rows, setRows] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
@@ -207,12 +221,36 @@ export default function AdminOrders() {
                 </Pressable>
               )}
               {o.payment_status === "refund_pending" && (
-                <Pressable
-                  onPress={() => confirm("Mark refunded?", "Only do this after you sent the money back to the customer.", () => action("admin_mark_refunded", o.id, "Marked refunded."))}
-                  style={chip}
-                >
-                  <Text style={{ fontFamily: fonts.bodySemi, color: ui.red }}>Mark refunded</Text>
-                </Pressable>
+                <>
+                  <Pressable
+                    onPress={() =>
+                      confirm(
+                        "Refund customer?",
+                        `${formatKw(o.total)} will be sent from Lipila to ${o.payment_phone || "the customer's mobile money"}. This cannot be undone.`,
+                        async () => {
+                          try {
+                            const msg = await refundCustomer(o.id);
+                            Alert.alert("Refunded", msg);
+                          } catch (e: any) {
+                            Alert.alert("Refund", e?.message || "Could not send the refund.");
+                          }
+                          load();
+                        }
+                      )
+                    }
+                    style={[chip, { backgroundColor: ui.red }]}
+                  >
+                    <Text style={{ fontFamily: fonts.bodySemi, color: "#fff" }}>
+                      {o.refund_status === "FAILED" ? "Retry refund" : o.refund_status === "PROCESSING" ? "Sending refund..." : "Refund customer"}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => confirm("Mark refunded?", "Only do this if you already sent the money back by hand.", () => action("admin_mark_refunded", o.id, "Marked refunded."))}
+                    style={chip}
+                  >
+                    <Text style={{ fontFamily: fonts.bodySemi, color: ui.red }}>Paid by hand</Text>
+                  </Pressable>
+                </>
               )}
               {open && (
                 <Pressable

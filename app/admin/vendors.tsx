@@ -6,6 +6,8 @@ import { colors, fonts, radius } from "@/lib/theme";
 import { Field } from "@/components/ui";
 import { AdminButton as PrimaryButton } from "@/components/admin-ui";
 import { PhotoPicker } from "@/components/photo-picker";
+import { Photo } from "@/components/photo";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function Vendors() {
   const [rows, setRows] = useState<any[]>([]);
@@ -19,6 +21,9 @@ export default function Vendors() {
   const [payout, setPayout] = useState("");
   const [payoutEdit, setPayoutEdit] = useState<Record<string, string>>({});
   const [marketId, setMarketId] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [openSec, setOpenSec] = useState<Record<string, string>>({});
   // what customers see on the restaurant page: photo, stand, cuisine, rating, description
   const [info, setInfo] = useState<Record<string, Record<string, string>>>({});
   const [priceEdit, setPriceEdit] = useState<Record<string, string>>({});
@@ -99,7 +104,7 @@ export default function Vendors() {
 
   async function add() {
     if (!name.trim() || !whatsapp.trim() || !marketId) {
-      return Alert.alert("Vendor", "Name, WhatsApp and market are required.");
+      return Alert.alert("Restaurant", "Name, WhatsApp and market are required.");
     }
     const { error } = await supabase.from("vendors").insert({
       name: name.trim(),
@@ -116,6 +121,7 @@ export default function Vendors() {
     setContact("");
     setWhatsapp("");
     setPayout("");
+    setShowAdd(false);
     load();
   }
 
@@ -151,102 +157,179 @@ export default function Vendors() {
 
   if (loading && rows.length === 0) return <View style={{ flex: 1, backgroundColor: colors.adminBg, padding: 16 }}><ListSkeleton /></View>;
 
+  const sec = (v: any) => openSec[v.id] || "";
+  const toggleSec = (v: any, name: string) => setOpenSec((m) => ({ ...m, [v.id]: m[v.id] === name ? "" : name }));
+  const mealCount = (v: any) => links.filter((l) => l.vendor_id === v.id).length;
+
+  const Row = ({ v, name, icon, title, hint }: { v: any; name: string; icon: any; title: string; hint?: string }) => (
+    <Pressable
+      onPress={() => toggleSec(v, name)}
+      style={{ flexDirection: "row", alignItems: "center", paddingVertical: 14, borderTopWidth: 1, borderTopColor: colors.adminCardBorder }}
+    >
+      <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: "#FDECEE", alignItems: "center", justifyContent: "center", marginRight: 12 }}>
+        <Ionicons name={icon} size={18} color="#D6263A" />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontFamily: fonts.title, fontSize: 14.5, color: colors.adminText }}>{title}</Text>
+        {hint ? <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.adminMuted, marginTop: 1 }}>{hint}</Text> : null}
+      </View>
+      <Ionicons name={sec(v) === name ? "chevron-up" : "chevron-down"} size={18} color={colors.adminMuted} />
+    </Pressable>
+  );
+
+  const label = { fontFamily: fonts.bodySemi, fontSize: 12.5, color: colors.adminMuted, marginTop: 10, marginBottom: 6 } as const;
+
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.adminBg }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      <Text style={{ fontFamily: fonts.title, fontSize: 18, color: colors.adminText }}>Add vendor</Text>
-      <Field value={name} onChangeText={setName} placeholder="Vendor name" />
-      <View style={{ height: 8 }} />
-      <Field value={contact} onChangeText={setContact} placeholder="Contact person" />
-      <View style={{ height: 8 }} />
-      <Field value={whatsapp} onChangeText={setWhatsapp} placeholder="WhatsApp 2609..." />
-      <View style={{ height: 8 }} />
-      <Field value={payout} onChangeText={setPayout} placeholder="Mobile money number for payments (optional)" keyboardType="phone-pad" />
-      <Text style={{ marginVertical: 8, color: colors.adminMuted, fontFamily: fonts.body }}>Market</Text>
-      {markets.map((m) => (
-        <Pressable key={m.id} onPress={() => setMarketId(m.id)}>
-          <Text style={{ fontFamily: marketId === m.id ? fonts.title : fonts.body, marginBottom: 4, color: marketId === m.id ? colors.customerDeep : colors.ink }}>
-            {m.name}
-          </Text>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <View>
+          <Text style={{ fontFamily: fonts.title, fontSize: 20, color: colors.adminText }}>Restaurants</Text>
+          <Text style={{ fontFamily: fonts.body, fontSize: 12.5, color: colors.adminMuted }}>{rows.length} in total</Text>
+        </View>
+        <Pressable onPress={() => setShowAdd((x) => !x)} style={{ backgroundColor: "#D6263A", borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10 }}>
+          <Text style={{ fontFamily: fonts.bodySemi, color: "#fff" }}>{showAdd ? "Close" : "+ Add restaurant"}</Text>
         </Pressable>
-      ))}
-      <View style={{ height: 10 }} />
-      <PrimaryButton label="Save vendor" onPress={add} />
-      <View style={{ height: 16 }} />
-      {rows.length === 0 && <Text style={{ color: colors.adminMuted, fontFamily: fonts.body }}>No vendors yet.</Text>}
-      {rows.map((v) => (
-        <View key={v.id} style={{ backgroundColor: colors.adminCard, borderWidth: 1, borderColor: colors.adminCardBorder, borderRadius: radius.md, padding: 12, marginBottom: 8 }}>
-          <Text style={{ fontFamily: fonts.title, color: colors.adminText }}>{v.name}</Text>
-          <Text style={{ color: colors.adminMuted, fontFamily: fonts.body }}>
-            {v.markets?.name} · {v.whatsapp}
-          </Text>
-          <Text style={{ marginTop: 10, marginBottom: 6, fontFamily: fonts.bodySemi }}>Restaurant page (what customers see)</Text>
-          <PhotoPicker folder={`restaurants/${v.id}`} uri={v.image_url} name={v.name} onChange={(url) => saveVendorPhoto(v, url)} height={120} />
-          <Field value={infoVal(v, "stand_number")} onChangeText={(t) => setInfoVal(v, "stand_number", t)} placeholder="Stand number, e.g. 12" />
-          <View style={{ height: 6 }} />
-          <Field value={infoVal(v, "cuisine")} onChangeText={(t) => setInfoVal(v, "cuisine", t)} placeholder="Cuisine, e.g. Traditional · Local Dishes" />
-          <View style={{ height: 6 }} />
-          <Field value={infoVal(v, "rating")} onChangeText={(t) => setInfoVal(v, "rating", t)} placeholder="Rating 0-5, e.g. 4.6 (leave empty to hide)" keyboardType="decimal-pad" />
-          <View style={{ height: 6 }} />
-          <Field value={infoVal(v, "rating_count")} onChangeText={(t) => setInfoVal(v, "rating_count", t)} placeholder="Number of ratings, e.g. 120" keyboardType="number-pad" />
-          <View style={{ height: 6 }} />
-          <Field value={infoVal(v, "description")} onChangeText={(t) => setInfoVal(v, "description", t)} placeholder="Short description" />
-          <View style={{ height: 10 }} />
-          <PrimaryButton label="Save restaurant details" onPress={() => saveInfo(v)} />
-          <Text style={{ marginTop: 14, fontFamily: fonts.bodySemi }}>Mobile money number for payments</Text>
-          <Field
-            value={payoutEdit[v.id] ?? v.payout_number ?? ""}
-            onChangeText={(t) => setPayoutEdit((m) => ({ ...m, [v.id]: t }))}
-            placeholder={v.phone || v.whatsapp || "2609..."}
-            keyboardType="phone-pad"
-          />
-          {payoutEdit[v.id] !== undefined && payoutEdit[v.id] !== (v.payout_number ?? "") ? (
-            <Pressable onPress={() => savePayout(v)} style={{ marginTop: 6 }}>
-              <Text style={{ fontFamily: fonts.bodySemi, color: colors.customerDeep }}>Save number</Text>
-            </Pressable>
-          ) : null}
-          <Pressable onPress={() => toggle(v, "is_available")} style={{ marginTop: 8 }}>
-            <Text style={{ fontFamily: fonts.bodySemi, color: colors.customerDeep }}>
-              {v.is_available ? "Available for orders" : "Unavailable"}
-            </Text>
-          </Pressable>
-          <Text style={{ marginTop: 10, fontFamily: fonts.bodySemi }}>Meals this vendor can fulfil</Text>
-          {meals.length === 0 && (
-            <Text style={{ color: colors.adminMuted, fontFamily: fonts.body }}>Add meals in Menu first.</Text>
-          )}
-          <Text style={{ color: colors.adminMuted, fontFamily: fonts.body, fontSize: 12, marginBottom: 4 }}>
-            Tick a meal to put it on this restaurant's menu, then set its own price and food photo.
-          </Text>
-          {meals.map((meal) => {
-            const link = links.find((l) => l.vendor_id === v.id && l.meal_id === meal.id);
-            const on = !!link;
-            const key = `${v.id}:${meal.id}`;
-            return (
-              <View key={meal.id} style={{ paddingVertical: 4 }}>
-                <Pressable onPress={() => toggleMeal(v.id, meal.id, on)}>
-                  <Text style={{ fontFamily: fonts.body, color: on ? colors.customerDeep : colors.muted }}>
-                    {on ? "✓" : "○"} {meal.name}
-                  </Text>
+      </View>
+
+      {showAdd ? (
+        <View style={{ backgroundColor: colors.adminCard, borderWidth: 1, borderColor: colors.adminCardBorder, borderRadius: radius.md, padding: 14, marginBottom: 14 }}>
+          <Text style={{ fontFamily: fonts.title, fontSize: 16, color: colors.adminText, marginBottom: 4 }}>New restaurant</Text>
+          <Text style={label}>Restaurant name</Text>
+          <Field value={name} onChangeText={setName} placeholder="e.g. Mama Choice" />
+          <Text style={label}>Contact person</Text>
+          <Field value={contact} onChangeText={setContact} placeholder="Name of the owner or cook" />
+          <Text style={label}>WhatsApp number (orders are sent here)</Text>
+          <Field value={whatsapp} onChangeText={setWhatsapp} placeholder="2609..." keyboardType="phone-pad" />
+          <Text style={label}>Mobile money number for payments (optional)</Text>
+          <Field value={payout} onChangeText={setPayout} placeholder="2609..." keyboardType="phone-pad" />
+          <Text style={label}>Market</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {markets.map((m) => {
+              const on = marketId === m.id;
+              return (
+                <Pressable key={m.id} onPress={() => setMarketId(m.id)} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: on ? "#D6263A" : colors.adminCardBorder, backgroundColor: on ? "#FDECEE" : "#fff" }}>
+                  <Text style={{ fontFamily: on ? fonts.title : fonts.body, color: on ? "#D6263A" : colors.adminText }}>{m.name}</Text>
                 </Pressable>
-                {on ? (
-                  <View style={{ marginLeft: 20, marginTop: 6 }}>
+              );
+            })}
+          </View>
+          <View style={{ height: 14 }} />
+          <PrimaryButton label="Save restaurant" onPress={add} />
+          <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.adminMuted, marginTop: 8 }}>
+            After saving, open it to add the photo, stand, rating and its menu.
+          </Text>
+        </View>
+      ) : null}
+
+      {rows.length === 0 && <Text style={{ color: colors.adminMuted, fontFamily: fonts.body }}>No restaurants yet.</Text>}
+
+      {rows.map((v) => {
+        const open = openId === v.id;
+        return (
+          <View key={v.id} style={{ backgroundColor: colors.adminCard, borderWidth: 1, borderColor: colors.adminCardBorder, borderRadius: radius.md, marginBottom: 12, paddingHorizontal: 14 }}>
+            <Pressable onPress={() => setOpenId(open ? null : v.id)} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 14 }}>
+              <View style={{ width: 56, height: 56, borderRadius: 14, overflow: "hidden", marginRight: 12 }}>
+                <Photo uri={v.image_url} name={v.name} width={56} height={56} hideLabel />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: fonts.title, fontSize: 16, color: colors.adminText }} numberOfLines={1}>{v.name}</Text>
+                <Text style={{ fontFamily: fonts.body, fontSize: 12.5, color: colors.adminMuted, marginTop: 2 }} numberOfLines={1}>
+                  {[v.markets?.name, v.stand_number ? `Stand ${String(v.stand_number).replace(/^stand\s*/i, "")}` : ""].filter(Boolean).join(" · ")}
+                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4, gap: 6 }}>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: v.is_available ? "#1F9D55" : "#9A9AA6" }} />
+                  <Text style={{ fontFamily: fonts.bodySemi, fontSize: 12, color: v.is_available ? "#1F9D55" : colors.adminMuted }}>
+                    {v.is_available ? "Open for orders" : "Closed"} · {mealCount(v)} meals
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name={open ? "chevron-up" : "chevron-down"} size={20} color={colors.adminMuted} />
+            </Pressable>
+
+            {open ? (
+              <View>
+                <Row v={v} name="page" icon="storefront-outline" title="Restaurant page" hint="Photo, stand, cuisine, rating" />
+                {sec(v) === "page" ? (
+                  <View style={{ paddingBottom: 14 }}>
+                    <Text style={label}>Photo customers see</Text>
+                    <PhotoPicker folder={`restaurants/${v.id}`} uri={v.image_url} name={v.name} onChange={(url) => saveVendorPhoto(v, url)} height={120} />
+                    <Text style={label}>Stand number</Text>
+                    <Field value={infoVal(v, "stand_number")} onChangeText={(t) => setInfoVal(v, "stand_number", t)} placeholder="e.g. 12" />
+                    <Text style={label}>Cuisine</Text>
+                    <Field value={infoVal(v, "cuisine")} onChangeText={(t) => setInfoVal(v, "cuisine", t)} placeholder="e.g. Traditional · Local Dishes" />
+                    <Text style={label}>Rating (0 to 5, empty hides it)</Text>
+                    <Field value={infoVal(v, "rating")} onChangeText={(t) => setInfoVal(v, "rating", t)} placeholder="e.g. 4.6" keyboardType="decimal-pad" />
+                    <Text style={label}>Number of ratings</Text>
+                    <Field value={infoVal(v, "rating_count")} onChangeText={(t) => setInfoVal(v, "rating_count", t)} placeholder="e.g. 120" keyboardType="number-pad" />
+                    <Text style={label}>Short description</Text>
+                    <Field value={infoVal(v, "description")} onChangeText={(t) => setInfoVal(v, "description", t)} placeholder="One or two lines" />
+                    <View style={{ height: 12 }} />
+                    <PrimaryButton label="Save restaurant details" onPress={() => saveInfo(v)} />
+                  </View>
+                ) : null}
+
+                <Row v={v} name="contact" icon="logo-whatsapp" title="Orders and payments" hint={v.whatsapp || "WhatsApp and payout number"} />
+                {sec(v) === "contact" ? (
+                  <View style={{ paddingBottom: 14 }}>
+                    <Text style={label}>Orders go to this WhatsApp: {v.whatsapp}</Text>
+                    <Text style={label}>Mobile money number for payouts</Text>
                     <Field
-                      value={priceEdit[key] ?? (link.price == null ? "" : String(link.price))}
-                      onChangeText={(t) => setPriceEdit((m) => ({ ...m, [key]: t }))}
-                      placeholder={`Price in K (empty = ${Number(meal.price)})`}
-                      keyboardType="decimal-pad"
+                      value={payoutEdit[v.id] ?? v.payout_number ?? ""}
+                      onChangeText={(t) => setPayoutEdit((m) => ({ ...m, [v.id]: t }))}
+                      placeholder={v.phone || v.whatsapp || "2609..."}
+                      keyboardType="phone-pad"
                     />
-                    <Pressable onPress={() => saveMealPrice(v, meal.id, Number(meal.price))} style={{ marginTop: 6, marginBottom: 6, backgroundColor: colors.customerDeep, borderRadius: 10, paddingVertical: 10, alignItems: "center" }}>
-                      <Text style={{ fontFamily: fonts.bodySemi, color: "#fff" }}>Save price</Text>
+                    <View style={{ height: 10 }} />
+                    <PrimaryButton label="Save number" onPress={() => savePayout(v)} />
+                    <Pressable onPress={() => toggle(v, "is_available")} style={{ marginTop: 14, flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <Ionicons name={v.is_available ? "toggle" : "toggle-outline"} size={30} color={v.is_available ? "#1F9D55" : "#9A9AA6"} />
+                      <Text style={{ fontFamily: fonts.bodySemi, color: colors.adminText }}>{v.is_available ? "Open for orders" : "Closed (no orders)"}</Text>
                     </Pressable>
-                    <View style={{ height: 6 }} />
-                    <PhotoPicker folder={`restaurants/${v.id}/meals`} uri={link.image_url} name={meal.name} onChange={(url) => saveMealPhoto(v, meal.id, url)} height={90} />
+                  </View>
+                ) : null}
+
+                <Row v={v} name="menu" icon="restaurant-outline" title="Menu and prices" hint={`${mealCount(v)} meals · own prices and photos`} />
+                {sec(v) === "menu" ? (
+                  <View style={{ paddingBottom: 14 }}>
+                    {meals.length === 0 && <Text style={{ color: colors.adminMuted, fontFamily: fonts.body }}>Add meals in Menu first.</Text>}
+                    <Text style={{ color: colors.adminMuted, fontFamily: fonts.body, fontSize: 12, marginBottom: 6 }}>
+                      Tick a meal to put it on this restaurant's menu, then set its own price and food photo.
+                    </Text>
+                    {meals.map((meal) => {
+                      const link = links.find((l) => l.vendor_id === v.id && l.meal_id === meal.id);
+                      const on = !!link;
+                      const key = `${v.id}:${meal.id}`;
+                      return (
+                        <View key={meal.id} style={{ borderWidth: 1, borderColor: colors.adminCardBorder, borderRadius: radius.md, padding: 12, marginTop: 8 }}>
+                          <Pressable onPress={() => toggleMeal(v.id, meal.id, on)} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                            <Ionicons name={on ? "checkbox" : "square-outline"} size={22} color={on ? "#D6263A" : colors.adminMuted} />
+                            <Text style={{ fontFamily: fonts.title, fontSize: 14.5, color: colors.adminText }}>{meal.name}</Text>
+                          </Pressable>
+                          {on ? (
+                            <View style={{ marginTop: 8 }}>
+                              <Text style={label}>This restaurant's price in K (empty = {Number(meal.price)})</Text>
+                              <Field
+                                value={priceEdit[key] ?? (link.price == null ? "" : String(link.price))}
+                                onChangeText={(t) => setPriceEdit((m) => ({ ...m, [key]: t }))}
+                                placeholder={String(Number(meal.price))}
+                                keyboardType="decimal-pad"
+                              />
+                              <View style={{ height: 8 }} />
+                              <PrimaryButton label="Save price" onPress={() => saveMealPrice(v, meal.id, Number(meal.price))} />
+                              <Text style={label}>Food photo</Text>
+                              <PhotoPicker folder={`restaurants/${v.id}/meals`} uri={link.image_url} name={meal.name} onChange={(url) => saveMealPhoto(v, meal.id, url)} height={90} />
+                            </View>
+                          ) : null}
+                        </View>
+                      );
+                    })}
                   </View>
                 ) : null}
               </View>
-            );
-          })}
-        </View>
-      ))}
+            ) : null}
+          </View>
+        );
+      })}
     </ScrollView>
   );
 }

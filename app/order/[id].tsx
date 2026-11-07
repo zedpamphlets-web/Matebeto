@@ -85,7 +85,7 @@ export default function OrderTrack() {
       } else if (data?.ok === false && data?.reason === "NOT_RETRYABLE") {
         // the order has already moved on
       } else {
-        Alert.alert("Searching", data?.searching === "rider" ? "We are looking for a rider." : "We are looking for a chef.");
+        Alert.alert("Searching", data?.searching === "rider" ? "We are looking for a rider." : "We are waiting for the restaurant.");
       }
     } catch (e: any) {
       Alert.alert("Could not search", e?.message || "Please try again.");
