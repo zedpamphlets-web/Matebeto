@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { fonts, ui } from "@/lib/theme";
 
 /** Bell with a red unread count. The bell and number shake when new notifications arrive. */
-export function NotificationBell() {
+export function NotificationBell({ light }: { light?: boolean } = {}) {
   const [count, setCount] = useState(0);
   const prev = useRef(0);
   const shake = useRef(new Animated.Value(0)).current;
@@ -83,10 +83,10 @@ export function NotificationBell() {
       onPress={() => router.push("/(customer)/notifications")}
       hitSlop={12}
       accessibilityLabel={count > 0 ? `Notifications, ${count} unread` : "Notifications"}
-      style={s.bell}
+      style={[s.bell, light && { backgroundColor: "rgba(255,255,255,0.18)" }]}
     >
       <Animated.View style={{ transform: [{ rotate }] }}>
-        <Ionicons name="notifications" size={22} color={ui.ink} />
+        <Ionicons name="notifications" size={22} color={light ? "#fff" : ui.ink} />
         {count > 0 ? (
           <View style={s.badge}>
             <Text style={s.badgeText}>{label}</Text>
@@ -116,7 +116,7 @@ const s = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: "#E5202E",
     borderWidth: 1.5,
-    borderColor: "#F5F5F7",
+    borderColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
   },

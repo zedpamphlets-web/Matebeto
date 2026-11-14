@@ -33,7 +33,7 @@ export default function Orders() {
   const list = tab === "current" ? current : past;
 
   return (
-    <MkScreen>
+    <MkScreen plain>
       <Text style={s.title}>My orders</Text>
       <View style={s.tabs}>
         {(["current", "past"] as const).map((t) => (

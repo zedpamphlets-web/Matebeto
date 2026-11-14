@@ -113,28 +113,30 @@ export default function Home() {
 
   return (
     <MkScreen>
-      <ScrollView contentContainerStyle={{ paddingBottom: 28 }} showsVerticalScrollIndicator={false}>
-        {/* Header: logo, bell, greeting, location */}
-        <View style={styles.top}>
-          <Image
-            source={require("../../assets/logo-wordmark-cropped.png")}
-            style={styles.logo}
-            contentFit="contain"
-            accessibilityLabel="Matebeto"
-          />
-          <NotificationBell />
+      {/* Header: logo, name, tagline, location, bell */}
+      <View style={styles.top}>
+        <Image source={require("../../assets/flame-white.png")} style={styles.flame} contentFit="contain" accessibilityLabel="Loko Cooks" />
+        <View style={{ flex: 1, marginLeft: 10 }}>
+          <Text style={styles.brand}>LOKO COOKS</Text>
+          <Text style={styles.tagline}>Discover. Order. Enjoy.</Text>
         </View>
-        <View style={{ paddingHorizontal: PAD, marginBottom: 12 }}>
+        <View style={styles.where}>
+          <Animated.View style={{ transform: [{ translateX: locAnim }] }}>
+            <Ionicons name="location-sharp" size={15} color="#fff" />
+          </Animated.View>
+          <Text style={styles.whereText}>{city}</Text>
+        </View>
+        <View style={{ marginLeft: 10 }}>
+          <NotificationBell light />
+        </View>
+      </View>
+
+      <ScrollView contentContainerStyle={{ paddingBottom: 28 }} showsVerticalScrollIndicator={false}>
+        <View style={{ paddingHorizontal: PAD, paddingTop: 16, marginBottom: 12 }}>
           <Text style={styles.greet}>
             {greeting()}
             {firstName ? `, ${firstName}` : ""} 👋
           </Text>
-          <View style={styles.where}>
-            <Animated.View style={{ transform: [{ translateX: locAnim }] }}>
-              <Ionicons name="location-sharp" size={15} color={ui.amber} />
-            </Animated.View>
-            <Text style={styles.whereText}>{city}</Text>
-          </View>
         </View>
 
         {/* Promotion: one static banner. Tapping it opens that restaurant's menu. */}
@@ -149,7 +151,7 @@ export default function Home() {
               <>
                 <Image source={{ uri: banner.uri }} style={styles.bannerFood} contentFit="cover" />
                 <LinearGradient
-                  colors={["rgba(64,20,43,0.92)", "rgba(64,20,43,0.55)", "rgba(64,20,43,0)"]}
+                  colors={["rgba(90,14,8,0.94)", "rgba(90,14,8,0.6)", "rgba(90,14,8,0)"]}
                   locations={[0, 0.5, 1]}
                   start={{ x: 0, y: 0.5 }}
                   end={{ x: 1, y: 0.5 }}
@@ -160,7 +162,7 @@ export default function Home() {
             <View style={styles.bannerCopy}>
               {banner.vendorId ? (
                 <View style={styles.pill}>
-                  <Text style={styles.pillText}>Featured</Text>
+                  <Text style={styles.pillText}>Featured Restaurant</Text>
                 </View>
               ) : null}
               {banner.label ? <Text style={styles.bannerLabel} numberOfLines={1}>{banner.label}</Text> : null}
@@ -170,7 +172,7 @@ export default function Home() {
               {banner.vendorId ? (
                 <View style={styles.bannerBtn}>
                   <Text style={styles.bannerBtnText}>{banner.button}</Text>
-                  <Ionicons name="chevron-forward" size={14} color={ui.ink} />
+                  <Ionicons name="chevron-forward" size={14} color="#fff" />
                 </View>
               ) : (
                 <View style={styles.bannerRule} />
@@ -227,13 +229,13 @@ export default function Home() {
 
               {promoOn ? (
                 <Pressable onPress={() => router.push("/(customer)/markets")} style={styles.promo}>
-                  <MaterialCommunityIcons name="storefront-outline" size={34} color={ui.amber} />
+                  <MaterialCommunityIcons name="storefront-outline" size={34} color={ui.btn} />
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={styles.promoTitle}>{promoTitle}</Text>
                     <Text style={styles.promoSub}>{promoSub}</Text>
                   </View>
                   <Text style={styles.promoLink}>View all markets</Text>
-                  <Ionicons name="chevron-forward" size={16} color={ui.amber} />
+                  <Ionicons name="chevron-forward" size={16} color={ui.btn} />
                 </Pressable>
               ) : null}
             </>
@@ -247,15 +249,16 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   top: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: PAD,
     paddingTop: 2,
-    marginBottom: 8,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    paddingBottom: 14,
+    backgroundColor: ui.red,
   },
-  logo: { width: 132, height: 57, marginLeft: -4 },
+  flame: { width: 40, height: 40 },
+  brand: { fontFamily: fonts.display, fontSize: 18, color: "#fff", letterSpacing: 0.4 },
+  tagline: { fontFamily: fonts.body, fontSize: 11, color: "rgba(255,255,255,0.85)", marginTop: 1 },
   bell: {
     width: 40,
     height: 40,
@@ -266,25 +269,25 @@ const styles = StyleSheet.create({
   },
   greet: { fontFamily: fonts.title, fontSize: 19, color: ui.ink },
   banner: { height: 190, borderRadius: 14, overflow: "hidden" },
-  pill: { alignSelf: "flex-start", backgroundColor: ui.amber, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 3, marginBottom: 6 },
-  pillText: { fontFamily: fonts.bodySemi, fontSize: 10, color: ui.ink },
+  pill: { alignSelf: "flex-start", backgroundColor: ui.btn, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 3, marginBottom: 6 },
+  pillText: { fontFamily: fonts.bodySemi, fontSize: 10, color: "#fff" },
   bannerLabel: { color: "#F3E7EC", fontFamily: fonts.bodySemi, fontSize: 11, marginBottom: 2 },
-  bannerBtn: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: ui.amber, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 7, marginTop: 10 },
-  bannerBtnText: { fontFamily: fonts.bodySemi, fontSize: 11.5, color: ui.ink },
+  bannerBtn: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: ui.btn, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 7, marginTop: 10 },
+  bannerBtnText: { fontFamily: fonts.bodySemi, fontSize: 11.5, color: "#fff" },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
-  promoLink: { fontFamily: fonts.bodySemi, fontSize: 11.5, color: ui.amber, marginRight: 2 },
+  promoLink: { fontFamily: fonts.bodySemi, fontSize: 11.5, color: ui.btn, marginRight: 2 },
   bannerFood: { ...StyleSheet.absoluteFillObject },
   bannerCopy: { flex: 1, justifyContent: "center", paddingHorizontal: 18, maxWidth: "64%" },
   bannerTitle: { color: "#fff", fontFamily: fonts.title, fontSize: 18, lineHeight: 23 },
   bannerSub: { color: "#F3E7EC", fontFamily: fonts.body, fontSize: 10, marginTop: 10 },
   bannerRule: { width: 38, height: 3, borderRadius: 2, backgroundColor: ui.amber, marginTop: 6 },
-  bannerAmount: { color: ui.amber, fontFamily: fonts.title, fontSize: 15, marginTop: 6 },
+  bannerAmount: { color: "#FFD27A", fontFamily: fonts.title, fontSize: 15, marginTop: 6 },
   dots: { flexDirection: "row", justifyContent: "center", gap: 6, marginTop: 10 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: ui.checkOff },
   dotOn: { backgroundColor: ui.red, width: 16 },
   section: { fontFamily: fonts.title, fontSize: 17, color: ui.ink, marginTop: 18 },
-  where: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
-  whereText: { fontFamily: fonts.bodySemi, fontSize: 13, color: ui.ink },
+  where: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(255,255,255,0.18)", borderRadius: 18, paddingHorizontal: 11, paddingVertical: 7 },
+  whereText: { fontFamily: fonts.bodySemi, fontSize: 13, color: "#fff" },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: GAP },
   card: {
     width: CARD_W,

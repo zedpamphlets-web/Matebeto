@@ -115,19 +115,17 @@ export default function MealDetail() {
 
   return (
     <MkScreen>
+      <MkHeader
+        title={meal.name}
+        subtitle={[clean(vendorName), clean(marketName)].filter(Boolean).join(" · ") || undefined}
+        right={<Text style={s.headPrice}>{kwShort(meal.price)}</Text>}
+      />
       <ScrollView ref={scroller} contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
-        <View>
-          <Photo uri={meal.image_url} name={meal.name} height={250} hideLabel />
-          <Pressable onPress={() => router.back()} style={s.backFab} hitSlop={10} accessibilityLabel="Go back">
-            <Ionicons name="chevron-back" size={22} color={ui.ink} />
-          </Pressable>
+        <View style={s.photoWrap}>
+          <Photo uri={meal.image_url} name={meal.name} height={210} hideLabel />
         </View>
 
         <View style={{ paddingHorizontal: 16 }}>
-          <View style={s.titleRow}>
-            <Text style={s.name}>{meal.name}</Text>
-            <Text style={s.price}>{kwShort(meal.price)}</Text>
-          </View>
           <Text style={s.desc}>{NSHIMA_LINE}</Text>
 
           <View style={s.rule} />
@@ -182,11 +180,13 @@ export default function MealDetail() {
 }
 
 const s = StyleSheet.create({
+  headPrice: { fontFamily: fonts.display, fontSize: 19, color: "#fff" },
+  photoWrap: { marginHorizontal: 16, marginTop: 14, borderRadius: 14, overflow: "hidden" },
   backFab: { position: "absolute", top: 10, left: 14, width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,0.92)", alignItems: "center", justifyContent: "center" },
   titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 16 },
   name: { fontFamily: fonts.display, fontSize: 22, color: ui.ink, flex: 1, paddingRight: 10 },
   price: { fontFamily: fonts.display, fontSize: 20, color: ui.red },
-  desc: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: ui.sub, marginTop: 6 },
+  desc: { fontFamily: fonts.body, fontSize: 13.5, lineHeight: 19, color: ui.sub, marginTop: 12 },
   rule: { height: 1, backgroundColor: ui.line, marginVertical: 16 },
   h: { fontFamily: fonts.title, fontSize: 15, color: ui.ink },
   hint: { fontFamily: fonts.body, fontSize: 12, color: ui.sub, marginTop: 3, marginBottom: 6 },

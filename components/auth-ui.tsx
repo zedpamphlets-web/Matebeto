@@ -41,7 +41,7 @@ export function AuthScreen({
             ) : (
               <View style={s.back} />
             )}
-            <Image source={require("../assets/logo-wordmark-cropped.png")} style={s.logo} resizeMode="contain" />
+            <Image source={require("../assets/flame-color.png")} style={s.logo} resizeMode="contain" />
             <View style={s.back} />
           </View>
 
@@ -73,7 +73,7 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#FFFFFF" },
   top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingTop: 8 },
   back: { width: 40, height: 40, justifyContent: "center" },
-  logo: { width: 150, height: 65 },
+  logo: { width: 52, height: 52 },
   body: { flex: 1, paddingHorizontal: 20, paddingTop: 44 },
   heading: {
     fontFamily: fonts.display,
@@ -85,6 +85,6 @@ const s = StyleSheet.create({
   },
   sub: { fontFamily: fonts.body, fontSize: 17, color: "#1C1B26", marginTop: 10 },
   bottom: { paddingHorizontal: 20, paddingBottom: 18, paddingTop: 10 },
-  button: { height: 54, borderRadius: 14, backgroundColor: "#D6263A", alignItems: "center", justifyContent: "center", marginTop: 14 },
+  button: { height: 54, borderRadius: 14, backgroundColor: "#E07A1F", alignItems: "center", justifyContent: "center", marginTop: 14 },
   buttonText: { fontFamily: fonts.title, fontSize: 16, color: "#FFFFFF" },
 });

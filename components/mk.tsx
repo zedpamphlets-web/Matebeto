@@ -3,24 +3,32 @@ import { Pressable, StyleProp, StyleSheet, Text, TextInput, View, ViewStyle } fr
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { fonts, ui } from "@/lib/theme";
 import { SpinPressable } from "@/components/spin-pressable";
 
-/** White customer screen. Dark status-bar icons so the clock and battery stay readable. */
+/**
+ * Customer screen. By default the top of the screen is the maroon header colour (light status-bar icons)
+ * and an MkHeader sits right under it. Screens that draw their own top use `plain`.
+ */
 export function MkScreen({
   children,
   edges = ["top"],
   style,
+  plain,
 }: {
   children: ReactNode;
   edges?: ("top" | "bottom" | "left" | "right")[];
   style?: StyleProp<ViewStyle>;
+  plain?: boolean;
 }) {
+  const insets = useSafeAreaInsets();
+  const top = edges.includes("top");
   return (
     <View style={[{ flex: 1, backgroundColor: ui.bg }, style]}>
-      <StatusBar style="dark" />
-      <SafeAreaView style={{ flex: 1 }} edges={edges}>
+      <StatusBar style={plain ? "dark" : "light"} />
+      {top && !plain ? <View style={{ height: insets.top, backgroundColor: ui.red }} /> : null}
+      <SafeAreaView style={{ flex: 1 }} edges={plain ? edges : edges.filter((e) => e !== "top")}>
         {children}
       </SafeAreaView>
     </View>
@@ -32,7 +40,7 @@ export function goBack(fallback: string = "/(customer)") {
   else router.replace(fallback as any);
 }
 
-/** Back arrow on the left, centred title (optional second line), one action on the right. */
+/** Maroon header: back arrow, title (optional second line) on the left, one action on the right. */
 export function MkHeader({
   title,
   subtitle,
@@ -46,8 +54,8 @@ export function MkHeader({
 }) {
   return (
     <View style={s.header}>
-      <Pressable onPress={onBack || (() => goBack())} hitSlop={12} style={s.side} accessibilityLabel="Go back">
-        <Ionicons name="chevron-back" size={24} color={ui.ink} />
+      <Pressable onPress={onBack || (() => goBack())} hitSlop={12} style={s.back} accessibilityLabel="Go back">
+        <Ionicons name="chevron-back" size={26} color="#fff" />
       </Pressable>
       <View style={s.titleWrap}>
         <Text style={s.title} numberOfLines={1}>
@@ -59,7 +67,7 @@ export function MkHeader({
           </Text>
         ) : null}
       </View>
-      <View style={[s.side, { alignItems: "flex-end" }]}>{right}</View>
+      <View style={s.right}>{right}</View>
     </View>
   );
 }
@@ -67,7 +75,7 @@ export function MkHeader({
 export function HeartButton({ on, onPress }: { on: boolean; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} hitSlop={12} accessibilityLabel={on ? "Remove from favourites" : "Add to favourites"}>
-      <Ionicons name={on ? "heart" : "heart-outline"} size={24} color={ui.red} />
+      <Ionicons name={on ? "heart" : "heart-outline"} size={24} color="#fff" />
     </Pressable>
   );
 }
@@ -188,11 +196,12 @@ export function MkStepper({
 }
 
 const s = StyleSheet.create({
-  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 6, paddingBottom: 12 },
-  side: { width: 44, justifyContent: "center" },
-  titleWrap: { flex: 1, alignItems: "center" },
-  title: { fontFamily: fonts.title, fontSize: 17, color: ui.ink },
-  subtitle: { fontFamily: fonts.bodySemi, fontSize: 12, color: ui.ink, marginTop: 1 },
+  header: { flexDirection: "row", alignItems: "center", paddingLeft: 10, paddingRight: 16, paddingTop: 4, paddingBottom: 14, backgroundColor: ui.red },
+  back: { width: 36, height: 36, justifyContent: "center" },
+  titleWrap: { flex: 1, paddingRight: 8 },
+  right: { minWidth: 28, alignItems: "flex-end", justifyContent: "center" },
+  title: { fontFamily: fonts.title, fontSize: 19, color: "#fff" },
+  subtitle: { fontFamily: fonts.body, fontSize: 12.5, color: "rgba(255,255,255,0.85)", marginTop: 1 },
   strip: {
     height: 52,
     backgroundColor: ui.redSoft,

@@ -73,7 +73,7 @@ export default function Job() {
     if (error) return Alert.alert("Could not check the code", error.message);
     if (!data?.ok) {
       if (data?.reason === "LOCKED_AFTER_5" || data?.reason === "LOCKED") {
-        Alert.alert("Too many wrong codes", "This delivery is locked. Matebeto support has been told and will contact you.");
+        Alert.alert("Too many wrong codes", "This delivery is locked. Loko Cooks support has been told and will contact you.");
         await load();
         return;
       }
@@ -165,7 +165,7 @@ export default function Job() {
 
         {order.status === "SUPPORT_REQUIRED" && (
           <View style={[s.card, { marginTop: 8 }]}>
-            <Text style={s.hint}>Matebeto support is looking at this delivery. Wait for their call.</Text>
+            <Text style={s.hint}>Loko Cooks support is looking at this delivery. Wait for their call.</Text>
           </View>
         )}
       </ScrollView>

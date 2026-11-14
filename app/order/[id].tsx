@@ -166,7 +166,7 @@ export default function OrderTrack() {
         <View style={{ backgroundColor: "#fff", borderRadius: radius.md, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: colors.line }}>
           <Text style={{ fontFamily: fonts.body, color: colors.ink }}>{notice}</Text>
           {(order.status === "NO_VENDOR_FOUND" || order.status === "NO_RIDER_AVAILABLE") && (
-            <Pressable onPress={tryAgain} style={{ marginTop: 12, backgroundColor: "#D6263A", paddingVertical: 13, borderRadius: 12, alignItems: "center" }}>
+            <Pressable onPress={tryAgain} style={{ marginTop: 12, backgroundColor: "#E07A1F", paddingVertical: 13, borderRadius: 12, alignItems: "center" }}>
               <Text style={{ fontFamily: fonts.title, color: "#fff" }}>Try again</Text>
             </Pressable>
           )}

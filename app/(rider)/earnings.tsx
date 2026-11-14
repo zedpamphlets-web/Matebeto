@@ -31,7 +31,7 @@ export default function Earnings() {
   const sum = rows.reduce((t, o) => t + Number(o.delivery_fee || 0), 0);
 
   return (
-    <MkScreen>
+    <MkScreen plain>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
         <Text style={s.title}>Earnings</Text>
         <View style={s.total}>

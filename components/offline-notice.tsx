@@ -40,7 +40,7 @@ export function OfflineNotice({ onRetry, dark }: { onRetry: () => void; dark?: b
       <Pressable
         onPress={onRetry}
         style={{
-          backgroundColor: "#D6263A",
+          backgroundColor: "#E07A1F",
           paddingHorizontal: 24,
           paddingVertical: 12,
           borderRadius: 14,

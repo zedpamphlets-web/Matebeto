@@ -25,3 +25,10 @@ What changed (customer side only)
 4. Markets show "N restaurants". Categories are gone from Admin. Admin > Restaurants has collapsible cards.
 5. Chosen restaurant does not accept (decline, no reply in the vendor timeout, or cannot fulfil): order is cancelled and marked refund pending.
    Admin > Orders > "Refund customer" sends the total back through Lipila to the number the customer paid with.
+
+## Update 3 (Loko Cooks rebrand)
+- App name is now "Loko Cooks" ("The Matebeto Online"). Package id, slug and scheme are unchanged so the store listing and EAS project stay the same.
+- New assets from the boss's files: icon (flame on white), adaptive icon (white background), full-screen white splash, in-app full-screen logo screen.
+- UI: maroon headers, orange action buttons, maroon active tab. Home has the maroon header with logo, LOKO COOKS, tagline and location.
+- Customer welcome screen no longer shows "I'm a rider": riders use the separate Loko Cooks Rider app (same Supabase).
+- Needs a NEW build (name, icon, splash and location changed).

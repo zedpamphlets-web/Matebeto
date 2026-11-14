@@ -120,13 +120,12 @@ export default function Basket() {
         right={
           hasItems ? (
             <Pressable onPress={confirmClear} hitSlop={12} accessibilityLabel="Clear basket">
-              <Ionicons name="trash-outline" size={22} color={ui.ink} />
+              <Ionicons name="trash-outline" size={22} color="#fff" />
             </Pressable>
           ) : null
         }
       />
-      <View style={s.hair} />
-      <ScrollView contentContainerStyle={{ paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={{ paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
         {offline ? (
           <OfflineNotice onRetry={load} />
         ) : loading ? (
@@ -178,7 +177,7 @@ export default function Basket() {
 
       {hasItems && !loading && !offline ? (
         <View style={s.footer}>
-          <RedButton label="Continue" chevron onPress={() => router.push("/(customer)/delivery")} />
+          <RedButton label="Proceed to Checkout" chevron onPress={() => router.push("/(customer)/delivery")} />
         </View>
       ) : null}
     </MkScreen>

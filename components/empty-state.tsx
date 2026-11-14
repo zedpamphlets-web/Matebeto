@@ -26,7 +26,7 @@ export function EmptyState({
           marginBottom: 16,
         }}
       >
-        <Ionicons name={icon} size={38} color="#D6263A" />
+        <Ionicons name={icon} size={38} color="#8A1C14" />
       </View>
       <Text style={{ fontFamily: fonts.title, fontSize: 18, color: colors.ink, textAlign: "center" }}>
         {title}

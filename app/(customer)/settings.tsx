@@ -90,7 +90,7 @@ export default function Settings() {
       if (data?.ok) {
         setDeleteOpen(false);
         await signOutApp();
-        Alert.alert("Account deleted", "Your data has been deleted from Matebeto.");
+        Alert.alert("Account deleted", "Your data has been deleted from Loko Cooks.");
         router.replace(LOGIN_ROUTE);
         return;
       }
@@ -215,7 +215,7 @@ export default function Settings() {
 
         <Text style={s.dangerTitle}>Danger zone</Text>
         <View style={s.dangerBox}>
-          <Text style={s.dangerText}>Deleting your account removes all your data on Matebeto. This cannot be undone.</Text>
+          <Text style={s.dangerText}>Deleting your account removes all your data on Loko Cooks. This cannot be undone.</Text>
           <Pressable
             onPress={() => {
               setConfirmPhone("");
@@ -233,7 +233,7 @@ export default function Settings() {
         <View style={s.overlay}>
           <View style={s.dialog}>
             <Text style={s.dialogTitle}>Delete your account?</Text>
-            <Text style={s.dialogText}>Please, we will delete all your data on Matebeto.</Text>
+            <Text style={s.dialogText}>Please, we will delete all your data on Loko Cooks.</Text>
             <Text style={[s.dialogText, { marginTop: 10 }]}>Enter your phone number to confirm.</Text>
             <View style={{ width: "100%", marginTop: 12 }}>
               <MkField value={confirmPhone} onChangeText={setConfirmPhone} placeholder="Your phone number" keyboardType="phone-pad" />

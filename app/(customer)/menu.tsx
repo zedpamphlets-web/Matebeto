@@ -85,10 +85,13 @@ export default function MenuDrawer() {
   });
 
   return (
-    <MkScreen>
+    <MkScreen plain>
       <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
         <View style={{ paddingHorizontal: 24, paddingTop: 12, paddingBottom: 24 }}>
-          <Image source={require("../../assets/logo-wordmark-cropped.png")} style={{ width: 132, height: 57, marginLeft: -4 }} contentFit="contain" />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <Image source={require("../../assets/flame-color.png")} style={{ width: 46, height: 46 }} contentFit="contain" />
+            <Text style={{ fontFamily: fonts.display, fontSize: 20, color: ui.ink, letterSpacing: 0.4 }}>LOKO COOKS</Text>
+          </View>
           <Text style={{ color: ui.sub, fontFamily: fonts.body, marginTop: 10 }}>
             {name || phone || "Signed in"}
           </Text>

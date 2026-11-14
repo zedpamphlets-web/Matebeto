@@ -1,5 +1,5 @@
 export const colors = {
-  gold: "#FCCC00", // Matebeto Yellow, taken from the approved logo file
+  gold: "#FCCC00", // Loko Cooks brand colours live in `ui` below
   goldDeep: "#E0B400",
   goldSoft: "#FFEE9A",
   ink: "#111111",
@@ -13,7 +13,7 @@ export const colors = {
   danger: "#E53935",
   good: "#1F9D55",
   track: "#111111",
-  night: "#0B2B1A", // Matebeto Deep Green
+  night: "#0B2B1A", 
   night2: "#08210F",
   field: "#123A24",
   glass: "rgba(255,255,255,0.08)",
@@ -52,16 +52,17 @@ export const ui = {
   ink: "#1C1B26",
   sub: "#6B6A78",
   hint: "#8E8D99",
-  red: "#D6263A",
-  /** Action buttons on the ordering screens: same as the original app red. */
-  btn: "#D6263A",
-  redDeep: "#B81F31",
-  redSoft: "#FBF0EC",
-  redLine: "#F4D9D6",
+  red: "#8A1C14", // Loko Cooks maroon (headers, active tab, prices)
+  /** Action buttons: Loko Cooks orange, from the approved mockups. */
+  btn: "#E07A1F",
+  redDeep: "#6E140E",
+  redSoft: "#FBEEEA",
+  redLine: "#F0D6D1",
   line: "#EEEDF0",
   field: "#F5F5F7",
-  banner: "#40142B",
+  banner: "#6B1510",
   promo: "#FFF8E6",
   amber: "#F4B400",
+  btnSoft: "#FDF1E3",
   checkOff: "#E3E2E8",
 };

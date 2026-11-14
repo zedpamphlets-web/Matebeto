@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   goldBtn: {
     height: 54,
     borderRadius: 14,
-    backgroundColor: "#D6263A",
+    backgroundColor: "#E07A1F",
     alignItems: "center",
     justifyContent: "center",
   },

@@ -127,28 +127,21 @@ export default function Welcome() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.copy}>
           <Image
-            source={require("../assets/logo-wordmark-cropped.png")}
-            style={{ width: 280, height: 121 }}
+            source={require("../assets/logo-loko-full.png")}
+            style={{ width: 230, height: 353 }}
             contentFit="contain"
+            accessibilityLabel="Loko Cooks"
           />
-          <Text style={styles.tag}>Good food, closer to you.</Text>
+          <Text style={styles.tag}>Discover. Order. Enjoy.</Text>
         </View>
         <View style={styles.actions}>
           <RoleButton
             filled
-            icon="person"
-            label="I'm a customer"
+            icon="restaurant"
+            label="Get started"
             onPress={() => {
               setGoing(true);
               setTimeout(() => router.push({ pathname: "/auth/phone", params: { mode: "customer" } }), 600);
-            }}
-          />
-          <RoleButton
-            icon="bicycle"
-            label="I'm a rider"
-            onPress={() => {
-              setGoing(true);
-              setTimeout(() => router.push({ pathname: "/auth/phone", params: { mode: "rider" } }), 600);
             }}
           />
         </View>
@@ -168,7 +161,7 @@ function RoleButton({
   label: string;
   onPress: () => void;
 }) {
-  const fg = filled ? "#FFFFFF" : "#D6263A";
+  const fg = filled ? "#FFFFFF" : "#E07A1F";
   return (
     <Pressable
       onPress={onPress}
@@ -183,7 +176,7 @@ function RoleButton({
 const styles = StyleSheet.create({
   retryWrap: { position: "absolute", bottom: 56, left: 0, right: 0, alignItems: "center" },
   retry: {
-    backgroundColor: "#D6263A",
+    backgroundColor: "#E07A1F",
     minWidth: 150,
     height: 52,
     alignItems: "center",
@@ -198,7 +191,7 @@ const styles = StyleSheet.create({
   tag: { marginTop: 6, color: "#6B6A78", fontFamily: fonts.body, fontSize: 16 },
   actions: { gap: 12 },
   role: { height: 54, borderRadius: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 },
-  roleFilled: { backgroundColor: "#D6263A" },
-  roleOutline: { backgroundColor: "#FFFFFF", borderWidth: 1.5, borderColor: "#D6263A" },
+  roleFilled: { backgroundColor: "#E07A1F" },
+  roleOutline: { backgroundColor: "#FFFFFF", borderWidth: 1.5, borderColor: "#E07A1F" },
   roleLabel: { fontFamily: fonts.title, fontSize: 16 },
 });

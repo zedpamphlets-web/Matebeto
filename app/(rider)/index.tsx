@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, AppState, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, Vibration, View } from "react-native";
+import { Alert, AppState, Image, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, Vibration, View } from "react-native";
 import * as Notifications from "expo-notifications";
 import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -130,6 +130,13 @@ export default function RiderHome() {
     const noApplication = !rider;
     return (
       <MkScreen>
+      <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: ui.red, paddingHorizontal: 16, paddingBottom: 14 }}>
+        <Image source={require("../../assets/flame-white.png")} style={{ width: 36, height: 36 }} resizeMode="contain" />
+        <View style={{ marginLeft: 10 }}>
+          <Text style={{ fontFamily: fonts.display, fontSize: 17, color: "#fff", letterSpacing: 0.4 }}>LOKO COOKS</Text>
+          <Text style={{ fontFamily: fonts.body, fontSize: 11.5, color: "rgba(255,255,255,0.85)" }}>Rider</Text>
+        </View>
+      </View>
         <View style={s.centre}>
           <View style={s.bigIcon}>
             <Ionicons name={noApplication ? "document-text-outline" : "time-outline"} size={34} color={ui.red} />
@@ -156,6 +163,13 @@ export default function RiderHome() {
 
   return (
     <MkScreen>
+      <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: ui.red, paddingHorizontal: 16, paddingBottom: 14 }}>
+        <Image source={require("../../assets/flame-white.png")} style={{ width: 36, height: 36 }} resizeMode="contain" />
+        <View style={{ marginLeft: 10 }}>
+          <Text style={{ fontFamily: fonts.display, fontSize: 17, color: "#fff", letterSpacing: 0.4 }}>LOKO COOKS</Text>
+          <Text style={{ fontFamily: fonts.body, fontSize: 11.5, color: "rgba(255,255,255,0.85)" }}>Rider</Text>
+        </View>
+      </View>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
         <View style={s.profile}>
           <View style={s.avatar}>

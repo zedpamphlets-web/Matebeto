@@ -32,7 +32,7 @@ export function Card({ children, style }: { children: ReactNode; style?: ViewSty
 export function PrimaryButton({
   label,
   onPress,
-  color = "#D6263A",
+  color = "#8A1C14",
   textColor,
   disabled,
   loading,
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  boxOn: { backgroundColor: "#D6263A", borderColor: "#D6263A" },
+  boxOn: { backgroundColor: "#8A1C14", borderColor: "#8A1C14" },
   checkLabel: { fontFamily: fonts.bodySemi, fontSize: 16, color: colors.ink },
   stepWrap: { flexDirection: "row", alignItems: "center", marginVertical: 12 },
   stepBtn: {

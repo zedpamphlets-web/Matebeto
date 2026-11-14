@@ -2,7 +2,7 @@ import { Image, Text, View } from "react-native";
 import { colors, fonts } from "@/lib/theme";
 
 /**
- * Matebeto wordmark (yellow, transparent background) for light pages.
+ * Loko Cooks wordmark (yellow, transparent background) for light pages.
  */
 export function BrandMark({
   size = 52,
@@ -24,7 +24,7 @@ export function BrandMark({
         source={require("../assets/logo-wordmark-clear.png")}
         style={{ width, height }}
         resizeMode="contain"
-        accessibilityLabel="Matebeto"
+        accessibilityLabel="Loko Cooks"
       />
       {showTag ? (
         <Text

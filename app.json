@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "Matebeto",
+    "name": "Loko Cooks",
     "slug": "matebeto2027",
     "owner": "matebeto2027s-team",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -14,8 +14,8 @@
     ],
     "splash": {
       "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#000000"
+      "resizeMode": "cover",
+      "backgroundColor": "#FFFFFF"
     },
     "androidStatusBar": {
       "backgroundColor": "#FFFFFF",
@@ -27,11 +27,16 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.siximages.matebeto",
-      "buildNumber": "6"
+      "buildNumber": "7",
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "cover",
+        "backgroundColor": "#FFFFFF"
+      }
     },
     "android": {
       "package": "com.siximages.matebeto",
-      "versionCode": 6,
+      "versionCode": 7,
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "INTERNET",
@@ -41,7 +46,12 @@
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#000000"
+        "backgroundColor": "#FFFFFF"
+      },
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "cover",
+        "backgroundColor": "#FFFFFF"
       }
     },
     "plugins": [
@@ -50,7 +60,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Matebeto uses your location to show how far each food market is from you."
+          "locationWhenInUsePermission": "Loko Cooks uses your location to show how far each food market is from you."
         }
       ],
       [
@@ -68,20 +78,20 @@
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
-          "color": "#F4A300"
+          "color": "#8A1C14"
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Matebeto to pick food and licence photos from your phone.",
-          "cameraPermission": "Allow Matebeto to take food, licence and rider photos."
+          "photosPermission": "Allow Loko Cooks to pick food and licence photos from your phone.",
+          "cameraPermission": "Allow Loko Cooks to take food, licence and rider photos."
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Matebeto to capture your rider photo inside the app.",
+          "cameraPermission": "Allow Loko Cooks to capture your rider photo inside the app.",
           "recordAudioAndroid": false
         }
       ]

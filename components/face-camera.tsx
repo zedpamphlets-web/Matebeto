@@ -54,7 +54,7 @@ export function FaceCamera({
           <CameraView ref={cameraRef} facing={facing} style={StyleSheet.absoluteFillObject} />
         ) : (
           <View style={styles.need}>
-            <Ionicons name="camera-outline" size={36} color="#D6263A" />
+            <Ionicons name="camera-outline" size={36} color="#8A1C14" />
             <Pressable onPress={requestPermission} style={styles.allow}>
               <Text style={styles.allowText}>Allow camera</Text>
             </Pressable>
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   needText: { color: "#6B6A78", textAlign: "center", fontFamily: fonts.body, lineHeight: 20 },
   allow: {
     marginTop: 6,
-    backgroundColor: "#D6263A",
+    backgroundColor: "#E07A1F",
     borderRadius: 999,
     paddingHorizontal: 18,
     paddingVertical: 10,
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 50,
     borderRadius: 14,
-    backgroundColor: "#D6263A",
+    backgroundColor: "#E07A1F",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

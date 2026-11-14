@@ -2,7 +2,7 @@ import { View, Text, StyleProp, ViewStyle, ImageSourcePropType } from "react-nat
 import { Image } from "expo-image";
 import { colors, fonts } from "@/lib/theme";
 
-/** Real uploaded photo, or a Matebeto colour tile. Never a stock image. */
+/** Real uploaded photo, or a Loko Cooks colour tile. Never a stock image. */
 export function Photo({
   uri,
   name,
@@ -51,7 +51,7 @@ export function Photo({
               }}
               numberOfLines={2}
             >
-              {name || "Matebeto"}
+              {name || "Loko Cooks"}
             </Text>
           ) : null}
         </View>

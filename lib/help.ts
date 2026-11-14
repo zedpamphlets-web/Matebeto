@@ -134,12 +134,12 @@ export const HELP_CATEGORIES: HelpCategory[] = [
       {
         id: "acc-notify",
         q: "I am not getting notifications",
-        a: "Open your phone Settings, find Matebeto and make sure notifications are turned on, including the Orders channel. Then open the app once while signed in.",
+        a: "Open your phone Settings, find Loko Cooks and make sure notifications are turned on, including the Orders channel. Then open the app once while signed in.",
       },
       {
         id: "acc-delete",
         q: "How do I delete my account?",
-        a: "Open Profile, then Account, and scroll to the Danger zone. Tap Delete my account and enter your phone number to confirm. This deletes your data on Matebeto. You cannot delete while an order or refund is still in progress.",
+        a: "Open Profile, then Account, and scroll to the Danger zone. Tap Delete my account and enter your phone number to confirm. This deletes your data on Loko Cooks. You cannot delete while an order or refund is still in progress.",
       },
     ],
   },
