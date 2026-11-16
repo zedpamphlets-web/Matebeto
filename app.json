@@ -3,7 +3,7 @@
     "name": "Loko Cooks",
     "slug": "matebeto2027",
     "owner": "matebeto2027s-team",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -13,8 +13,8 @@
       "android"
     ],
     "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
+      "image": "./assets/splash.png",
+      "resizeMode": "cover",
       "backgroundColor": "#FFFFFF"
     },
     "androidStatusBar": {
@@ -27,16 +27,16 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.siximages.matebeto",
-      "buildNumber": "7",
+      "buildNumber": "8",
       "splash": {
-        "image": "./assets/splash-icon.png",
-        "resizeMode": "contain",
+        "image": "./assets/splash.png",
+        "resizeMode": "cover",
         "backgroundColor": "#FFFFFF"
       }
     },
     "android": {
       "package": "com.siximages.matebeto",
-      "versionCode": 7,
+      "versionCode": 8,
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "INTERNET",
@@ -49,22 +49,13 @@
         "backgroundColor": "#FFFFFF"
       },
       "splash": {
-        "image": "./assets/splash-icon.png",
-        "resizeMode": "contain",
+        "image": "./assets/splash.png",
+        "resizeMode": "cover",
         "backgroundColor": "#FFFFFF"
       }
     },
     "plugins": [
       "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/splash-icon.png",
-          "imageWidth": 288,
-          "resizeMode": "contain",
-          "backgroundColor": "#FFFFFF"
-        }
-      ],
       "expo-secure-store",
       [
         "expo-location",

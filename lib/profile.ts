@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
 import { currentProfile } from "@/lib/session";
+import { ACCOUNT_KEY, clearAccountCache, setCachedAccount } from "@/lib/account-cache";
 
 /** Everything a customer keeps on their account. Saved in Supabase and also on the phone. */
 export type AccountDetails = {
@@ -25,7 +26,7 @@ export const EMPTY_ACCOUNT: AccountDetails = {
   payment_number: "",
 };
 
-const LOCAL_KEY = "matebeto.account.v1";
+const LOCAL_KEY = ACCOUNT_KEY;
 
 function fromRow(row: any, loginPhone: string): AccountDetails {
   return {
@@ -51,6 +52,7 @@ export async function readLocalAccount(): Promise<AccountDetails | null> {
 
 export async function clearLocalAccount() {
   await AsyncStorage.removeItem(LOCAL_KEY).catch(() => {});
+  await clearAccountCache();
 }
 
 /** Local copy first (instant, works offline), then the Supabase copy replaces it when it arrives. */
@@ -65,33 +67,17 @@ export async function loadAccount(): Promise<{ details: AccountDetails; fromServ
     if (!profile) return { details: local || fromRow(null, loginPhone), fromServer: false };
     const details = fromRow(profile, loginPhone);
     await AsyncStorage.setItem(LOCAL_KEY, JSON.stringify(details));
+    setCachedAccount(details);
     return { details, fromServer: true };
   } catch {
     return { details: local || EMPTY_ACCOUNT, fromServer: false };
   }
 }
 
-/**
- * Instant version for screens: reads only what is already on the phone (no internet), so the name and number
- * are there on the very first frame. Call loadAccount() afterwards to refresh from Supabase.
- */
-export async function loadAccountFast(): Promise<{ details: AccountDetails; loginPhone: string }> {
-  const local = await readLocalAccount();
-  let loginPhone = "";
-  try {
-    const { data } = await supabase.auth.getSession(); // saved on the phone, no network call
-    loginPhone = String(data?.session?.user?.phone || "");
-  } catch {
-    /* ignore */
-  }
-  const details = local || { ...EMPTY_ACCOUNT, contact_phone: loginPhone };
-  if (!details.contact_phone && loginPhone) details.contact_phone = loginPhone;
-  return { details, loginPhone };
-}
-
 /** Saves to Supabase (permanent) and to the phone. Throws if the server save fails. */
 export async function saveAccount(details: AccountDetails): Promise<{ savedOnServer: boolean }> {
   await AsyncStorage.setItem(LOCAL_KEY, JSON.stringify(details));
+  setCachedAccount(details);
   // keep the delivery screens in step with what the customer saved
   const addressLine = [details.plot_number && `Plot ${details.plot_number}`, details.address_text, details.location_area]
     .filter(Boolean)

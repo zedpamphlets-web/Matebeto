@@ -6,6 +6,7 @@ import { Image } from "expo-image";
 import { MkScreen } from "@/components/mk";
 import { LOGIN_ROUTE, currentProfile, signOutApp } from "@/lib/session";
 import { confirmDialog } from "@/components/confirm";
+import { cachedAccount, cachedFlags, setCachedFlags } from "@/lib/account-cache";
 import { fonts, ui } from "@/lib/theme";
 
 type Row = {
@@ -16,18 +17,21 @@ type Row = {
 };
 
 export default function MenuDrawer() {
-  const [phone, setPhone] = useState("");
-  const [name, setName] = useState("");
-  const [rider, setRider] = useState<any>(null);
-  const [admin, setAdmin] = useState(false);
+  const [phone, setPhone] = useState(cachedAccount()?.contact_phone || "");
+  const [name, setName] = useState(cachedAccount()?.full_name || "");
+  const [rider, setRider] = useState<any>(cachedFlags()?.rider ? { status: cachedFlags()!.rider } : null);
+  const [admin, setAdmin] = useState(!!cachedFlags()?.admin);
 
   useFocusEffect(
     useCallback(() => {
       currentProfile().then(({ user, profile, rider, admin }) => {
-        setPhone(String(user?.phone || profile?.phone || ""));
-        setName(profile?.full_name || "");
+        if (!user) return;
+        const freshPhone = String(user?.phone || profile?.phone || "");
+        if (freshPhone) setPhone(freshPhone);
+        if (profile?.full_name) setName(profile.full_name);
         setRider(rider);
         setAdmin(!!admin);
+        setCachedFlags({ rider: rider?.status ?? null, admin: !!admin });
       });
     }, [])
   );

@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
     const body = new URLSearchParams();
     body.set("username", username);
     body.set("to", String(phone));
-    body.set("message", `Matebeto code: ${otp}. Let's Eat.`);
+    body.set("message", `Loko Cooks code: ${otp}.`);
     if (from) body.set("from", from);
 
     const res = await fetch("https://api.africastalking.com/version1/messaging", {

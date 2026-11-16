@@ -24,7 +24,8 @@ import { supabase } from "@/lib/supabase";
 import { fonts, ui } from "@/lib/theme";
 import { formatKw } from "@/lib/lipila";
 import { useCachedLoad } from "@/lib/offline-cache";
-import { loadAccount, loadAccountFast } from "@/lib/profile";
+import { loadAccount } from "@/lib/profile";
+import { cachedFirstName } from "@/lib/account-cache";
 import { loadRestaurants, type Restaurant } from "@/lib/restaurants";
 import { marketDistanceKm, useCoords } from "@/lib/location";
 import { countLabel, distanceText, greeting } from "@/lib/format";
@@ -70,15 +71,13 @@ export default function Home() {
   const restaurantsQ = useCachedLoad<Restaurant[]>("home.restaurants", () => loadRestaurants(null));
   const restaurants = restaurantsQ.data || [];
   const me = useCoords();
-  const [firstName, setFirstName] = useState("");
+  const [firstName, setFirstName] = useState(cachedFirstName());
   useEffect(() => {
-    const first = (d: { full_name?: string }) => String(d.full_name || "").trim().split(/\s+/)[0] || "";
-    let alive = true;
-    loadAccountFast().then(({ details }) => alive && setFirstName(first(details))); // instant, from the phone
-    loadAccount().then(({ details }) => alive && setFirstName(first(details))).catch(() => {}); // then refresh
-    return () => {
-      alive = false;
-    };
+    loadAccount().then(({ details }) => {
+      // refresh quietly in the background; only change the screen if the name really changed
+      const fresh = String(details.full_name || "").trim().split(/\s+/)[0] || "";
+      if (fresh) setFirstName((cur) => (cur === fresh ? cur : fresh));
+    });
   }, []);
   const vendorCount = (marketId: string) => restaurants.filter((r) => r.market_id === marketId).length;
 

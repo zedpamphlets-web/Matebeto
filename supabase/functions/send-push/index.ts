@@ -79,7 +79,7 @@ async function buildBatches(db: any, payload: any): Promise<Batch[] | { skipped:
       .eq("id", String(payload.mealId || ""))
       .maybeSingle();
     if (!meal || !meal.is_available) return { skipped: "MEAL_HIDDEN" };
-    return [{ everyone: true, title: "New on Matebeto", body: `${meal.name} is now on the menu.`, path: "/(customer)", image: meal.image_url || null }];
+    return [{ everyone: true, title: "New on Loko Cooks", body: `${meal.name} is now on the menu.`, path: "/(customer)", image: meal.image_url || null }];
   }
 
   if (kind === "new_account") {
@@ -90,7 +90,7 @@ async function buildBatches(db: any, payload: any): Promise<Batch[] | { skipped:
     if (userId) {
       batches.push({
         userIds: [userId],
-        title: "Welcome to Matebeto",
+        title: "Welcome to Loko Cooks",
         body: "You have a new account. Complete your account details to start ordering.",
         path: "/(customer)/settings?edit=1",
       });
@@ -101,7 +101,7 @@ async function buildBatches(db: any, payload: any): Promise<Batch[] | { skipped:
       batches.push({
         userIds: adminIds,
         title: "New account",
-        body: `New ${platform} ${device} signed up to Matebeto.`,
+        body: `New ${platform} ${device} signed up to Loko Cooks.`,
         path: "/(customer)/notifications",
       });
     }

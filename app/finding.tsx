@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { writeCache } from "@/lib/offline-cache";
 import { withTimeout } from "@/lib/network";
 
-const SHOW_AT_LEAST_MS = 800;
+const SHOW_AT_LEAST_MS = 1600;
 
 /**
  * Shown right after login (and when the app opens with a saved login).

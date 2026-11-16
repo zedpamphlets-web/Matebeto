@@ -3,10 +3,10 @@ import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Tex
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { MkField, MkHeader, MkScreen, RedButton } from "@/components/mk";
-import { LoadingScreen } from "@/components/spinner";
 import { confirmDialog } from "@/components/confirm";
 import { LOGIN_ROUTE, currentProfile, signOutApp } from "@/lib/session";
-import { EMPTY_ACCOUNT, loadAccount, loadAccountFast, saveAccount, type AccountDetails } from "@/lib/profile";
+import { cachedAccount, cachedFlags, setCachedFlags } from "@/lib/account-cache";
+import { EMPTY_ACCOUNT, loadAccount, saveAccount, type AccountDetails } from "@/lib/profile";
 import { LIPILA_PROVIDERS } from "@/lib/lipila";
 import { supabase } from "@/lib/supabase";
 import { fonts, ui } from "@/lib/theme";
@@ -15,52 +15,40 @@ const hasDetails = (d: AccountDetails) =>
   !!(d.full_name || d.location_area || d.plot_number || d.address_text || d.payment_number);
 
 export default function Settings() {
-  const [form, setForm] = useState<AccountDetails>(EMPTY_ACCOUNT);
-  const [saved, setSaved] = useState<AccountDetails>(EMPTY_ACCOUNT);
-  const [editing, setEditing] = useState(false);
-  const [loginPhone, setLoginPhone] = useState("");
-  const [rider, setRider] = useState<any>(null);
-  const [admin, setAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [note, setNote] = useState("");
+  // What is saved on the phone is on screen straight away; the server copy only fills in what the person has not typed.
+  const start = cachedAccount();
+  const [form, setForm] = useState<AccountDetails>(start || EMPTY_ACCOUNT);
+  const [saved, setSaved] = useState<AccountDetails>(start || EMPTY_ACCOUNT);
   const { edit } = useLocalSearchParams<{ edit?: string }>();
+  const [editing, setEditing] = useState(!start || !hasDetails(start) || edit === "1");
+  const [loginPhone, setLoginPhone] = useState(start?.contact_phone || "");
+  const [rider, setRider] = useState<any>(cachedFlags()?.rider ? { status: cachedFlags()!.rider } : null);
+  const [admin, setAdmin] = useState(!!cachedFlags()?.admin);
+  const [note, setNote] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [confirmPhone, setConfirmPhone] = useState("");
   const [deleting, setDeleting] = useState(false);
-
-  const dirty = useRef(false); // true once the person has typed something: the server copy must never overwrite it
+  const dirty = useRef(false); // the person has typed something
   const firstLoad = useRef(true);
 
   useFocusEffect(
     useCallback(() => {
       let alive = true;
       (async () => {
-        if (edit === "1") setEditing(true);
-        // 1) show what is saved on the phone straight away (no waiting for Supabase)
-        if (firstLoad.current) {
-          const fast = await loadAccountFast();
-          if (!alive) return;
-          firstLoad.current = false;
-          if (!dirty.current) {
-            setForm(fast.details);
-            setSaved(fast.details);
-            setEditing(!hasDetails(fast.details) || edit === "1");
-          }
-          setLoginPhone(fast.loginPhone);
-          setLoading(false);
-        }
-        // 2) then quietly refresh from Supabase
         const [{ details }, session] = await Promise.all([loadAccount(), currentProfile()]);
         if (!alive) return;
-        if (!dirty.current) {
-          setForm(details);
-          setSaved(details);
-          if (edit !== "1") setEditing(!hasDetails(details));
+        setSaved(details);
+        if (!dirty.current) setForm(details);
+        if (firstLoad.current) {
+          firstLoad.current = false;
+          if (!dirty.current) setEditing(!hasDetails(details) || edit === "1"); // nothing saved yet (or sent here to complete it): open the form; otherwise show the card
         }
-        setLoginPhone(String(session.user?.phone || session.profile?.phone || ""));
-        setRider(session.rider);
-        setAdmin(!!session.admin);
-        setLoading(false);
+        if (session.user) {
+          setLoginPhone(String(session.user.phone || session.profile?.phone || ""));
+          setRider(session.rider);
+          setAdmin(!!session.admin);
+          setCachedFlags({ rider: session.rider?.status ?? null, admin: !!session.admin });
+        }
       })();
       return () => {
         alive = false;
@@ -76,8 +64,8 @@ export default function Settings() {
   async function save() {
     try {
       const { savedOnServer } = await saveAccount(form);
-      dirty.current = false;
       setSaved(form);
+      dirty.current = false;
       setEditing(false);
       setNote(savedOnServer ? "Saved to your account" : "Saved on this phone");
     } catch {
@@ -133,15 +121,6 @@ export default function Settings() {
     } finally {
       setDeleting(false);
     }
-  }
-
-  if (loading) {
-    return (
-      <MkScreen>
-        <MkHeader title="Account" />
-        <LoadingScreen />
-      </MkScreen>
-    );
   }
 
   const provider = LIPILA_PROVIDERS.find((p) => p.id === saved.payment_provider)?.label;

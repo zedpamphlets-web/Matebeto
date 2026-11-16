@@ -7,7 +7,7 @@ import { Inter_400Regular, Inter_600SemiBold } from "@expo-google-fonts/inter";
 import { Pacifico_400Regular } from "@expo-google-fonts/pacifico";
 import { PlayfairDisplay_400Regular_Italic } from "@expo-google-fonts/playfair-display";
 import * as SplashScreen from "expo-splash-screen";
-import { LaunchSplash } from "@/components/brand-splash";
+import { BrandSplash } from "@/components/brand-splash";
 import { ConfirmHost } from "@/components/confirm";
 import { AppErrorBoundary } from "@/components/error-boundary";
 import { startPush } from "@/lib/push";
@@ -25,12 +25,11 @@ export default function Root() {
     PlayfairDisplay_400Regular_Italic,
   });
 
-  // the phone's splash is hidden only once our own splash is on screen (LaunchSplash onShown), so there is no blank frame
+  // The opening screen (app/index) hides the phone's splash once its logo is drawn. This is only a safety net.
   useEffect(() => {
-    if (!(loaded || error)) return;
-    const t = setTimeout(() => SplashScreen.hideAsync().catch(() => {}), 1500); // safety net
+    const t = setTimeout(() => SplashScreen.hideAsync().catch(() => {}), 6000);
     return () => clearTimeout(t);
-  }, [loaded, error]);
+  }, []);
 
   useEffect(() => startPush(), []);
 
@@ -52,7 +51,7 @@ export default function Root() {
   }, []);
 
   if (!loaded && !error) {
-    return null; // the phone's own splash is still showing
+    return <BrandSplash staticBrand />;
   }
 
   return (
@@ -87,7 +86,6 @@ export default function Root() {
         />
       </Stack>
       </AppErrorBoundary>
-      <LaunchSplash onShown={() => requestAnimationFrame(() => SplashScreen.hideAsync().catch(() => {}))} />
     </>
   );
 }

@@ -32,3 +32,10 @@ What changed (customer side only)
 - UI: maroon headers, orange action buttons, maroon active tab. Home has the maroon header with logo, LOKO COOKS, tagline and location.
 - Customer welcome screen no longer shows "I'm a rider": riders use the separate Loko Cooks Rider app (same Supabase).
 - Needs a NEW build (name, icon, splash and location changed).
+
+## Update 4 (opening screen, names, typing)
+- One opening screen like the Airtel app: the phone shows the icon on white, then the full logo fades in once, a small spinner shows while the login is checked, then Home opens or the Get started button fades in under the same logo. No separate animation screen, no plate screen at start-up.
+- The saved name and menu rows are loaded from the phone while the logo shows, so the greeting and the Profile screen are filled the moment they open.
+- Account form: the server copy no longer overwrites what the person is typing; the shared text box keeps its own text.
+- Removed the knife and fork icon from Get started.
+- Server wording: send-push, send-sms, create-payment and send-refund now say Loko Cooks (redeploy these four).

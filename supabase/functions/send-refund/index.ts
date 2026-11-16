@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
       {
         referenceId: reference,
         amount: Number(order.total),
-        narration: `Matebeto refund order ${order.order_number}`,
+        narration: `Loko Cooks refund order ${order.order_number}`,
         accountNumber: number,
         currency: "ZMW",
       },

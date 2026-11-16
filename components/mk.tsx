@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { Pressable, StyleProp, StyleSheet, Text, TextInput, View, ViewStyle } from "react-native";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -147,10 +147,23 @@ export function MkField({
   placeholder: string;
   keyboardType?: any;
 }) {
+  // The box keeps its own text so typing is never held up (or wiped) by a slow screen or a late server answer.
+  const [text, setText] = useState(value);
+  const last = useRef(value);
+  useEffect(() => {
+    if (value !== last.current) {
+      last.current = value;
+      setText(value);
+    }
+  }, [value]);
   return (
     <TextInput
-      value={value}
-      onChangeText={onChangeText}
+      value={text}
+      onChangeText={(t) => {
+        last.current = t;
+        setText(t);
+        onChangeText(t);
+      }}
       placeholder={placeholder}
       placeholderTextColor={ui.hint}
       keyboardType={keyboardType}
