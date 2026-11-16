@@ -71,6 +71,24 @@ export async function loadAccount(): Promise<{ details: AccountDetails; fromServ
   }
 }
 
+/**
+ * Instant version for screens: reads only what is already on the phone (no internet), so the name and number
+ * are there on the very first frame. Call loadAccount() afterwards to refresh from Supabase.
+ */
+export async function loadAccountFast(): Promise<{ details: AccountDetails; loginPhone: string }> {
+  const local = await readLocalAccount();
+  let loginPhone = "";
+  try {
+    const { data } = await supabase.auth.getSession(); // saved on the phone, no network call
+    loginPhone = String(data?.session?.user?.phone || "");
+  } catch {
+    /* ignore */
+  }
+  const details = local || { ...EMPTY_ACCOUNT, contact_phone: loginPhone };
+  if (!details.contact_phone && loginPhone) details.contact_phone = loginPhone;
+  return { details, loginPhone };
+}
+
 /** Saves to Supabase (permanent) and to the phone. Throws if the server save fails. */
 export async function saveAccount(details: AccountDetails): Promise<{ savedOnServer: boolean }> {
   await AsyncStorage.setItem(LOCAL_KEY, JSON.stringify(details));

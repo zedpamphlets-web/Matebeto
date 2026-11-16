@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -6,7 +6,7 @@ import { MkField, MkHeader, MkScreen, RedButton } from "@/components/mk";
 import { LoadingScreen } from "@/components/spinner";
 import { confirmDialog } from "@/components/confirm";
 import { LOGIN_ROUTE, currentProfile, signOutApp } from "@/lib/session";
-import { EMPTY_ACCOUNT, loadAccount, saveAccount, type AccountDetails } from "@/lib/profile";
+import { EMPTY_ACCOUNT, loadAccount, loadAccountFast, saveAccount, type AccountDetails } from "@/lib/profile";
 import { LIPILA_PROVIDERS } from "@/lib/lipila";
 import { supabase } from "@/lib/supabase";
 import { fonts, ui } from "@/lib/theme";
@@ -28,15 +28,35 @@ export default function Settings() {
   const [confirmPhone, setConfirmPhone] = useState("");
   const [deleting, setDeleting] = useState(false);
 
+  const dirty = useRef(false); // true once the person has typed something: the server copy must never overwrite it
+  const firstLoad = useRef(true);
+
   useFocusEffect(
     useCallback(() => {
       let alive = true;
       (async () => {
+        if (edit === "1") setEditing(true);
+        // 1) show what is saved on the phone straight away (no waiting for Supabase)
+        if (firstLoad.current) {
+          const fast = await loadAccountFast();
+          if (!alive) return;
+          firstLoad.current = false;
+          if (!dirty.current) {
+            setForm(fast.details);
+            setSaved(fast.details);
+            setEditing(!hasDetails(fast.details) || edit === "1");
+          }
+          setLoginPhone(fast.loginPhone);
+          setLoading(false);
+        }
+        // 2) then quietly refresh from Supabase
         const [{ details }, session] = await Promise.all([loadAccount(), currentProfile()]);
         if (!alive) return;
-        setForm(details);
-        setSaved(details);
-        setEditing(!hasDetails(details) || edit === "1"); // nothing saved yet (or sent here to complete it): open the form; otherwise show the card
+        if (!dirty.current) {
+          setForm(details);
+          setSaved(details);
+          if (edit !== "1") setEditing(!hasDetails(details));
+        }
         setLoginPhone(String(session.user?.phone || session.profile?.phone || ""));
         setRider(session.rider);
         setAdmin(!!session.admin);
@@ -49,12 +69,14 @@ export default function Settings() {
   );
 
   function set<K extends keyof AccountDetails>(key: K, value: AccountDetails[K]) {
+    dirty.current = true;
     setForm((f) => ({ ...f, [key]: value }));
   }
 
   async function save() {
     try {
       const { savedOnServer } = await saveAccount(form);
+      dirty.current = false;
       setSaved(form);
       setEditing(false);
       setNote(savedOnServer ? "Saved to your account" : "Saved on this phone");
@@ -65,6 +87,7 @@ export default function Settings() {
   }
 
   function cancelEdit() {
+    dirty.current = false;
     setForm(saved);
     setEditing(false);
   }

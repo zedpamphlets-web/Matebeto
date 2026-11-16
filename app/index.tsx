@@ -10,32 +10,26 @@ import { fonts } from "@/lib/theme";
 import { currentProfile } from "@/lib/session";
 import { supabase } from "@/lib/supabase";
 import { isOnline, withTimeout } from "@/lib/network";
+import { markBootReady } from "@/lib/boot";
 import { SpinPressable } from "@/components/spin-pressable";
 
 export default function Welcome() {
   const [ready, setReady] = useState(false);
   const [offline, setOffline] = useState(false);
   const [going, setGoing] = useState(false);
-  const [splashDone, setSplashDone] = useState(false);
-  const doneRef = useRef(false);
-  const navRef = useRef<null | (() => void)>(null);
-
-  // never leave the opening animation half-way: wait for it to finish before moving on
+  // The logo overlay (LaunchSplash in _layout) stays on top until we are ready, then fades away over the next screen.
   function navigate(fn: () => void) {
-    if (doneRef.current) fn();
-    else navRef.current = fn;
-  }
-  function onSplashFinished() {
-    doneRef.current = true;
-    setSplashDone(true);
-    navRef.current?.();
-    navRef.current = null;
+    fn();
+    markBootReady();
   }
 
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
+      // start the account check at the same time as the internet check (saves a few seconds on slow networks)
+      const profileP = withTimeout(currentProfile());
+      profileP.catch(() => {});
       const online = await isOnline();
       if (cancelled) return;
       if (!online) {
@@ -51,7 +45,7 @@ export default function Welcome() {
         return;
       }
 
-      withTimeout(currentProfile())
+      profileP
         .then(({ user, admin, rider, preview }) => {
           if (cancelled) return;
           if (admin) navigate(() => router.replace("/admin"));
@@ -76,8 +70,12 @@ export default function Welcome() {
     };
   }, []);
 
-  if (!ready || !splashDone) {
-    return <BrandSplash onFinished={onSplashFinished} />;
+  useEffect(() => {
+    if (ready) markBootReady();
+  }, [ready]);
+
+  if (!ready) {
+    return <View style={styles.root} />;
   }
 
   if (offline) {

@@ -13,8 +13,8 @@
       "android"
     ],
     "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "cover",
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
       "backgroundColor": "#FFFFFF"
     },
     "androidStatusBar": {
@@ -29,8 +29,8 @@
       "bundleIdentifier": "com.siximages.matebeto",
       "buildNumber": "7",
       "splash": {
-        "image": "./assets/splash.png",
-        "resizeMode": "cover",
+        "image": "./assets/splash-icon.png",
+        "resizeMode": "contain",
         "backgroundColor": "#FFFFFF"
       }
     },
@@ -49,13 +49,22 @@
         "backgroundColor": "#FFFFFF"
       },
       "splash": {
-        "image": "./assets/splash.png",
-        "resizeMode": "cover",
+        "image": "./assets/splash-icon.png",
+        "resizeMode": "contain",
         "backgroundColor": "#FFFFFF"
       }
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 288,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFFFF"
+        }
+      ],
       "expo-secure-store",
       [
         "expo-location",
