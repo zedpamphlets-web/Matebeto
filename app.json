@@ -37,7 +37,6 @@
     "android": {
       "package": "com.siximages.matebeto",
       "versionCode": 8,
-      "googleServicesFile": "./google-services.json",
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE",
